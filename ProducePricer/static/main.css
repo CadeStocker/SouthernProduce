@@ -1,0 +1,60 @@
+/* color pallete
+#02ad52 - Bootstrap primary color
+#048ba8 - Bootstrap primary color
+#0C1B33
+#E0D2C3
+#172121
+black
+*/
+
+/* General body styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa; /* Light gray background */
+    margin: 0;
+    padding: 0;
+}
+
+/* Navbar styling */
+.navbar {
+    background-color: #02ad52 !important; /* Bootstrap primary color */
+    padding: 10px 20px;
+    color: white;
+    border: black 1px solid; /* Dark gray border */
+}
+
+
+
+/* Container styling */
+.container {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #ffffff; /* White background */
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Heading styling */
+h1 {
+    color: black; /* Bootstrap primary color */
+    font-weight: bold;
+}
+
+/* Paragraph styling */
+p {
+    color: #333333; /* Dark gray text */
+    line-height: 1.6;
+}
+
+/* Button styling */
+.btn {
+    background-color: #02ad52; /* Bootstrap primary color */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn:hover {
+    background-color: #028d3f; /* Darker shade on hover */
+}
