@@ -1,6 +1,7 @@
 from flask import Flask, redirect, render_template, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from flask_sqlalchemy import SQLAlchemy
+from models import User
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from forms import SignUp, Login
@@ -17,18 +18,6 @@ login_manager.login_view = 'login'  # Redirect to login page if not logged in
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-class User(db.Model, UserMixin):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(150), nullable=False)
-    last_name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
-
-    def __repr__(self):
-        return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
-
 
 # route for the root URL
 @login_required
