@@ -1,11 +1,37 @@
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, redirect, render_template, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from forms import SignUp, Login
-app = Flask(__name__)
 
-# secret key
+app = Flask(__name__)
 app.config['SECRET_KEY'] = '33d151aee312625a351143d17aeb358f'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+db = SQLAlchemy(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Redirect to login page if not logged in
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class User(db.Model, UserMixin):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(150), nullable=False)
+    last_name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
+
+    def __repr__(self):
+        return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
+
 
 # route for the root URL
+@login_required
 @app.route('/')
 @app.route('/home')
 def home():
@@ -21,8 +47,23 @@ def about():
 def signup():
     form = SignUp()
     if form.validate_on_submit():
-        # process the form data
+        # flash a message to the user
+        flash(f'Account created for {form.first_name.data}!', 'success')
+        # make a new user object for database
+        user = User(first_name=form.first_name.data,
+                    last_name=form.last_name.data,
+                    email=form.email.data,
+                    password=form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        # log the user in
+        login_user(user)
+        # flash a message to the user
+        flash(f'Welcome {form.first_name.data}!', 'success')
+        # redirect to the home page
         return redirect(url_for('home'))
+    # if the form is not submitted or is invalid, render the signup page
+    flash('Invalid Information.', 'danger')
     return render_template('signup.html', title='Sign Up', form=form)
 
 # login page
@@ -30,7 +71,16 @@ def signup():
 def login():
     form = Login()
     if form.validate_on_submit():
-        # process the form data
+        # check if the user exists
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and user.password == form.password.data:
+            # log the user in
+            login_user(user, remember=form.remember.data)
+            # flash a message to the user
+            flash(f'Welcome back {user.first_name}!', 'success')
+        else:
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+        # process the form data, then redirect to the home page
         return redirect(url_for('home'))
     return render_template('login.html', title='Login', form=form)
 
