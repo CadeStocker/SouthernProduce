@@ -1,11 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy
-from producepricer import db
+from producepricer import db, login_manager
 from flask_login import UserMixin
-from flask import Flask, redirect, render_template, url_for, flash
-from flask_login import LoginManager, login_user, login_required, logout_user
-from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect
 from enum import Enum
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id is None:
+        return None
+    return User.query.get(user_id)
 
 # might remove this
 class UnitOfWeight(Enum):
@@ -26,6 +27,11 @@ class Company(db.Model):
     raw_products = db.relationship('RawProduct', backref='company', lazy=True)
     cost_history = db.relationship('CostHistory', backref='company', lazy=True)
     price_history = db.relationship('PriceHistory', backref='company', lazy=True)
+    admin_email = db.Column(db.String(120), unique=True, nullable=False)
+
+    def __init__(self, name, admin_email):
+        self.admin_email = admin_email
+        self.name = name
 
     def __repr__(self):
         return f"Company('{self.name}')"
@@ -40,6 +46,13 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(60), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
+    def __init__(self, first_name, last_name, email, password, company_id):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.password = password
+        self.company_id = company_id
+
     def __repr__(self):
         return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
     
@@ -52,6 +65,13 @@ class Item(db.Model):
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, code, unit_of_weight, weight, company_id):
+        self.name = name
+        self.code = code
+        self.unit_of_weight = unit_of_weight
+        self.weight = weight
+        self.company_id = company_id
 
     def __repr__(self):
         return f"Item('{self.name}', '{self.unit_of_weight}', '{self.price_per_unit}')"
@@ -76,6 +96,12 @@ class RawProduct(db.Model):
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, unit_of_weight, weight, company_id):
+        self.name = name
+        self.unit_of_weight = unit_of_weight
+        self.weight = weight
+        self.company_id = company_id
 
     def __repr__(self):
         return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"

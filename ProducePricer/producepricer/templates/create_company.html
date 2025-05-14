@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Create Company{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Create Company</h1>
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <fieldset class="form-group">
+            <div class="form-group">
+                {{ form.name.label(class="form-control-label") }}
+                {% if form.name.errors %}
+                    {{ form.name(class="form-control form-control-lg is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for error in form.name.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ form.name(class="form-control form-control-lg") }}
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.admin_email.label(class="form-control-label") }}
+                {% if form.admin_email.errors %}
+                    {{ form.admin_email(class="form-control form-control-lg is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for error in form.admin_email.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ form.admin_email(class="form-control form-control-lg") }}
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary btn-lg") }}
+            </div>
+            <small class="text-muted">
+                <a href="{{ url_for('login') }}">Already have an account? Login here.</a>
+            </small>
+        </fieldset>
+    </form>
+    {% if error %}
+        <div class="alert alert-danger mt-3">
+            {{ error }}
+        </div>
+    {% endif %}
+    {% if success %}
+        <div class="alert alert-success mt-3">
+            {{ success }}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
