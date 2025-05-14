@@ -64,6 +64,7 @@ class Item(db.Model):
     code = db.Column(db.String(100), unique=True, nullable=False)
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
+    
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, name, code, unit_of_weight, weight, company_id):
@@ -116,3 +117,23 @@ class CostHistory(db.Model):
 
     def __repr__(self):
         return f"CostHistory('{self.cost}', '{self.date}')"
+    
+class Packaging(db.Model):
+    __tablename__ = 'packaging'
+    id = db.Column(db.Integer, primary_key=True)
+    packaging_type = db.Column(db.String(100), nullable=False)
+
+    def __repr__(self):
+        return f"Packaging('{self.box_cost}', '{self.bag_cost}', '{self.tray_andor_chemical_cost}', '{self.label_andor_tape_cost}')"
+    
+class PackagingCost(db.Model):
+    __tablename__ = 'packaging_cost'
+    id = db.Column(db.Integer, primary_key=True)
+    packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
+    box_cost = db.Column(db.Float, nullable=False)
+    bag_cost = db.Column(db.Float, nullable=False)
+    tray_andor_chemical_cost = db.Column(db.Float, nullable=False)
+    label_andor_tape_cost = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f"PackagingCost('{self.box_cost}', '{self.bag_cost}', '{self.tray_andor_chemical_cost}', '{self.label_andor_tape_cost}')"
