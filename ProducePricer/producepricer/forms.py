@@ -43,3 +43,7 @@ class CreateCompany(FlaskForm):
         if company:
             raise ValidationError('That company name is already in use. Please choose a different one.')
 
+# package is separate from it's prices
+class CreatePackage(FlaskForm):
+    name = StringField('Package Name', validators=[DataRequired()])
+    submit = SubmitField('Create Package')

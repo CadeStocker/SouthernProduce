@@ -157,8 +157,9 @@ class Packaging(db.Model):
     packaging_type = db.Column(db.String(100), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, packaging_type):
+    def __init__(self, packaging_type, company_id):
         self.packaging_type = packaging_type
+        self.company_id = company_id
 
     def __repr__(self):
         return f"Packaging('{self.packaging_type}')"

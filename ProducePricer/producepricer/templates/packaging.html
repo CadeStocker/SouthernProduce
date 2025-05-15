@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Packaging List{% endblock %}
+{% block content %}
+
+    <main>
+        <section>
+            <h2>Packaging List</h2>
+            {% if packaging %}
+                <ul>
+                    {% for item in packaging %}
+                        <li>{{ item.packaging_type }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No packaging information available.</p>
+            {% endif %}
+
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createPackageModal">
+                Add New Package
+            </button>
+            
+            <div class="modal fade" id="createPackageModal" tabindex="-1" role="dialog" aria-labelledby="createPackageModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="createPackageModalLabel">Create New Package</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <form method="POST" action="{{ url_for('add_package') }}">
+                            {{ form.hidden_tag() }}
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    {{ form.name.label(class="form-control-label") }}
+                                    {{ form.name(class="form-control") }}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+{% endblock %}

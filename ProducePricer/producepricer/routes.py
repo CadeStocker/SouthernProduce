@@ -1,6 +1,6 @@
-from flask import redirect, render_template, url_for, flash
-from producepricer.models import User, Company
-from producepricer.forms import SignUp, Login, CreateCompany
+from flask import redirect, render_template, request, url_for, flash
+from producepricer.models import User, Company, Packaging
+from producepricer.forms import CreatePackage, SignUp, Login, CreateCompany
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 
@@ -91,6 +91,36 @@ def create_company():
     # if the form is not submitted or is invalid, render the create company page
     flash('Invalid Information.', 'danger')
     return render_template('create_company.html', title='Create Company', form=form)
+
+# packaging page
+@app.route('/packaging')
+@login_required
+def packaging():
+    # get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    # get the packaging for the current user's company
+    packaging = company.packaging
+    # form
+    form = CreatePackage()
+    return render_template('packaging.html', title='Packaging', packaging=packaging, form=form)
+
+@app.route('/add_package', methods=['POST'])
+@login_required
+def add_package():
+    form = CreatePackage()
+    if form.validate_on_submit():
+        # flash a message to the user
+        flash(f'Package created for {form.name.data}!', 'success')
+        # make a new package object for database
+        package = Packaging(packaging_type=form.name.data,
+                            company_id=current_user.company_id)
+        db.session.add(package)
+        db.session.commit()
+        # redirect to the packaging page
+        return redirect(url_for('packaging'))
+    # if the form is not submitted or is invalid, render the packaging page
+    flash('Invalid Information.', 'danger')
+    return render_template('packaging.html', title='Packaging', form=form)
 
 # only true if this file is run directly
 if __name__ == '__main__':
