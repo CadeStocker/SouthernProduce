@@ -64,7 +64,10 @@
             {{ success }}
         </div>
     {% endif %}
-    <p class="mt-3">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+    <p class="mt-3"> Need to make an account? <a href="{{ url_for('signup') }}">Signup</a></p>
+
+    <p class="mt-3"> New Business? <a href="{{ url_for('create_company') }}">Signup</a></p>
+
 
 </div>
 {% endblock %}

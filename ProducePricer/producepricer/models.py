@@ -27,6 +27,9 @@ class Company(db.Model):
     raw_products = db.relationship('RawProduct', backref='company', lazy=True)
     cost_history = db.relationship('CostHistory', backref='company', lazy=True)
     price_history = db.relationship('PriceHistory', backref='company', lazy=True)
+    customers = db.relationship('Customer', backref='company', lazy=True)
+    packaging = db.relationship('Packaging', backref='company', lazy=True)
+    packaging_cost = db.relationship('PackagingCost', backref='company', lazy=True)
     admin_email = db.Column(db.String(120), unique=True, nullable=False)
 
     def __init__(self, name, admin_email):
@@ -64,7 +67,7 @@ class Item(db.Model):
     code = db.Column(db.String(100), unique=True, nullable=False)
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
-    
+    packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, name, code, unit_of_weight, weight, company_id):
@@ -85,6 +88,14 @@ class PriceHistory(db.Model):
     price = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+
+    def __init__(self, price_per_unit, date, company_id, item_id, customer_id):
+        self.item_id = item_id
+        self.price_per_unit = price_per_unit
+        self.date = date
+        self.company_id = company_id
+        self.customer_id = customer_id
 
     def __repr__(self):
         return f"PriceHistory('{self.price_per_unit}', '{self.date}')"
@@ -109,31 +120,65 @@ class RawProduct(db.Model):
     
 # COST IS BASED EXCLUSIVELY ON PRICE SENN SELLS TO US AT
 class CostHistory(db.Model):
+    __tablename__ = 'cost_history'
     id = db.Column(db.Integer, primary_key=True)
     raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
     cost = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
+    def __init__(self, cost, date, company_id, raw_product_id):
+        self.raw_product_id = raw_product_id
+        self.cost = cost
+        self.date = date
+        self.company_id = company_id
+
     def __repr__(self):
         return f"CostHistory('{self.cost}', '{self.date}')"
     
+class Customer(db.Model):
+    __tablename__ = 'customer'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, email, company_id):
+        self.company_id = company_id
+        self.name = name
+        self.email = email
+
+    def __repr__(self):
+        return f"Customer('{self.name}', '{self.email}')"
+
 class Packaging(db.Model):
     __tablename__ = 'packaging'
     id = db.Column(db.Integer, primary_key=True)
     packaging_type = db.Column(db.String(100), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, packaging_type):
+        self.packaging_type = packaging_type
 
     def __repr__(self):
-        return f"Packaging('{self.box_cost}', '{self.bag_cost}', '{self.tray_andor_chemical_cost}', '{self.label_andor_tape_cost}')"
+        return f"Packaging('{self.packaging_type}')"
     
 class PackagingCost(db.Model):
     __tablename__ = 'packaging_cost'
     id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
     box_cost = db.Column(db.Float, nullable=False)
     bag_cost = db.Column(db.Float, nullable=False)
     tray_andor_chemical_cost = db.Column(db.Float, nullable=False)
     label_andor_tape_cost = db.Column(db.Float, nullable=False)
+
+    def __init__(self, box_cost, bag_cost, tray_andor_chemical_cost, label_andor_tape_cost):
+        self.box_cost = box_cost
+        self.bag_cost = bag_cost
+        self.tray_andor_chemical_cost = tray_andor_chemical_cost
+        self.label_andor_tape_cost = label_andor_tape_cost
 
     def __repr__(self):
         return f"PackagingCost('{self.box_cost}', '{self.bag_cost}', '{self.tray_andor_chemical_cost}', '{self.label_andor_tape_cost}')"
