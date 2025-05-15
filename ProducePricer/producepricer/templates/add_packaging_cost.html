@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Add Packaging Cost{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Add Packaging Cost for {{ packaging.packaging_type }}</h1>
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.date.label(class="form-control-label") }}
+            {{ form.date(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.box_cost.label(class="form-control-label") }}
+            {{ form.box_cost(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.bag_cost.label(class="form-control-label") }}
+            {{ form.bag_cost(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.tray_andor_chemical_cost.label(class="form-control-label") }}
+            {{ form.tray_andor_chemical_cost(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.label_andor_tape_cost.label(class="form-control-label") }}
+            {{ form.label_andor_tape_cost(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+</div>
+{% endblock %}

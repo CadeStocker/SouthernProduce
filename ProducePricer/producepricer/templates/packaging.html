@@ -9,6 +9,19 @@
                 <ul>
                     {% for item in packaging %}
                         <li>{{ item.packaging_type }}</li>
+                        <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
+                        <ul>
+                            {% if packaging_costs[item.id] %}
+                                <li> Box Cost: {{ packaging_costs[item.id].box_cost }}</li>
+                                <li> Bag Cost: {{ packaging_costs[item.id].bag_cost }}</li>
+                                <li> Tray and/or Chemical Cost: {{ packaging_costs[item.id].tray_andor_chemical_cost }}</li>
+                                <li> Label and/or Tape Cost: {{ packaging_costs[item.id].label_andor_tape_cost }}</li>
+                                <li> Date of Price: {{ packaging_costs[item.id].date }}</li>
+                            {% else %}
+                                <li>No costs available for this packaging type.</li>
+                            {% endif %}
+                        </ul>
+                    </li>
                     {% endfor %}
                 </ul>
             {% else %}

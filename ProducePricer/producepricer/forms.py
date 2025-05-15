@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
+from wtforms import DateField, FloatField, SelectField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 from producepricer.models import User, Company
 
@@ -47,3 +47,11 @@ class CreateCompany(FlaskForm):
 class CreatePackage(FlaskForm):
     name = StringField('Package Name', validators=[DataRequired()])
     submit = SubmitField('Create Package')
+
+class AddPackagingCost(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()])
+    box_cost = FloatField('Box Cost', validators=[DataRequired()])
+    bag_cost = FloatField('Bag Cost', validators=[DataRequired()])
+    tray_andor_chemical_cost = FloatField('Tray and/or Chemical Cost', validators=[DataRequired()])
+    label_andor_tape_cost = FloatField('Label and/or Tape Cost', validators=[DataRequired()])
+    submit = SubmitField('Add Packaging Cost')

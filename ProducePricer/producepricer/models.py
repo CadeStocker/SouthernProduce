@@ -175,7 +175,10 @@ class PackagingCost(db.Model):
     tray_andor_chemical_cost = db.Column(db.Float, nullable=False)
     label_andor_tape_cost = db.Column(db.Float, nullable=False)
 
-    def __init__(self, box_cost, bag_cost, tray_andor_chemical_cost, label_andor_tape_cost):
+    def __init__(self, box_cost, bag_cost, tray_andor_chemical_cost, label_andor_tape_cost, company_id, packaging_id, date):
+        self.packaging_id = packaging_id
+        self.date = date
+        self.company_id = company_id
         self.box_cost = box_cost
         self.bag_cost = bag_cost
         self.tray_andor_chemical_cost = tray_andor_chemical_cost
