@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import DateField, FloatField, SelectField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
+from wtforms import DateField, FileField, FloatField, SelectField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 from producepricer.models import User, Company
 
@@ -55,3 +55,8 @@ class AddPackagingCost(FlaskForm):
     tray_andor_chemical_cost = FloatField('Tray and/or Chemical Cost', validators=[DataRequired()])
     label_andor_tape_cost = FloatField('Label and/or Tape Cost', validators=[DataRequired()])
     submit = SubmitField('Add Packaging Cost')
+
+# allow import of csv file for packaging costs
+class UploadPackagingCSV(FlaskForm):
+    file = FileField('Upload CSV', validators=[DataRequired()])
+    submit = SubmitField('Upload')

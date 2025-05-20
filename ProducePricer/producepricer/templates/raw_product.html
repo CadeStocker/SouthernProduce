@@ -1,0 +1,35 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/raw_product.html -->
+{% extends "base.html" %}
+{% block title %}Raw Product{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Raw Product List</h1>
+    {% if raw_products %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Raw Product</th>
+                    <th>Most Recent Cost</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for raw_product in raw_products %}
+                    <tr>
+                        <td>{{ raw_product.name }}</td>
+                        {% if raw_product_costs[raw_product.id] %}
+                            <td>${{ raw_product_costs[raw_product.id].cost }}</td>
+                            <td>{{ raw_product_costs[raw_product.id].date.strftime('%Y-%m-%d') }}</td>
+                        {% else %}
+                            <td colspan="2">None available</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No raw products available for your company.</p>
+    {% endif %}
+</div>
+{% endblock %}

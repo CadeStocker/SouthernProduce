@@ -28,6 +28,16 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/about">About</a>
                 </li>
+
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/packaging">Packaging</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/raw_product">Raw Products</a>
+                </li>
+                {% endif %}
+
             </ul>
         </div>
         <ul class="navbar-nav ml-auto">
@@ -43,6 +53,9 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/signup">Sign Up</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/create_company">Create Company</a>
                 </li>
             {% endif %}
     </nav>

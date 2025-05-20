@@ -105,8 +105,8 @@ class RawProduct(db.Model):
     __tablename__ = 'raw_product'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
-    weight = db.Column(db.Float, nullable=False)
+    #unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
+    #weight = db.Column(db.Float, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, name, unit_of_weight, weight, company_id):
