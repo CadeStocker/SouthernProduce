@@ -121,6 +121,7 @@ class RawProduct(db.Model):
 class Yield(db.Model):
     __tablename__ = 'yield'
     id = db.Column(db.Integer, primary_key=True)
+    # different yields can come from processing a raw product into different items
     raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     
