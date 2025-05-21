@@ -1,3 +1,4 @@
+import datetime
 from flask import redirect, render_template, request, url_for, flash
 from producepricer.models import CostHistory, PackagingCost, User, Company, Packaging
 from producepricer.forms import AddPackagingCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV
@@ -107,7 +108,7 @@ def packaging():
     packaging_costs = {}
     for pack in packaging:
         # get the most recent packaging cost for this packaging
-        most_recent_cost = PackagingCost.query.filter_by(packaging_id=pack.id).order_by(PackagingCost.date.desc(), PackagingCost.id.desc()).first()
+        most_recent_cost = PackagingCost.query.filter_by(packaging_id=pack.id).order_by(PackagingCost.date.desc()).order_by(PackagingCost.id.desc()).first()
         if most_recent_cost:
             packaging_costs[pack.id] = most_recent_cost
 
