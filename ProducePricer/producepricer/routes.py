@@ -397,6 +397,26 @@ def upload_raw_product_csv():
             return redirect(url_for('raw_product'))
     return render_template('upload_raw_product_csv.html', title='Upload Raw Product CSV', form=form)
 
+@app.route('/delete_raw_product/<int:raw_product_id>', methods=['POST'])
+@login_required
+def delete_raw_product(raw_product_id):
+    # Find the raw product in the database
+    raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
+    if not raw_product:
+        flash('Raw product not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('raw_product'))
+
+    # Delete all associated CostHistory entries
+    CostHistory.query.filter_by(raw_product_id=raw_product_id).delete()
+
+    # Delete the raw product itself
+    db.session.delete(raw_product)
+    db.session.commit()
+
+    flash(f'Raw product "{raw_product.name}" and its associated costs have been deleted.', 'success')
+    return redirect(url_for('raw_product'))
+
+
 # only true if this file is run directly
 if __name__ == '__main__':
     app.run(debug=True)
