@@ -1,109 +1,120 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/packaging.html -->
 {% extends "base.html" %}
 {% block title %}Packaging List{% endblock %}
 {% block content %}
 
-    <main>
-        <section>
-            <h2>Packaging List</h2>
-            {% if packaging %}
-                <ul>
-                    {% for item in packaging %}
-                        <li>{{ item.packaging_type }}</li>
+<div class="container">
+    <h1>Packaging List</h1>
+    <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#createPackageModal">
+        Add New Package
+    </button>
+    <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#importPackagesModal">
+        Import Packages
+    </button>
 
-                        <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
-                        </form>
+    {% if packaging %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Packaging Type</th>
+                    <th>Box Cost</th>
+                    <th>Bag Cost</th>
+                    <th>Tray / Chemical</th>
+                    <th>Labels / Tape</th>
+                    <th>Date of Cost</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in packaging %}
+                    <tr>
+                        <td>{{ item.packaging_type }}</td>
+                        {% if packaging_costs[item.id] %}
+                            <td>${{ packaging_costs[item.id].box_cost }}</td>
+                            <td>${{ packaging_costs[item.id].bag_cost }}</td>
+                            <td>${{ packaging_costs[item.id].tray_andor_chemical_cost }}</td>
+                            <td>${{ packaging_costs[item.id].label_andor_tape_cost }}</td>
+                            <td>{{ packaging_costs[item.id].date.strftime('%Y-%m-%d') }}</td>
+                        {% else %}
+                            <td colspan="5">No cost data available</td>
+                        {% endif %}
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
+                            </form>
+                            <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No packaging information available.</p>
+    {% endif %}
 
-                        <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
-                        <ul>
-                            {% if packaging_costs[item.id] %}
-                                <li> Box Cost: {{ packaging_costs[item.id].box_cost }}</li>
-                                <li> Bag Cost: {{ packaging_costs[item.id].bag_cost }}</li>
-                                <li> Tray and/or Chemical Cost: {{ packaging_costs[item.id].tray_andor_chemical_cost }}</li>
-                                <li> Label and/or Tape Cost: {{ packaging_costs[item.id].label_andor_tape_cost }}</li>
-                                <li> Date of Price: {{ packaging_costs[item.id].date }}</li>
+    <!-- Create Package Modal -->
+    <div class="modal fade" id="createPackageModal" tabindex="-1" role="dialog" aria-labelledby="createPackageModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createPackageModalLabel">Create New Package</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('add_package') }}">
+                    {{ create_package_form.hidden_tag() }}
+                    <div class="modal-body">
+                        <div class="form-group">
+                            {{ create_package_form.name.label(class="form-control-label") }}
+                            {{ create_package_form.name(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        {{ create_package_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Packages Modal -->
+    <div class="modal fade" id="importPackagesModal" tabindex="-1" role="dialog" aria-labelledby="importPackagesModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importPackagesModalLabel">Import Packages</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('upload_packaging_csv') }}" enctype="multipart/form-data">
+                    {{ upload_csv_form.hidden_tag() }}
+                    <div class="modal-body">
+                        <div class="form-group">
+                            {{ upload_csv_form.file.label(class="form-control-label") }}
+                            {% if upload_csv_form.file.errors %}
+                                {{ upload_csv_form.file(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in upload_csv_form.file.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
-                                <li>No costs available for this packaging type.</li>
+                                {{ upload_csv_form.file(class="form-control") }}
                             {% endif %}
-                        </ul>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>No packaging information available.</p>
-            {% endif %}
-
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createPackageModal">
-                Add New Package
-            </button>
-            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#importPackagesModal">
-                Import Packages
-            </button>
-            
-            <div class="modal fade" id="createPackageModal" tabindex="-1" role="dialog" aria-labelledby="createPackageModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="createPackageModalLabel">Create New Package</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
                         </div>
-                        <form method="POST" action="{{ url_for('add_package') }}">
-                            {{ create_package_form.hidden_tag() }}
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    {{ create_package_form.name.label(class="form-control-label") }}
-                                    {{ create_package_form.name(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                {{ create_package_form.submit(class="btn btn-primary") }}
-                            </div>
-                        </form>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Import Packages Modal -->
-            <div class="modal fade" id="importPackagesModal" tabindex="-1" role="dialog" aria-labelledby="importPackagesModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="importPackagesModalLabel">Import Packages</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <form method="POST" action="{{ url_for('upload_packaging_csv') }}" enctype="multipart/form-data">
-                            {{ upload_csv_form.hidden_tag() }}
-                            <div class="modal-body">
-                                <div class="form-group">
-                                    {{ upload_csv_form.file.label(class="form-control-label") }}
-                                    {% if upload_csv_form.file.errors %}
-                                        {{ upload_csv_form.file(class="form-control is-invalid") }}
-                                        <div class="invalid-feedback">
-                                            {% for error in upload_csv_form.file.errors %}
-                                                <span>{{ error }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        {{ upload_csv_form.file(class="form-control") }}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                {{ upload_csv_form.submit(class="btn btn-primary") }}
-                            </div>
-                        </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        {{ upload_csv_form.submit(class="btn btn-primary") }}
                     </div>
-                </div>
+                </form>
             </div>
-
-        </section>
-    </main>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

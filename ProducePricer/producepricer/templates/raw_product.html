@@ -5,13 +5,15 @@
 {% block content %}
 <div class="container">
     <h1>Raw Product List</h1>
+    <a href="#" class="btn btn-primary mb-3" data-toggle="modal" data-target="#addRawProductModal">Add New Raw Product</a>
     {% if raw_products %}
         <table class="table table-striped">
             <thead>
                 <tr>
                     <th>Raw Product</th>
                     <th>Most Recent Cost</th>
-                    <th>Date</th>
+                    <th>Date of Cost</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -24,12 +26,75 @@
                         {% else %}
                             <td colspan="2">None available</td>
                         {% endif %}
+                        <td>
+                            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addCostModal-{{ raw_product.id }}">
+                                Add Cost
+                            </button>
+                        </td>
                     </tr>
+
+                    <!-- Add Cost Modal for this Raw Product -->
+                    <div class="modal fade" id="addCostModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ raw_product.id }}" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addCostModalLabel-{{ raw_product.id }}">Add Cost for {{ raw_product.name }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <form method="POST" action="{{ url_for('add_raw_product_cost', raw_product_id=raw_product.id) }}">
+                                    {{ form.hidden_tag() }}
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            {{ cost_form.cost.label(class="form-control-label") }}
+                                            {{ cost_form.cost(class="form-control") }}
+                                        </div>
+                                        <div class="form-group">
+                                            {{ cost_form.date.label(class="form-control-label") }}
+                                            {{ cost_form.date(class="form-control") }}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Add Cost</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
         <p>No raw products available for your company.</p>
     {% endif %}
+</div>
+
+<!-- Add Raw Product Modal -->
+<div class="modal fade" id="addRawProductModal" tabindex="-1" role="dialog" aria-labelledby="addRawProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addRawProductForm" method="POST" action="{{ url_for('add_raw_product') }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ form.name.label(class="form-control-label") }}
+                        {{ form.name(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Raw Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

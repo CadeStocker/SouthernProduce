@@ -60,3 +60,14 @@ class AddPackagingCost(FlaskForm):
 class UploadPackagingCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
+
+# create new raw product
+class AddRawProduct(FlaskForm):
+    name = StringField('Raw Product Name', validators=[DataRequired()])
+    submit = SubmitField('Add Raw Product')
+
+# raw product cost
+class AddRawProductCost(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()])
+    cost = FloatField('Cost', validators=[DataRequired()])
+    submit = SubmitField('Add Raw Product Cost')

@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, PackagingCost, User, Company, Packaging
-from producepricer.forms import AddPackagingCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV
+from producepricer.models import CostHistory, PackagingCost, RawProduct, User, Company, Packaging
+from producepricer.forms import AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -263,19 +263,73 @@ def upload_packaging_csv():
 @app.route('/raw_product')
 @login_required
 def raw_product():
-    # get the current user's company
+    # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
-    # get the raw products for the current user's company
-    raw_products = company.raw_products
-    # get the most recent cost for each raw product
+    # Get the raw products for the current user's company
+    raw_products = company.raw_products if company else []
+    # Get the most recent cost for each raw product
     raw_product_costs = {}
     for raw_product in raw_products:
-        # get the most recent cost for this raw product
-        most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc()).first()
+        most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc()).order_by(CostHistory.id.desc()).first()
         if most_recent_cost:
             raw_product_costs[raw_product.id] = most_recent_cost
 
-    return render_template('raw_product.html', title='Raw Product', raw_products=raw_products, raw_product_costs=raw_product_costs)
+    # Pass the AddRawProduct form to the template
+    form = AddRawProduct()
+    # raw product cost form
+    cost_form = AddRawProductCost()
+
+    return render_template(
+        'raw_product.html',
+        title='Raw Product',
+        raw_products=raw_products,
+        raw_product_costs=raw_product_costs,
+        form=form,
+        cost_form=cost_form
+    )
+
+# Add a new raw product
+@app.route('/add_raw_product', methods=['POST'])
+@login_required
+def add_raw_product():
+    form = AddRawProduct()
+    if form.validate_on_submit():
+        # Create a new raw product object
+        raw_product = RawProduct(
+            name=form.name.data,
+            company_id=current_user.company_id
+        )
+
+        # Add the raw product to the database
+        db.session.add(raw_product)
+        db.session.commit()
+
+        # tell the user the raw product was added
+        flash(f'Raw product "{form.name.data}" has been added successfully!', 'success')
+        return redirect(url_for('raw_product'))
+    flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('raw_product'))
+
+# Add a new raw product cost
+@app.route('/add_raw_product_cost/<int:raw_product_id>', methods=['POST'])
+@login_required
+def add_raw_product_cost(raw_product_id):
+    form = AddRawProductCost()
+    if form.validate_on_submit():
+        # Create a new cost history entry
+        cost_history = CostHistory(
+            raw_product_id=raw_product_id,
+            cost=form.cost.data,
+            date=form.date.data,
+            company_id=current_user.company_id
+        )
+        db.session.add(cost_history)
+        db.session.commit()
+        flash(f'Cost added for raw product!', 'success')
+    else:
+        flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('raw_product'))
+
 
 # only true if this file is run directly
 if __name__ == '__main__':
