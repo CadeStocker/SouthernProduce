@@ -274,9 +274,8 @@ def raw_product():
         if most_recent_cost:
             raw_product_costs[raw_product.id] = most_recent_cost
 
-    # Pass the AddRawProduct form to the template
+    # Forms
     form = AddRawProduct()
-    # raw product cost form
     cost_form = AddRawProductCost()
     upload_raw_product_csv_form = UploadRawProductCSV()
 
