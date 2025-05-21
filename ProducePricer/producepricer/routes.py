@@ -171,6 +171,27 @@ def add_packaging_cost(packaging_id):
     flash('Invalid Information.', 'danger')
     return render_template('add_packaging_cost.html', title='Add Packaging Cost', form=form, packaging=packaging)
 
+# delete a package
+@app.route('/delete_packaging/<int:packaging_id>', methods=['POST'])
+@login_required
+def delete_packaging(packaging_id):
+    # Find the packaging in the database
+    packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first()
+    if not packaging:
+        flash('Packaging not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('packaging'))
+
+    # Delete all associated PackagingCost entries
+    PackagingCost.query.filter_by(packaging_id=packaging_id).delete()
+
+    # Delete the packaging itself
+    db.session.delete(packaging)
+    db.session.commit()
+
+    flash(f'Packaging "{packaging.packaging_type}" and its associated costs have been deleted.', 'success')
+    return redirect(url_for('packaging'))
+
+
 @app.route('/upload_packaging_csv', methods=['GET', 'POST'])
 @login_required
 def upload_packaging_csv():

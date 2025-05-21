@@ -9,6 +9,12 @@
                 <ul>
                     {% for item in packaging %}
                         <li>{{ item.packaging_type }}</li>
+
+                        <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
+                        </form>
+
                         <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
                         <ul>
                             {% if packaging_costs[item.id] %}
