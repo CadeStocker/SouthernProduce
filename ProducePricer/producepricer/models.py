@@ -117,7 +117,23 @@ class RawProduct(db.Model):
 
     def __repr__(self):
         return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"
+
+class Yield(db.Model):
+    __tablename__ = 'yield'
+    id = db.Column(db.Integer, primary_key=True)
+    raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     
+
+    def __init__(self, yield_percent, date, company_id, raw_product_id):
+        self.raw_product_id = raw_product_id
+        self.yield_percent = yield_percent
+        self.date = date
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"Yield('{self.yield_percent}', '{self.date}')"
+
 # COST IS BASED EXCLUSIVELY ON PRICE SENN SELLS TO US AT
 class CostHistory(db.Model):
     __tablename__ = 'cost_history'

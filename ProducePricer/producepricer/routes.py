@@ -191,17 +191,9 @@ def delete_packaging(packaging_id):
     flash(f'Packaging "{packaging.packaging_type}" and its associated costs have been deleted.', 'success')
     return redirect(url_for('packaging'))
 
-
 @app.route('/upload_packaging_csv', methods=['GET', 'POST'])
 @login_required
 def upload_packaging_csv():
-
-    # make sure the columns are all in the csv
-    required_columns = ['name', 'box_cost', 'bag_cost', 'tray_andor_chemical_cost', 'label_andor_tape_cost']
-    if not all(column in df.columns for column in required_columns):
-        flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
-        return redirect(request.url)
-
     form = UploadPackagingCSV()
     if form.validate_on_submit():
         # Check if the post request has the file part
@@ -218,11 +210,24 @@ def upload_packaging_csv():
             if not os.path.exists(app.config['UPLOAD_FOLDER']):
                 os.makedirs(app.config['UPLOAD_FOLDER'])
 
+            # Save the file securely
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+
             # Read the CSV file into a pandas DataFrame
-            df = pd.read_csv(filepath)
+            try:
+                df = pd.read_csv(filepath)
+            except Exception as e:
+                flash(f'Error reading CSV file: {e}', 'danger')
+                return redirect(request.url)
+
+            # Make sure the columns are all in the CSV
+            required_columns = ['name', 'box_cost', 'bag_cost', 'tray_andor_chemical_cost', 'label_andor_tape_cost']
+            if not all(column in df.columns for column in required_columns):
+                flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+                return redirect(request.url)
+
             # Process the DataFrame and add packaging costs to the database
             for index, row in df.iterrows():
                 # Clean and convert cost values
@@ -254,7 +259,6 @@ def upload_packaging_csv():
             flash('Packaging costs added successfully!', 'success')
             return redirect(url_for('packaging'))
     return render_template('upload_packaging_csv.html', title='Upload Packaging CSV', form=form)
-
 
 @app.route('/raw_product')
 @login_required
