@@ -71,3 +71,7 @@ class AddRawProductCost(FlaskForm):
     date = DateField('Date', validators=[DataRequired()])
     cost = FloatField('Cost', validators=[DataRequired()])
     submit = SubmitField('Add Raw Product Cost')
+
+class UploadRawProductCSV(FlaskForm):
+    file = FileField('Upload CSV', validators=[DataRequired()])
+    submit = SubmitField('Upload')

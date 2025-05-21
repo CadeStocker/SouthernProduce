@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
 from producepricer.models import CostHistory, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV
+from producepricer.forms import AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -278,6 +278,7 @@ def raw_product():
     form = AddRawProduct()
     # raw product cost form
     cost_form = AddRawProductCost()
+    upload_raw_product_csv_form = UploadRawProductCSV()
 
     return render_template(
         'raw_product.html',
@@ -285,7 +286,8 @@ def raw_product():
         raw_products=raw_products,
         raw_product_costs=raw_product_costs,
         form=form,
-        cost_form=cost_form
+        cost_form=cost_form,
+        upload_csv_form=upload_raw_product_csv_form
     )
 
 # Add a new raw product
@@ -330,6 +332,71 @@ def add_raw_product_cost(raw_product_id):
         flash('Invalid data submitted.', 'danger')
     return redirect(url_for('raw_product'))
 
+
+# raw product import
+@app.route('/upload_raw_product_csv', methods=['GET', 'POST'])
+@login_required
+def upload_raw_product_csv():
+    form = UploadRawProductCSV()
+    if form.validate_on_submit():
+        # Check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['file']
+        # If user does not select a file, browser also submits an empty part without filename
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file:
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
+            # Save the file securely
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            # Read the CSV file into a pandas DataFrame
+            try:
+                df = pd.read_csv(filepath)
+            except Exception as e:
+                flash(f'Error reading CSV file: {e}', 'danger')
+                return redirect(request.url)
+
+            # Make sure the columns are all in the CSV
+            required_columns = ['name', 'cost']
+            if not all(column in df.columns for column in required_columns):
+                flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+                return redirect(request.url)
+
+            # Process the DataFrame and add raw products to the database
+            for index, row in df.iterrows():
+                # Clean and convert cost values
+                name = row['name'].strip()
+                cost = float(row['cost'].replace('$', '').strip())
+
+                # Check if the raw product already exists
+                raw_product = RawProduct.query.filter_by(name=name, company_id=current_user.company_id).first()
+                if raw_product is None:
+                    raw_product = RawProduct(name=name, company_id=current_user.company_id)
+                    db.session.add(raw_product)
+                    db.session.commit()
+
+                # Add a cost history entry for the raw product
+                cost_history = CostHistory(
+                    raw_product_id=raw_product.id,
+                    cost=cost,
+                    date=datetime.datetime.utcnow(),
+                    company_id=current_user.company_id
+                )
+                db.session.add(cost_history)
+                db.session.commit()
+
+            flash('Raw products imported successfully!', 'success')
+            return redirect(url_for('raw_product'))
+    return render_template('upload_raw_product_csv.html', title='Upload Raw Product CSV', form=form)
 
 # only true if this file is run directly
 if __name__ == '__main__':
