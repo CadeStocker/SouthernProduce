@@ -31,6 +31,9 @@
             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createPackageModal">
                 Add New Package
             </button>
+            <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#importPackagesModal">
+                Import Packages
+            </button>
             
             <div class="modal fade" id="createPackageModal" tabindex="-1" role="dialog" aria-labelledby="createPackageModalLabel" aria-hidden="true">
                 <div class="modal-dialog" role="document">
@@ -42,21 +45,58 @@
                             </button>
                         </div>
                         <form method="POST" action="{{ url_for('add_package') }}">
-                            {{ form.hidden_tag() }}
+                            {{ create_package_form.hidden_tag() }}
                             <div class="modal-body">
                                 <div class="form-group">
-                                    {{ form.name.label(class="form-control-label") }}
-                                    {{ form.name(class="form-control") }}
+                                    {{ create_package_form.name.label(class="form-control-label") }}
+                                    {{ create_package_form.name(class="form-control") }}
                                 </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                {{ form.submit(class="btn btn-primary") }}
+                                {{ create_package_form.submit(class="btn btn-primary") }}
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
+            
+            <!-- Import Packages Modal -->
+            <div class="modal fade" id="importPackagesModal" tabindex="-1" role="dialog" aria-labelledby="importPackagesModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="importPackagesModalLabel">Import Packages</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <form method="POST" action="{{ url_for('upload_packaging_csv') }}" enctype="multipart/form-data">
+                            {{ upload_csv_form.hidden_tag() }}
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    {{ upload_csv_form.file.label(class="form-control-label") }}
+                                    {% if upload_csv_form.file.errors %}
+                                        {{ upload_csv_form.file(class="form-control is-invalid") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in upload_csv_form.file.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ upload_csv_form.file(class="form-control") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                {{ upload_csv_form.submit(class="btn btn-primary") }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </section>
     </main>
 

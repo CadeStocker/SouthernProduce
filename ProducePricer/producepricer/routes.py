@@ -107,13 +107,21 @@ def packaging():
     packaging_costs = {}
     for pack in packaging:
         # get the most recent packaging cost for this packaging
-        most_recent_cost = PackagingCost.query.filter_by(packaging_id=pack.id).order_by(PackagingCost.date.desc()).first()
+        most_recent_cost = PackagingCost.query.filter_by(packaging_id=pack.id).order_by(PackagingCost.date.desc(), PackagingCost.id.desc()).first()
         if most_recent_cost:
             packaging_costs[pack.id] = most_recent_cost
 
-    # form
-    form = CreatePackage()
-    return render_template('packaging.html', title='Packaging', packaging=packaging, form=form, packaging_costs=packaging_costs)
+    # forms
+    create_package_form = CreatePackage()
+    upload_packaging_csv_form = UploadPackagingCSV()
+    return render_template(
+            'packaging.html',
+            title='Packaging',
+            packaging=packaging,
+            create_package_form=create_package_form,
+            upload_csv_form=upload_packaging_csv_form,
+            packaging_costs=packaging_costs
+        )
 
 @app.route('/add_package', methods=['POST'])
 @login_required
@@ -136,7 +144,9 @@ def add_package():
 @app.route('/add_packaging_cost/<int:packaging_id>', methods=['GET', 'POST'])
 @login_required
 def add_packaging_cost(packaging_id):
+    # form for the page
     form = AddPackagingCost()
+    # find the packaging in the database
     packaging = Packaging.query.filter_by(id=packaging_id).first()
     if packaging is None:
         flash('Packaging not found.', 'danger')
@@ -163,37 +173,66 @@ def add_packaging_cost(packaging_id):
 @app.route('/upload_packaging_csv', methods=['GET', 'POST'])
 @login_required
 def upload_packaging_csv():
+
+    # make sure the columns are all in the csv
+    required_columns = ['name', 'box_cost', 'bag_cost', 'tray_andor_chemical_cost', 'label_andor_tape_cost']
+    if not all(column in df.columns for column in required_columns):
+        flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+        return redirect(request.url)
+
     form = UploadPackagingCSV()
     if form.validate_on_submit():
-        # check if the post request has the file part
+        # Check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part', 'danger')
             return redirect(request.url)
         file = request.files['file']
-        # if user does not select file, browser also submit an empty part without filename
+        # If user does not select a file, browser also submits an empty part without filename
         if file.filename == '':
             flash('No selected file', 'danger')
             return redirect(request.url)
         if file:
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            # read the csv file into a pandas dataframe
+            # Read the CSV file into a pandas DataFrame
             df = pd.read_csv(filepath)
-            # process the dataframe and add packaging costs to the database
+            # Process the DataFrame and add packaging costs to the database
             for index, row in df.iterrows():
-                packaging_cost = PackagingCost(date=row['date'],
-                                               box_cost=row['box_cost'],
-                                               bag_cost=row['bag_cost'],
-                                               tray_andor_chemical_cost=row['tray_andor_chemical_cost'],
-                                               label_andor_tape_cost=row['label_andor_tape_cost'],
-                                               packaging_id=row['packaging_id'],
-                                               company_id=current_user.company_id)
+                # Clean and convert cost values
+                box_cost = float(row['box_cost'].replace('$', '').strip())
+                bag_cost = float(row['bag_cost'].replace('$', '').strip())
+                tray_andor_chemical_cost = float(row['tray_andor_chemical_cost'].replace('$', '').strip())
+                label_andor_tape_cost = float(row['label_andor_tape_cost'].replace('$', '').strip())
+
+                # Check if the package already exists
+                packaging = Packaging.query.filter_by(packaging_type=row['name'], company_id=current_user.company_id).first()
+                if packaging is None:
+                    packaging = Packaging(packaging_type=row['name'], company_id=current_user.company_id)
+                    db.session.add(packaging)
+                    db.session.commit()
+
+                # Create a new packaging cost object
+                packaging_cost = PackagingCost(
+                    date=pd.Timestamp.now(),
+                    box_cost=box_cost,
+                    bag_cost=bag_cost,
+                    tray_andor_chemical_cost=tray_andor_chemical_cost,
+                    label_andor_tape_cost=label_andor_tape_cost,
+                    packaging_id=packaging.id,
+                    company_id=current_user.company_id
+                )
                 db.session.add(packaging_cost)
-            db.session.commit()
+                db.session.commit()
+
             flash('Packaging costs added successfully!', 'success')
             return redirect(url_for('packaging'))
     return render_template('upload_packaging_csv.html', title='Upload Packaging CSV', form=form)
+
 
 @app.route('/raw_product')
 @login_required
