@@ -141,7 +141,7 @@ class CostHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
     cost = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.Date, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, cost, date, company_id, raw_product_id):
@@ -184,7 +184,7 @@ class Packaging(db.Model):
 class PackagingCost(db.Model):
     __tablename__ = 'packaging_cost'
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, nullable=False)
+    date = db.Column(db.Date, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
     box_cost = db.Column(db.Float, nullable=False)

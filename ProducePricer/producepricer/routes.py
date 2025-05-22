@@ -270,7 +270,17 @@ def raw_product():
     # Get the most recent cost for each raw product
     raw_product_costs = {}
     for raw_product in raw_products:
-        most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc()).order_by(CostHistory.id.desc()).first()
+        most_recent_cost = (
+            CostHistory.query
+            .filter_by(raw_product_id=raw_product.id)
+            .order_by(
+                CostHistory.date.desc(),   # newest date first
+                CostHistory.id.desc()
+            )     # for ties, highest id (i.e. last inserted) first
+            .first()
+        )
+        #most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc(), CostHistory.id.desc()).first()
+        # most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc()),(CostHistory.id.desc()).first()
         if most_recent_cost:
             raw_product_costs[raw_product.id] = most_recent_cost
 
