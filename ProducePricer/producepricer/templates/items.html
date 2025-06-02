@@ -38,13 +38,9 @@
             </td>
 
             <td>
-                {% if item.raw_products %}
-                    {% for raw_product in item.raw_products %}
-                        {{ raw_product.name }}{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                {% else %}
-                    None
-                {% endif %}
+              {% for rp in item.raw_products %}
+                {{ rp.name }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
             </td>
 
             <td>{{ item.weight }} {{ item.unit_of_weight }}</td>

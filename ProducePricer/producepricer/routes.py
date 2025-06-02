@@ -445,6 +445,11 @@ def items():
         p.id: p.packaging_type
         for p in Packaging.query.filter_by(company_id=current_user.company_id).all()
     }
+
+    raw_product_lookup = {
+        rp.id: rp.name
+        for rp in RawProduct.query.filter_by(company_id=current_user.company_id).all()
+    }
     
     # render the page
     return render_template(
@@ -452,6 +457,7 @@ def items():
         title='Items',
         items=items,
         packaging_lookup=packaging_lookup,
+        raw_product_lookup=raw_product_lookup,
         #packaging=packaging,
         #item_costs=item_costs,
         form=form,
@@ -474,8 +480,16 @@ def add_item():
             unit_of_weight=form.unit_of_weight.data,
             weight=form.weight.data,
             packaging_id=form.packaging.data,
-            company_id=current_user.company_id
+            company_id=current_user.company_id,
+            #raw_product_ids=form.raw_products.data  # Store selected raw product IDs
         )
+
+        # add the selected raw products to the item
+        for raw_product_id in form.raw_products.data:
+            raw_product = RawProduct.query.get(raw_product_id)
+            if raw_product:
+                item.raw_products.append(raw_product)
+                
         # add the item to the database
         db.session.add(item)
         db.session.commit()

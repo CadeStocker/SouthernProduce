@@ -64,9 +64,16 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
     
+
+item_raw = db.Table('item_raw',
+    db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True),
+    db.Column('raw_product_id', db.Integer, db.ForeignKey('raw_product.id'), primary_key=True)
+)
+
 # table of each item we sell
 class Item(db.Model):
     __tablename__ = 'item'
+    raw_products = db.relationship('RawProduct', secondary=item_raw, backref=db.backref('items', lazy='dynamic'))
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     code = db.Column(db.String(100), unique=True, nullable=False)
@@ -74,10 +81,11 @@ class Item(db.Model):
     weight = db.Column(db.Float, nullable=False)
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False) # changed to string
     # added to store raw product IDs for items that are made from multiple raw products
-    raw_product_ids = db.Column(db.String(100), nullable=True)  # Comma-separated list of raw product IDs
+    #raw_product_ids = db.Column(db.ARRAY(db.Integer), nullable=True)  # Array of raw product IDs
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, name, code, unit_of_weight, weight, packaging_id, company_id):
+        #self.raw_product_ids = db.cast(raw_product_ids, db.ARRAY(db.Integer)) if raw_product_ids is not None else db.cast([], db.ARRAY(db.Integer))
         self.name = name
         self.code = code
         self.unit_of_weight = unit_of_weight
@@ -87,6 +95,7 @@ class Item(db.Model):
 
     def __repr__(self):
         return f"Item('{self.name}', '{self.code}', '{self.unit_of_weight}', '{self.weight}')"
+
 
 # store entries for items
 class ItemInfo(db.Model):
