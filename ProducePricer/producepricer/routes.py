@@ -445,6 +445,7 @@ def items():
         p.id: p.packaging_type
         for p in Packaging.query.filter_by(company_id=current_user.company_id).all()
     }
+    
     # render the page
     return render_template(
         'items.html',

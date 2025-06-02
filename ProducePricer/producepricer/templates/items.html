@@ -34,7 +34,7 @@
             <td>{{ item.code }}</td>
 
             <td>
-                {{ packaging_lookup[item.packaging_id] }}
+                {{ packaging_lookup.get(item.packaging_id, 'No packaging found') }}
             </td>
 
             <td>

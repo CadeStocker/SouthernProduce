@@ -72,7 +72,7 @@ class Item(db.Model):
     code = db.Column(db.String(100), unique=True, nullable=False)
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
-    packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
+    packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False) # changed to string
     # added to store raw product IDs for items that are made from multiple raw products
     raw_product_ids = db.Column(db.String(100), nullable=True)  # Comma-separated list of raw product IDs
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
