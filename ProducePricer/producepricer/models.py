@@ -17,6 +17,11 @@ class UnitOfWeight(Enum):
     PINT = 'pint'
     LITER = 'liter'
 
+class ItemDesignation(Enum):
+    SNACKPACK = 'snackpack'
+    RETAIL = 'retail'
+    FOODSERVICE = 'foodservice'
+
 # table of companies
 class Company(db.Model):
     __tablename__ = 'company'
@@ -68,37 +73,73 @@ class Item(db.Model):
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
+    # added to store raw product IDs for items that are made from multiple raw products
+    raw_product_ids = db.Column(db.String(100), nullable=True)  # Comma-separated list of raw product IDs
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, name, code, unit_of_weight, weight, company_id):
+    def __init__(self, name, code, unit_of_weight, weight, packaging_id, company_id):
         self.name = name
         self.code = code
         self.unit_of_weight = unit_of_weight
         self.weight = weight
+        self.packaging_id = packaging_id
         self.company_id = company_id
 
     def __repr__(self):
-        return f"Item('{self.name}', '{self.unit_of_weight}', '{self.price_per_unit}')"
+        return f"Item('{self.name}', '{self.code}', '{self.unit_of_weight}', '{self.weight}')"
+
+# store entries for items
+class ItemInfo(db.Model):
+    __tablename__ = 'item_info'
+    id = db.Column(db.Integer, primary_key=True)
+    product_yield = db.Column(db.Float, nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    labor_hours = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, product_yield, item_id, labor_hours, date, company_id):
+        self.product_yield = product_yield
+        self.item_id = item_id
+        self.labor_hours = labor_hours
+        self.date = date
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"ItemInfo('{self.product_yield}', '{self.labor_hours}', '{self.date}', '{self.company_id}')"
+
+# store entries of labor cost
+class LaborCost(db.Model):
+    __tablename__ = 'labor_cost'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    labor_cost = db.Column(db.Float, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, date, labor_cost, company_id):
+        self.date = date
+        self.labor_cost = labor_cost
+        self.company_id = company_id
+        
+    def __repr__(self):
+        return f"LaborCost('{self.date}', '{self.labor_cost}')"
 
 # table of entries for price of each item
 class PriceHistory(db.Model):
     __tablename__ = 'price_history'
     id = db.Column(db.Integer, primary_key=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    item_code = db.Column(db.String(100), nullable=False)
+    # packaging_id is already in item table
+    #packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
+    packaging_cost = db.Column(db.Float, nullable=False) # just store the cost of the packaging
+    item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
+    raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
+    ranch = db.Column(db.Boolean, nullable=False)
+    case_weight = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
 
-    def __init__(self, price_per_unit, date, company_id, item_id, customer_id):
-        self.item_id = item_id
-        self.price_per_unit = price_per_unit
-        self.date = date
-        self.company_id = company_id
-        self.customer_id = customer_id
-
-    def __repr__(self):
-        return f"PriceHistory('{self.price_per_unit}', '{self.date}')"
 
 # table to hold each raw product's information
 class RawProduct(db.Model):
@@ -118,22 +159,6 @@ class RawProduct(db.Model):
     def __repr__(self):
         return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"
 
-class Yield(db.Model):
-    __tablename__ = 'yield'
-    id = db.Column(db.Integer, primary_key=True)
-    # different yields can come from processing a raw product into different items
-    raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    
-
-    def __init__(self, yield_percent, date, company_id, raw_product_id):
-        self.raw_product_id = raw_product_id
-        self.yield_percent = yield_percent
-        self.date = date
-        self.company_id = company_id
-
-    def __repr__(self):
-        return f"Yield('{self.yield_percent}', '{self.date}')"
 
 # COST IS BASED EXCLUSIVELY ON PRICE SENN SELLS TO US AT
 class CostHistory(db.Model):

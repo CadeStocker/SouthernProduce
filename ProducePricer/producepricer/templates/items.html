@@ -1,0 +1,121 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/items.html -->
+{% extends "base.html" %}
+{% block title %}Items List{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Items List</h1>
+
+  <!-- Add / Import Buttons -->
+  <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#createItemModal">
+    Add New Item
+  </button>
+  <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#importItemsModal">
+    Import Items
+  </button>
+
+  {% if items %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Item Code</th>
+          <th>Packaging Type</th>
+          <th>Raw Product(s)</th>
+          <th>Weight</th>
+
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>{{ item.name }}</td>
+
+            <td>{{ item.code }}</td>
+
+            <td>
+                {{ packaging_lookup[item.packaging_id] }}
+            </td>
+
+            <td>
+                {% if item.raw_products %}
+                    {% for raw_product in item.raw_products %}
+                        {{ raw_product.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    None
+                {% endif %}
+            </td>
+
+            <td>{{ item.weight }} {{ item.unit_of_weight }}</td>
+          </tr>
+
+          
+
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No items available for your company.</p>
+  {% endif %}
+</div>
+
+<!-- Create Item Modal -->
+<div class="modal fade" id="createItemModal" tabindex="-1" role="dialog"
+     aria-labelledby="createItemModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createItemModalLabel">Add New Item</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_item') }}">
+        {{ form.hidden_tag() }}
+        <div class="modal-body">
+          <div class="form-group">
+            {{ form.name.label(class="form-control-label") }}
+            {{ form.name(class="form-control") }}
+          </div>
+          <div class="form-group">
+            {{ form.item_code.label(class="form-control-label") }}
+            {{ form.item_code(class="form-control") }}
+          </div>
+            <div class="form-group">
+                {{ form.unit_of_weight.label(class="form-control-label") }}
+                {{ form.unit_of_weight(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.weight.label(class="form-control-label") }}
+                {{ form.weight(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.packaging.label(class="form-control-label") }}
+                {{ form.packaging(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.raw_products.label(class="form-control-label") }}
+                {{ form.raw_products(class="form-control") }}
+            </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          {{ form.submit(class="btn btn-primary") }}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Import Items Modal -->
+<div class="modal fade" id="importItemsModal" tabindex="-1" role="dialog"
+     aria-labelledby="importItemsModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importItemsModalLabel">Import Items CSV</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

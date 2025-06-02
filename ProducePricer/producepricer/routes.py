@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadPackagingCSV, UploadRawProductCSV
+from producepricer.models import CostHistory, Item, PackagingCost, RawProduct, User, Company, Packaging
+from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -426,6 +426,65 @@ def delete_raw_product(raw_product_id):
     flash(f'Raw product "{raw_product.name}" and its associated costs have been deleted.', 'success')
     return redirect(url_for('raw_product'))
 
+# route for items page
+@app.route('/items')
+@login_required
+def items():
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    form = AddItem()
+    form.packaging.choices = [(pack.id, pack.packaging_type) for pack in company.packaging] if company else []
+    form.raw_products.choices = [(raw.id, raw.name) for raw in company.raw_products] if company else []
+    upload_item_csv = UploadItemCSV()
+    # get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    # get the items from the current user's company
+    items = company.items if company else []
+    #packaging = Packaging.query.filter_by(company_id=current_user.company_id).all()
+    
+    packaging_lookup = {
+        p.id: p.packaging_type
+        for p in Packaging.query.filter_by(company_id=current_user.company_id).all()
+    }
+    # render the page
+    return render_template(
+        'items.html',
+        title='Items',
+        items=items,
+        packaging_lookup=packaging_lookup,
+        #packaging=packaging,
+        #item_costs=item_costs,
+        form=form,
+        upload_item_csv=upload_item_csv
+    )
+    
+@app.route('/add_item', methods=['POST'])
+@login_required
+def add_item():
+    # add item form
+    form = AddItem()
+    form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
+    form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
+
+    if form.validate_on_submit():
+        # create a new item object
+        item = Item(
+            name=form.name.data,
+            code=form.item_code.data,
+            unit_of_weight=form.unit_of_weight.data,
+            weight=form.weight.data,
+            packaging_id=form.packaging.data,
+            company_id=current_user.company_id
+        )
+        # add the item to the database
+        db.session.add(item)
+        db.session.commit()
+        # flash a message to the user
+        flash(f'Item "{form.name.data}" has been added successfully!', 'success')
+        # redirect to the items page
+        return redirect(url_for('items'))
+    # if the form is not submitted or is invalid, render the items page
+    flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('items'))
 
 # only true if this file is run directly
 if __name__ == '__main__':

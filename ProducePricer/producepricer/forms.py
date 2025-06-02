@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import DateField, FileField, FloatField, SelectField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
+from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length
-from producepricer.models import User, Company
+from producepricer.models import UnitOfWeight, User, Company
 
 class SignUp(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()])
@@ -73,5 +73,18 @@ class AddRawProductCost(FlaskForm):
     submit = SubmitField('Add Raw Product Cost')
 
 class UploadRawProductCSV(FlaskForm):
+    file = FileField('Upload CSV', validators=[DataRequired()])
+    submit = SubmitField('Upload')
+
+class AddItem(FlaskForm):
+    name = StringField('Item Name', validators=[DataRequired()])
+    item_code = StringField('Item Code', validators=[DataRequired()])
+    unit_of_weight = SelectField('Unit of Weight', choices=[(choice.name, choice.value) for choice in UnitOfWeight], validators=[DataRequired()])
+    weight = FloatField('Weight', validators=[DataRequired()])
+    packaging = SelectField('Packaging', coerce=int, validators=[DataRequired()])
+    raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('Add Item')
+
+class UploadItemCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
