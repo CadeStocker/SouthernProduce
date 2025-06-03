@@ -76,7 +76,7 @@ class Item(db.Model):
     raw_products = db.relationship('RawProduct', secondary=item_raw, backref=db.backref('items', lazy='dynamic'))
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    code = db.Column(db.String(100), unique=True, nullable=False)
+    code = db.Column(db.String(100), nullable=False) # REMOVED UNIQUE CONSTRAINT
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     weight = db.Column(db.Float, nullable=False)
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False) # changed to string

@@ -1,6 +1,6 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, Item, PackagingCost, RawProduct, User, Company, Packaging
+from producepricer.models import CostHistory, Item, ItemInfo, PackagingCost, RawProduct, User, Company, Packaging
 from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
@@ -305,6 +305,13 @@ def raw_product():
 def add_raw_product():
     form = AddRawProduct()
     if form.validate_on_submit():
+
+        # Check if the raw product already exists
+        existing_raw_product = RawProduct.query.filter_by(name=form.name.data, company_id=current_user.company_id).first()
+        if existing_raw_product:
+            flash(f'Raw product "{form.name.data}" already exists.', 'warning')
+            return redirect(url_for('raw_product'))
+        
         # Create a new raw product object
         raw_product = RawProduct(
             name=form.name.data,
@@ -473,6 +480,13 @@ def add_item():
     form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
 
     if form.validate_on_submit():
+
+        # check if the item already exists
+        existing_item = Item.query.filter_by(name=form.name.data, company_id=current_user.company_id).first()
+        if existing_item:
+            flash(f'Item "{form.name.data}" already exists.', 'warning')
+            return redirect(url_for('items'))
+        
         # create a new item object
         item = Item(
             name=form.name.data,
@@ -484,12 +498,12 @@ def add_item():
             #raw_product_ids=form.raw_products.data  # Store selected raw product IDs
         )
 
-        # add the selected raw products to the item
+        # add the selected raw products to the item (to the secondary table)
         for raw_product_id in form.raw_products.data:
             raw_product = RawProduct.query.get(raw_product_id)
             if raw_product:
                 item.raw_products.append(raw_product)
-                
+
         # add the item to the database
         db.session.add(item)
         db.session.commit()
@@ -500,6 +514,120 @@ def add_item():
     # if the form is not submitted or is invalid, render the items page
     flash('Invalid data submitted.', 'danger')
     return redirect(url_for('items'))
+
+# item import
+@app.route('/upload_item_csv', methods=['GET', 'POST'])
+@login_required
+def upload_item_csv():
+    form = UploadItemCSV()
+    if form.validate_on_submit():
+        # Check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['file']
+        # If user does not select a file, browser also submits an empty part without filename
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file:
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
+            # Save the file securely
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            # Read the CSV file into a pandas DataFrame
+            try:
+                df = pd.read_csv(filepath)
+            except Exception as e:
+                flash(f'Error reading CSV file: {e}', 'danger')
+                return redirect(request.url)
+
+            # Make sure the columns are all in the CSV
+            required_columns = ['name', 'item_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield']
+            if not all(column in df.columns for column in required_columns):
+                flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+                return redirect(request.url)
+
+            # Process the DataFrame and add items to the database
+            for index, row in df.iterrows():
+                # Clean and convert values
+                name = row['name'].strip()
+                item_code = row['item_code'].strip()
+                raw_product = row['raw_product'].strip()
+                ranch = row['ranch'].strip().lower() == 'true'
+                item_designation = row['item_designation'].strip()
+                packaging_type = row['packaging_type'].strip()
+                #yield_value = float(row['yield'].replace('%', '').strip())
+                raw_yield = row['yield']
+                yield_str = str(raw_yield).strip()
+                try:
+                    yield_value = float(yield_str)
+                except ValueError:
+                    flash(f'Invalid yield value "{yield_str}" for item "{name}". Skipping item.', 'warning')
+                    continue
+
+                # Check if the item already exists
+                existing_item = Item.query.filter_by(name=name, company_id=current_user.company_id).first()
+                if existing_item:
+                    flash(f'Item "{name}" already exists. Skipping item.', 'warning')
+                    continue
+
+                # Check if the packaging exists
+                packaging = Packaging.query.filter_by(packaging_type=packaging_type, company_id=current_user.company_id).first()
+                if not packaging:
+                    # If packaging does not exist, create it
+                    packaging = Packaging(packaging_type=packaging_type, company_id=current_user.company_id)
+                    db.session.add(packaging)
+                    db.session.commit()
+                    #flash(f'Packaging ID {packaging_type} does not exist. Skipping item "{name}".', 'warning')
+                    #continue
+
+                # Create a new item object
+                item = Item(
+                    name=name,
+                    code=item_code,
+                    unit_of_weight='KILOGRAM',  # Assuming a default unit of weight
+                    weight=-1.0,  # Assuming a default weight
+                    packaging_id=packaging.id,
+                    company_id=current_user.company_id
+                )
+
+                # Add the raw product to the item if it exists
+                raw_product_obj = RawProduct.query.filter_by(name=raw_product, company_id=current_user.company_id).first()
+                if raw_product_obj:
+                    item.raw_products.append(raw_product_obj)
+                else:
+                    # make the raw product if it does not exist
+                    raw_product_obj = RawProduct(name=raw_product, company_id=current_user.company_id)
+                    db.session.add(raw_product_obj)
+                    db.session.commit()
+                    item.raw_products.append(raw_product_obj)
+                    #flash(f'Raw product "{raw_product}" does not exist. Skipping item "{name}".', 'warning')
+                    #continue
+
+                # add the item to the database so that it gets assigned an ID
+                db.session.add(item)
+                db.session.flush()  # Flush to get the item ID before creating ItemInfo
+
+                item_info = ItemInfo(
+                    product_yield=yield_value,
+                    item_id=item.id,
+                    labor_hours=0.0,  # Assuming a default labor hours
+                    date=pd.Timestamp.now().date(),
+                    company_id=current_user.company_id
+                )
+
+                # Add the item info to the database
+                db.session.add(item_info)
+                db.session.commit()
+                flash(f'Item "{name}" has been added successfully!', 'success')
+            flash('Items imported successfully!', 'success')
+            return redirect(url_for('items'))
 
 # only true if this file is run directly
 if __name__ == '__main__':
