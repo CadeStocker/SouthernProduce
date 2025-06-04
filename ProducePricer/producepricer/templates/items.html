@@ -24,9 +24,10 @@
         <tr>
           <th>Item</th>
           <th>Item Code</th>
+          <th>Item Designation</th>
           <th>Packaging Type</th>
           <th>Raw Product(s)</th>
-          <th>Weight</th>
+          
 
         </tr>
       </thead>
@@ -38,6 +39,10 @@
             <td>{{ item.code }}</td>
 
             <td>
+              {{ item.item_designation.value if item.item_designation else 'No designation' }}
+            </td>
+
+            <td>
                 {{ packaging_lookup.get(item.packaging_id, 'No packaging found') }}
             </td>
 
@@ -47,7 +52,7 @@
               {% endfor %}
             </td>
 
-            <td>{{ item.weight }} {{ item.unit_of_weight }}</td>
+            
           </tr>
 
           
@@ -80,13 +85,17 @@
             {{ form.item_code.label(class="form-control-label") }}
             {{ form.item_code(class="form-control") }}
           </div>
+          <div class="form-group">
+            {{ form.item_designation.label(class="form-control-label") }}
+            {{ form.item_designation(class="form-control") }}
+          </div>
             <div class="form-group">
                 {{ form.unit_of_weight.label(class="form-control-label") }}
                 {{ form.unit_of_weight(class="form-control") }}
             </div>
             <div class="form-group">
-                {{ form.weight.label(class="form-control-label") }}
-                {{ form.weight(class="form-control") }}
+                {{ form.case_weight.label(class="form-control-label") }}
+                {{ form.case_weight(class="form-control") }}
             </div>
             <div class="form-group">
                 {{ form.packaging.label(class="form-control-label") }}

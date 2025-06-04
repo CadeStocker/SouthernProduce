@@ -18,7 +18,7 @@ class UnitOfWeight(Enum):
     LITER = 'liter'
 
 class ItemDesignation(Enum):
-    SNACKPACK = 'snackpack'
+    SNAKPAK = 'snakpak'
     RETAIL = 'retail'
     FOODSERVICE = 'foodservice'
 
@@ -78,19 +78,25 @@ class Item(db.Model):
     name = db.Column(db.String(100), nullable=False)
     code = db.Column(db.String(100), nullable=False) # REMOVED UNIQUE CONSTRAINT
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
-    weight = db.Column(db.Float, nullable=False)
+    #weight = db.Column(db.Float, nullable=False)
+    ranch = db.Column(db.Boolean, nullable=False, default=False)  # whether the item is a ranch item
+    case_weight = db.Column(db.Float, nullable=False, default=0.0)  # weight of the case for the item
     packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False) # changed to string
+    item_designation = db.Column(db.Enum(ItemDesignation), nullable=False, default=ItemDesignation.RETAIL)  # added to specify the type of item
     # added to store raw product IDs for items that are made from multiple raw products
     #raw_product_ids = db.Column(db.ARRAY(db.Integer), nullable=True)  # Array of raw product IDs
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, name, code, unit_of_weight, weight, packaging_id, company_id):
+    def __init__(self, name, code, unit_of_weight, packaging_id, company_id, case_weight=0.0, ranch=False, item_designation=ItemDesignation.FOODSERVICE, raw_product_ids=None):
         #self.raw_product_ids = db.cast(raw_product_ids, db.ARRAY(db.Integer)) if raw_product_ids is not None else db.cast([], db.ARRAY(db.Integer))
         self.name = name
         self.code = code
         self.unit_of_weight = unit_of_weight
-        self.weight = weight
+        self.item_designation = item_designation
+        #self.weight = weight
         self.packaging_id = packaging_id
+        self.case_weight = case_weight
+        self.ranch = ranch
         self.company_id = company_id
 
     def __repr__(self):
@@ -138,14 +144,15 @@ class PriceHistory(db.Model):
     __tablename__ = 'price_history'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    item_code = db.Column(db.String(100), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    #item_code = db.Column(db.String(100), nullable=False)
     # packaging_id is already in item table
     #packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
     packaging_cost = db.Column(db.Float, nullable=False) # just store the cost of the packaging
-    item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
-    raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
-    ranch = db.Column(db.Boolean, nullable=False)
-    case_weight = db.Column(db.Float, nullable=False)
+    #item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
+    #raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
+    #ranch = db.Column(db.Boolean, nullable=False)
+    #case_weight = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 

@@ -492,10 +492,12 @@ def add_item():
             name=form.name.data,
             code=form.item_code.data,
             unit_of_weight=form.unit_of_weight.data,
-            weight=form.weight.data,
+            #weight=form.weight.data,
             packaging_id=form.packaging.data,
             company_id=current_user.company_id,
-            #raw_product_ids=form.raw_products.data  # Store selected raw product IDs
+            ranch=form.ranch.data,
+            item_designation=form.item_designation.data,
+            case_weight=form.case_weight.data if form.case_weight.data else 0.0
         )
 
         # add the selected raw products to the item (to the secondary table)
@@ -512,6 +514,9 @@ def add_item():
         # redirect to the items page
         return redirect(url_for('items'))
     # if the form is not submitted or is invalid, render the items page
+    for field, errs in form.errors.items():
+        for e in errs:
+            flash(f"{getattr(form, field).label.text}: {e}", 'danger')
     flash('Invalid data submitted.', 'danger')
     return redirect(url_for('items'))
 
@@ -572,7 +577,7 @@ def upload_item_csv():
                     continue
 
                 # Check if the item already exists
-                existing_item = Item.query.filter_by(name=name, company_id=current_user.company_id).first()
+                existing_item = Item.query.filter_by(name=name, code=item_code, company_id=current_user.company_id).first()
                 if existing_item:
                     flash(f'Item "{name}" already exists. Skipping item.', 'warning')
                     continue
@@ -587,14 +592,26 @@ def upload_item_csv():
                     #flash(f'Packaging ID {packaging_type} does not exist. Skipping item "{name}".', 'warning')
                     #continue
 
+                # Check if the item designation is valid
+                item_designation = item_designation.strip().upper()
+                if item_designation not in ['SNAKPAK', 'RETAIL', 'FOODSERVICE']:
+                    flash(f'Invalid item designation "{item_designation}" for item "{name}". Skipping item.', 'warning')
+                    continue
+                # If the item designation is not provided, default to 'FOODSERVICE'
+                item_designation = item_designation if item_designation else 'FOODSERVICE'
+
                 # Create a new item object
                 item = Item(
                     name=name,
                     code=item_code,
-                    unit_of_weight='KILOGRAM',  # Assuming a default unit of weight
-                    weight=-1.0,  # Assuming a default weight
+                    unit_of_weight=row.get('unit_of_weight', 'POUND'),  # Default to 'kg' if not provided
+                    #weight=row.get('weight', 1.0),  # Default to 1.0 if not provided
+                    # weight and case weight are the same, but only using case weight for now
+                    case_weight=row.get('case_weight', 0.0),  # Default to 0.0 if not provided
                     packaging_id=packaging.id,
-                    company_id=current_user.company_id
+                    company_id=current_user.company_id,
+                    ranch=ranch,
+                    item_designation=item_designation
                 )
 
                 # Add the raw product to the item if it exists
@@ -625,9 +642,9 @@ def upload_item_csv():
                 # Add the item info to the database
                 db.session.add(item_info)
                 db.session.commit()
-                flash(f'Item "{name}" has been added successfully!', 'success')
+                #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
-            return redirect(url_for('items'))
+    return redirect(url_for('items'))
 
 # only true if this file is run directly
 if __name__ == '__main__':
