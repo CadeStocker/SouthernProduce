@@ -27,6 +27,8 @@
           <th>Item Designation</th>
           <th>Packaging Type</th>
           <th>Raw Product(s)</th>
+          <th>Product Yield</th>
+          <th>Labor Hours</th>
           <th>Actions</th>
           
 
@@ -54,17 +56,74 @@
             </td>
 
             <td>
+              {% if item_info_lookup.get(item.id) %}
+                {{ item_info_lookup[item.id].product_yield }}
+              {% else %}
+                No yield data
+              {% endif %}
+            </td>
+            <td>
+              {% if item_info_lookup.get(item.id) %}
+                {{ item_info_lookup[item.id].labor_hours }}
+              {% else %}
+                No labor hours data
+              {% endif %}
+            </td>
+
+            <td>
+              <button type="button" class="btn btn-sm btn-warning"
+                      data-toggle="modal"
+                      data-target="#updateItemInfoModal-{{ item.id }}">
+                Update
+              </button>
           <button type="button" class="btn btn-sm btn-danger"
                   data-toggle="modal"
                   data-target="#deleteItemModal-{{ item.id }}">
             Delete
           </button>
+
         </td>
 
             
 
             
           </tr>
+
+          <!-- Update ItemInfo Modal -->
+      <div class="modal fade" id="updateItemInfoModal-{{ item.id }}" tabindex="-1" role="dialog"
+          aria-labelledby="updateItemInfoLabel-{{ item.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="updateItemInfoLabel-{{ item.id }}">Update ItemInfo for "{{ item.name }}"</h5>
+              <button type="button" class="close" data-dismiss="modal">
+                <span>&times;</span>
+              </button>
+            </div>
+            <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}">
+              {{ update_item_info_form.hidden_tag() }}
+              <div class="modal-body">
+                <div class="form-group">
+                  {{ update_item_info_form.product_yield.label(class="form-control-label") }}
+                  {{ update_item_info_form.product_yield(class="form-control", value=item.product_yield) }}
+                </div>
+                <div class="form-group">
+                  {{ update_item_info_form.labor_hours.label(class="form-control-label") }}
+                  {{ update_item_info_form.labor_hours(class="form-control", value=item.labor_hours) }}
+                </div>
+                <div class="form-group">
+                  {{ update_item_info_form.date.label(class="form-control-label") }}
+                  {{ update_item_info_form.date(class="form-control", value=item.date) }}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                {{ update_item_info_form.submit(class="btn btn-primary") }}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
 
           <!-- Delete Item Modal -->
       <div class="modal fade" id="deleteItemModal-{{ item.id }}" tabindex="-1" role="dialog"

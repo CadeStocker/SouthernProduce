@@ -88,6 +88,12 @@ class AddItem(FlaskForm):
     item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service')], validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
+class UpdateItemInfo(FlaskForm):
+    product_yield = FloatField('Product Yield', default=0.0)
+    labor_hours = FloatField('Labor Hours', default=0.0)
+    date = DateField('Date', validators=[DataRequired()])
+    submit = SubmitField('Update Item Info')
+
 class UploadItemCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')

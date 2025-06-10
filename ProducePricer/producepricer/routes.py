@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
 from producepricer.models import CostHistory, Item, ItemInfo, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
+from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -439,6 +439,7 @@ def delete_raw_product(raw_product_id):
 def items():
     company = Company.query.filter_by(id=current_user.company_id).first()
     form = AddItem()
+    update_item_form = UpdateItemInfo()
     form.packaging.choices = [(pack.id, pack.packaging_type) for pack in company.packaging] if company else []
     form.raw_products.choices = [(raw.id, raw.name) for raw in company.raw_products] if company else []
     upload_item_csv = UploadItemCSV()
@@ -457,6 +458,20 @@ def items():
         rp.id: rp.name
         for rp in RawProduct.query.filter_by(company_id=current_user.company_id).all()
     }
+
+    # get the most recent item info for each item
+    item_info_lookup = {}
+    for item in items:
+        most_recent_info = (
+            ItemInfo.query
+            .filter_by(item_id=item.id)
+            .order_by(ItemInfo.date.desc(), ItemInfo.id.desc())
+            .first()
+        )
+        if most_recent_info:
+            item_info_lookup[item.id] = most_recent_info
+
+
     
     # render the page
     return render_template(
@@ -468,6 +483,8 @@ def items():
         #packaging=packaging,
         #item_costs=item_costs,
         form=form,
+        update_item_info_form=update_item_form,
+        item_info_lookup=item_info_lookup,
         upload_item_csv=upload_item_csv
     )
     
@@ -538,6 +555,36 @@ def delete_item(item_id):
     flash(f'Item "{item.name}" and its associated information have been deleted.', 'success')
     return redirect(url_for('items'))
 
+# update info for an item
+@app.route('/update_item/<int:item_id>', methods=['GET', 'POST'])
+@login_required
+def update_item(item_id):
+    # find the item in db
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    if not item:
+        flash('Item not found or you do not have permission to update it.', 'danger')
+        return redirect(url_for('items'))
+    
+    # form for updating item info
+    form = UpdateItemInfo()
+    if form.validate_on_submit():
+        # create a new ItemInfo object
+        item_info = ItemInfo(
+            product_yield=form.product_yield.data,
+            labor_hours=form.labor_hours.data,
+            date=form.date.data,
+            item_id=item.id,
+            company_id=current_user.company_id
+        )
+        # add the item info to the database
+        db.session.add(item_info)
+        db.session.commit()
+        flash(f'Item info for "{item.name}" has been updated successfully!', 'success')
+        return redirect(url_for('items'))
+    # if the form is not submitted or is invalid, render the update item page
+    flash('Invalid data submitted.', 'danger')
+    return render_template('update_item.html', title='Update Item', form=form, item=item)
+
 # item import
 @app.route('/upload_item_csv', methods=['GET', 'POST'])
 @login_required
@@ -597,6 +644,18 @@ def upload_item_csv():
                 # Check if the item already exists
                 existing_item = Item.query.filter_by(name=name, code=item_code, company_id=current_user.company_id).first()
                 if existing_item:
+                    # update yield and labor hours if the item already exists
+                    yield_val = row.get('yield', 0.0)
+                    new_info = ItemInfo(
+                        product_yield=yield_value,
+                        item_id=existing_item.id,
+                        # change this if we add labor hours to the CSV
+                        labor_hours=0.0,  # Assuming a default labor hours
+                        date=pd.Timestamp.now().date(),
+                        company_id=current_user.company_id
+                    )
+                    db.session.add(new_info)
+                    db.session.commit()
                     flash(f'Item "{name}" already exists. Skipping item.', 'warning')
                     continue
 
