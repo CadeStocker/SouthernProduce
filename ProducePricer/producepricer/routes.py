@@ -520,6 +520,24 @@ def add_item():
     flash('Invalid data submitted.', 'danger')
     return redirect(url_for('items'))
 
+# delete an item
+@app.route('/delete_item/<int:item_id>', methods=['POST'])
+@login_required
+def delete_item(item_id):
+    # find the item in the database
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    if not item:
+        flash('Item not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('items'))
+    
+    # delete all associated ItemInfo entries
+    ItemInfo.query.filter_by(item_id=item_id).delete()
+    # delete the item itself
+    db.session.delete(item)
+    db.session.commit()
+    flash(f'Item "{item.name}" and its associated information have been deleted.', 'success')
+    return redirect(url_for('items'))
+
 # item import
 @app.route('/upload_item_csv', methods=['GET', 'POST'])
 @login_required
