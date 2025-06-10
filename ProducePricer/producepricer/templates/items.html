@@ -70,18 +70,19 @@
               {% endif %}
             </td>
 
-            <td>
-              <button type="button" class="btn btn-sm btn-warning"
-                      data-toggle="modal"
-                      data-target="#updateItemInfoModal-{{ item.id }}">
-                Update
-              </button>
+        <td>
+          <div class="d-flex" style="gap: 5px;">
+          <button type="button" class="btn btn-sm btn-warning"
+                  data-toggle="modal"
+                  data-target="#updateItemInfoModal-{{ item.id }}">
+            Update
+          </button>
           <button type="button" class="btn btn-sm btn-danger"
                   data-toggle="modal"
                   data-target="#deleteItemModal-{{ item.id }}">
             Delete
           </button>
-
+        </div>
         </td>
 
             
