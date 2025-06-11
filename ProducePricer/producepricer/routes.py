@@ -649,7 +649,7 @@ def view_item(item_id):
     item_info = ItemInfo.query.filter_by(item_id=item_id).order_by(ItemInfo.date.desc()).all()
 
     packaging = Packaging.query.filter_by(id=item.packaging_id, company_id=current_user.company_id).first()
-    raw_products = [rp.name for rp in item.raw_products]
+    raw_products = [rp for rp in item.raw_products]
     update_item_info_form = UpdateItemInfo()
 
     return render_template('view_item.html', update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
