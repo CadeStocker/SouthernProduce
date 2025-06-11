@@ -12,6 +12,7 @@
         </div>
         <div class="card-body">
             <p><strong>Raw Product Name:</strong> {{ raw_product.name }}</p>
+            <p><strong>Raw Product ID:</strong> {{ raw_product.id }}</p>
             <p><strong>Company:</strong> {{ raw_product.company.name }}</p>
             <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addCostModal-{{ raw_product.id }}">
                 Update Cost
@@ -131,6 +132,26 @@
         });
     });
 </script>
+
+<!-- Items Using This Raw Product -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Items Using This Raw Product</h5>
+    </div>
+    <div class="card-body">
+        {% if items_using_raw_product %}
+            <ul class="list-group">
+                {% for item in items_using_raw_product %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('view_item', item_id=item.id) }}">{{ item.name }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>This raw product is not used in any items.</p>
+        {% endif %}
+    </div>
+</div>
 
 <!-- Add Cost Modal for this Raw Product -->
 <div class="modal fade" id="addCostModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ raw_product.id }}" aria-hidden="true">

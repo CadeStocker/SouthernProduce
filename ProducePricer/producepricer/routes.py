@@ -328,9 +328,12 @@ def view_raw_product(raw_product_id):
     # Get all the cost history for this raw product
     cost_history = CostHistory.query.filter_by(raw_product_id=raw_product_id).order_by(CostHistory.date.desc()).all()
 
+    # find the items that use this raw product
+    items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
+
     cost_form = AddRawProductCost()
 
-    return render_template('view_raw_product.html', title='View Raw Product', cost_form=cost_form, raw_product=raw_product, cost_history=cost_history)
+    return render_template('view_raw_product.html', items_using_raw_product=items_using_raw_product, title='View Raw Product', cost_form=cost_form, raw_product=raw_product, cost_history=cost_history)
 
 # delete a raw product cost
 @app.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])

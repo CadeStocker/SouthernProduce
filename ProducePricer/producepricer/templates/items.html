@@ -54,9 +54,15 @@
             </td>
 
             <td>
-              {% for rp in item.raw_products %}
-                {{ rp.name }}{% if not loop.last %}, {% endif %}
-              {% endfor %}
+              {% if item.raw_products %}
+                {% for raw_product in item.raw_products %}
+                  <a href="{{ url_for('view_raw_product', raw_product_id=raw_product.id) }}">
+                    {{ raw_product.name }}
+                  </a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              {% else %}
+                No raw products
+              {% endif %}
             </td>
 
             <td>
