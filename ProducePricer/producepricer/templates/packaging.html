@@ -28,7 +28,12 @@
             <tbody>
                 {% for item in packaging %}
                     <tr>
-                        <td>{{ item.packaging_type }}</td>
+                        <td>
+                        <a href="{{ url_for('view_packaging', packaging_id=item.id) }}">
+                            {{ item.packaging_type }}
+                        </a>
+                        </td>
+                        
                         {% if packaging_costs[item.id] %}
                             <td>${{ packaging_costs[item.id].box_cost }}</td>
                             <td>${{ packaging_costs[item.id].bag_cost }}</td>

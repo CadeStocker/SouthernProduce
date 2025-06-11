@@ -1,0 +1,136 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_packaging.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Packaging Details: {{ packaging.packaging_type }}</h1>
+
+    <!-- Packaging Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Packaging Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Packaging Type:</strong> {{ packaging.packaging_type }}</p>
+            <p><strong>Company:</strong> {{ packaging.company.name }}</p>
+        </div>
+    </div>
+
+    <!-- Packaging Costs -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Packaging Costs</h5>
+        </div>
+        <div class="card-body">
+            {% if packaging_costs %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Box Cost</th>
+                            <th>Bag Cost</th>
+                            <th>Tray/Chemical Cost</th>
+                            <th>Label/Tape Cost</th>
+                            <th>Total Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cost in packaging_costs %}
+                            <tr>
+                                <td>{{ cost.date.strftime('%Y-%m-%d') }}</td>
+                                <td>${{ "%.2f"|format(cost.box_cost) }}</td>
+                                <td>${{ "%.2f"|format(cost.bag_cost) }}</td>
+                                <td>${{ "%.2f"|format(cost.tray_andor_chemical_cost) }}</td>
+                                <td>${{ "%.2f"|format(cost.label_andor_tape_cost) }}</td>
+                                <td>
+                                    ${{ "%.2f"|format(
+                                        cost.box_cost + cost.bag_cost + cost.tray_andor_chemical_cost + cost.label_andor_tape_cost
+                                    ) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No costs available for this packaging.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cost Trend Chart -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Cost Trend Over Time</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="costTrendChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('packaging') }}" class="btn btn-secondary">Back to Packaging List</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const costData = {
+        labels: [
+            {% for cost in packaging_costs %}
+                "{{ cost.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ],
+        data: [
+            {% for cost in packaging_costs %}
+                {{ "%.2f"|format(cost.box_cost + cost.bag_cost + cost.tray_andor_chemical_cost + cost.label_andor_tape_cost) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ]
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the chart after the DOM is fully loaded
+        createCostTrendChart(costData);
+    });
+    const ctx = document.getElementById('costTrendChart').getContext('2d');
+    const costTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: costData.labels,
+            datasets: [{
+                label: 'Total Packaging Cost ($)',
+                data: costData.data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Cost ($)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

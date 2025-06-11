@@ -25,7 +25,11 @@
             <tbody>
                 {% for raw_product in raw_products %}
                     <tr>
-                        <td>{{ raw_product.name }}</td>
+                        <td>
+                            <a href="{{ url_for('view_raw_product', raw_product_id=raw_product.id) }}">
+                                {{ raw_product.name }}
+                            </a>
+                        </td>
                         {% if raw_product_costs[raw_product.id] %}
                             <td>${{ raw_product_costs[raw_product.id].cost }}</td>
                             <td>{{ raw_product_costs[raw_product.id].date.strftime('%Y-%m-%d') }}</td>

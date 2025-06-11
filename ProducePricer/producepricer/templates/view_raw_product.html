@@ -1,0 +1,166 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_raw_product.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Raw Product Details: {{ raw_product.name }}</h1>
+
+    <!-- Raw Product Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Raw Product Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Raw Product Name:</strong> {{ raw_product.name }}</p>
+            <p><strong>Company:</strong> {{ raw_product.company.name }}</p>
+            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addCostModal-{{ raw_product.id }}">
+                Update Cost
+            </button>
+        </div>
+    </div>
+
+    <!-- Cost History -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Cost History</h5>
+        </div>
+        <div class="card-body">
+            {% if cost_history %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Cost</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cost in cost_history %}
+                            <tr>
+                                <td>{{ cost.date.strftime('%Y-%m-%d') }}</td>
+                                <td>${{ "%.2f"|format(cost.cost) }}</td>
+                                <td>
+                                    
+                                    <form method="POST" action="{{ url_for('delete_raw_product_cost', cost_id=cost.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this cost?');">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No cost history available for this raw product.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cost Trend Chart -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Cost Trend Over Time</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="costTrendChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('raw_product') }}" class="btn btn-secondary">Back to Raw Product List</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const costData = {
+        labels: [
+            {% for cost in cost_history %}
+                "{{ cost.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ],
+        data: [
+            {% for cost in cost_history %}
+                {{ "%.2f"|format(cost.cost) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ]
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('costTrendChart').getContext('2d');
+        const costTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: costData.labels,
+                datasets: [{
+                    label: 'Raw Product Cost ($)',
+                    data: costData.data,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Cost ($)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+<!-- Add Cost Modal for this Raw Product -->
+<div class="modal fade" id="addCostModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ raw_product.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCostModalLabel-{{ raw_product.id }}">Add Cost for {{ raw_product.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('add_raw_product_cost', raw_product_id=raw_product.id) }}">
+                {{ cost_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ cost_form.cost.label(class="form-control-label") }}
+                        {{ cost_form.cost(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ cost_form.date.label(class="form-control-label") }}
+                        {{ cost_form.date(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Cost</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

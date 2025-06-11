@@ -124,6 +124,22 @@ def packaging():
             packaging_costs=packaging_costs
         )
 
+# view an individual package
+@app.route('/packaging/<int:packaging_id>')
+@login_required
+def view_packaging(packaging_id):
+    # find the packaging in the database
+    packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first()
+    if packaging is None:
+        flash('Packaging not found.', 'danger')
+        return redirect(url_for('packaging'))
+    
+    # get all the packaging costs for this packaging
+    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
+
+    return render_template('view_packaging.html', title='View Packaging', packaging=packaging, packaging_costs=packaging_costs)
+
+
 @app.route('/add_package', methods=['POST'])
 @login_required
 def add_package():
@@ -298,6 +314,40 @@ def raw_product():
         cost_form=cost_form,
         upload_csv_form=upload_raw_product_csv_form
     )
+
+# view an individual raw product
+@app.route('/raw_product/<int:raw_product_id>')
+@login_required
+def view_raw_product(raw_product_id):
+    # Find the raw product in the database
+    raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
+    if raw_product is None:
+        flash('Raw product not found.', 'danger')
+        return redirect(url_for('raw_product'))
+    
+    # Get all the cost history for this raw product
+    cost_history = CostHistory.query.filter_by(raw_product_id=raw_product_id).order_by(CostHistory.date.desc()).all()
+
+    cost_form = AddRawProductCost()
+
+    return render_template('view_raw_product.html', title='View Raw Product', cost_form=cost_form, raw_product=raw_product, cost_history=cost_history)
+
+# delete a raw product cost
+@app.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
+@login_required
+def delete_raw_product_cost(cost_id):
+    # Find the cost in the database
+    cost = CostHistory.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
+    if not cost:
+        flash('Cost not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('raw_product'))
+
+    # Delete the cost
+    db.session.delete(cost)
+    db.session.commit()
+
+    flash('Raw product cost has been deleted successfully.', 'success')
+    return redirect(url_for('view_raw_product', raw_product_id=cost.raw_product_id))
 
 # Add a new raw product
 @app.route('/add_raw_product', methods=['POST'])
