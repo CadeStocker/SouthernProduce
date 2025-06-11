@@ -635,6 +635,39 @@ def update_item(item_id):
     flash('Invalid data submitted.', 'danger')
     return render_template('update_item.html', title='Update Item', form=form, item=item)
 
+# view an individual item
+@app.route('/item/<int:item_id>')
+@login_required
+def view_item(item_id):
+    # find the item in the database
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    if item is None:
+        flash('Item not found.', 'danger')
+        return redirect(url_for('items'))
+    
+    # get all the item info for this item
+    item_info = ItemInfo.query.filter_by(item_id=item_id).order_by(ItemInfo.date.desc()).all()
+
+    packaging = Packaging.query.filter_by(id=item.packaging_id, company_id=current_user.company_id).first()
+    raw_products = [rp.name for rp in item.raw_products]
+    update_item_info_form = UpdateItemInfo()
+
+    return render_template('view_item.html', update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
+
+@app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
+@login_required
+def delete_item_info(item_info_id):
+    item_info = ItemInfo.query.filter_by(id=item_info_id, company_id=current_user.company_id).first()
+    if not item_info:
+        flash('Item info not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('items'))
+    
+    item_id = item_info.item_id
+    db.session.delete(item_info)
+    db.session.commit()
+    flash('Item info deleted successfully!', 'success')
+    return redirect(url_for('view_item', item_id=item_id))
+
 # item import
 @app.route('/upload_item_csv', methods=['GET', 'POST'])
 @login_required

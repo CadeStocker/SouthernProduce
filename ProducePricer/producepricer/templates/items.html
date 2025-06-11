@@ -37,7 +37,11 @@
       <tbody>
         {% for item in items %}
           <tr>
-            <td>{{ item.name }}</td>
+            <td>
+              <a href="{{ url_for('view_item', item_id=item.id) }}">
+                {{ item.name }}
+              </a>
+            </td>
 
             <td>{{ item.code }}</td>
 

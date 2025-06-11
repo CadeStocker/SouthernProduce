@@ -1,0 +1,206 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_item.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Item Details: {{ item.name }}</h1>
+
+    <!-- Item Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Item Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Item Name:</strong> {{ item.name }}</p>
+            <p><strong>Item Code:</strong> {{ item.code }}</p>
+            <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'No Packaging' }}</p>
+            <p><strong>Raw Products:</strong> 
+                {% if raw_products %}
+                    {{ raw_products|join(', ') }}
+                {% else %}
+                    No Raw Products
+                {% endif %}
+            </p>
+            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addItemInfoModal-{{ item.id }}">
+                Add Item Info
+            </button>
+        </div>
+    </div>
+
+    <!-- Item Info History -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Item Info History</h5>
+        </div>
+        <div class="card-body">
+            {% if item_info %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Product Yield</th>
+                            <th>Labor Hours</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for info in item_info %}
+                            <tr>
+                                <td>{{ info.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ "%.2f"|format(info.product_yield) }}%</td>
+                                <td>{{ "%.2f"|format(info.labor_hours) }}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('delete_item_info', item_info_id=info.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this item info?');">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No item info available for this item.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('items') }}" class="btn btn-secondary">Back to Item List</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<!-- Add Item Info Modal -->
+<div class="modal fade" id="addItemInfoModal-{{ item.id }}" tabindex="-1" role="dialog" aria-labelledby="addItemInfoModalLabel-{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemInfoModalLabel-{{ item.id }}">Add Item Info for {{ item.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}">
+                {{ update_item_info_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ update_item_info_form.product_yield.label(class="form-control-label") }}
+                        {{ update_item_info_form.product_yield(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ update_item_info_form.labor_hours.label(class="form-control-label") }}
+                        {{ update_item_info_form.labor_hours(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ update_item_info_form.date.label(class="form-control-label") }}
+                        {{ update_item_info_form.date(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Info</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Yield and Labor Hours Chart -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Yield and Labor Hours History</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="itemInfoChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('items') }}" class="btn btn-secondary">Back to Item List</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const itemInfoData = {
+        labels: [
+            {% for info in item_info %}
+                "{{ info.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ],
+        yieldData: [
+            {% for info in item_info %}
+                {{ "%.2f"|format(info.product_yield) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ],
+        laborHoursData: [
+            {% for info in item_info %}
+                {{ "%.2f"|format(info.labor_hours or 0) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ]
+    };
+
+    console.log('Labor Hours Data:', itemInfoData.laborHoursData);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('itemInfoChart').getContext('2d');
+        const itemInfoChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: itemInfoData.labels,
+                datasets: [
+                    {
+                        label: 'Product Yield (%)',
+                        data: itemInfoData.yieldData,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Labor Hours',
+                        data: itemInfoData.laborHoursData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}
