@@ -163,22 +163,35 @@ class LaborCost(db.Model):
     def __repr__(self):
         return f"LaborCost('{self.date}', '{self.labor_cost}')"
 
+# changing this to just store price of an item given to a certain customer
 # table of entries for price of each item
 class PriceHistory(db.Model):
     __tablename__ = 'price_history'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    #name = db.Column(db.String(100), nullable=False)
     #item_code = db.Column(db.String(100), nullable=False)
     # packaging_id is already in item table
     #packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
-    packaging_cost = db.Column(db.Float, nullable=False) # just store the cost of the packaging
+    #packaging_cost = db.Column(db.Float, nullable=False) # just store the cost of the packaging
     #item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
     #raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
     #ranch = db.Column(db.Boolean, nullable=False)
     #case_weight = db.Column(db.Float, nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    
+    def __init__(self, item_id, date, company_id, customer_id, price):
+        self.item_id = item_id
+        self.date = date
+        self.company_id = company_id
+        self.customer_id = customer_id
+        self.price = price
+
+    def __repr__(self):
+        return f"PriceHistory('{self.item_id}', '{self.date}', '{self.company_id}', '{self.customer_id}', '{self.price}')"
 
 
 # table to hold each raw product's information
