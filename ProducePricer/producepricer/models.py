@@ -83,17 +83,25 @@ class ItemTotalCost(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     total_cost = db.Column(db.Float, nullable=False)
+    packaging_cost = db.Column(db.Float, nullable=False)  # cost of packaging for the item
+    raw_product_cost = db.Column(db.Float, nullable=False)  # cost of raw products for the item
+    labor_cost = db.Column(db.Float, nullable=False)  # labor cost for the item
+    designation_cost = db.Column(db.Float, nullable=False)  # cost based on item designation
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, item_id, date, total_cost, company_id):
+    def __init__(self, item_id, date, total_cost, packaging_cost, raw_product_cost, labor_cost, designation_cost, company_id):
         self.item_id = item_id
         self.date = date
         self.total_cost = total_cost
+        self.packaging_cost = packaging_cost
+        self.raw_product_cost = raw_product_cost
+        self.labor_cost = labor_cost
+        self.designation_cost = designation_cost
         self.company_id = company_id
 
     def __repr__(self):
-        return f"ItemTotalCost('{self.item_id}', '{self.date}', '{self.total_cost}')"
-
+        return f"ItemTotalCost('{self.item_id}', '{self.date}', '{self.total_cost}', '{self.packaging_cost}', '{self.raw_product_cost}', '{self.labor_cost}', '{self.designation_cost}')"
+    
 # table of each item we sell
 class Item(db.Model):
     __tablename__ = 'item'

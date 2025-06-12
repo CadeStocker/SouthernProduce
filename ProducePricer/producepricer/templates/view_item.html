@@ -13,6 +13,7 @@
         <div class="card-body">
             <p><strong>Item Name:</strong> {{ item.name }}</p>
             <p><strong>Item Code:</strong> {{ item.code }}</p>
+            <p><strong>Case Weight:</strong> {{ "%.2f"|format(item.case_weight) }} lbs</p>
             <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'No Packaging' }}</p>
             <p><strong>Raw Products:</strong> 
                 {% if raw_products %}
@@ -46,7 +47,7 @@
                     <tbody>
                         {% for cost in item_costs %}
                             <tr>
-                                <td>{{ cost.date.strftime('%Y-%m-%d') }}</td>
+                                <td><a href="{{ url_for('view_item_cost', item_cost_id=cost.id) }}">{{ cost.date.strftime('%Y-%m-%d') }}</a></td>
                                 <td>${{ "%.2f"|format(cost.total_cost) }}</td>
                             </tr>
                         {% endfor %}
@@ -57,6 +58,25 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- current cost breakdown -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Current Cost Breakdown</h5>
+        </div>
+        <div class="card-body">
+            {% if current_cost %}
+                <p><strong>Total Cost:</strong> ${{ "%.2f"|format(current_cost.total_cost) }}</p>
+                <p><strong>Raw Product Costs:</strong></p>
+                <ul>
+                    {% for raw_product_cost in current_cost.raw_product_costs %}
+                        <li>{{ raw_product_cost.raw_product.name }}: ${{ "%.2f"|format(raw_product_cost.cost) }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No current cost breakdown available.</p>
+            {% endif %}
+        </div>
 
     <!-- Item Info History -->
     <div class="card">
@@ -189,7 +209,7 @@
                 labels: itemInfoData.labels,
                 datasets: [
                     {
-                        label: 'Product Yield (%)',
+                        label: 'Product Yield',
                         data: itemInfoData.yieldData,
                         borderColor: 'rgba(75, 192, 192, 1)',
                         backgroundColor: 'rgba(75, 192, 192, 0.2)',

@@ -692,11 +692,20 @@ def view_item(item_id):
 
     # history of total costs for this item
     item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
+    
+    # if there's no item costs, calculate the current cost
+    if not item_costs:
+        update_item_total_cost(item_id)
+
+    # get the most recent item cost
+    item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
+    current_cost = item_costs[0] if item_costs else None
+    #print(current_cost.total_cost)
 
     # form
     update_item_info_form = UpdateItemInfo()
 
-    return render_template('view_item.html', item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
+    return render_template('view_item.html', current_cost=current_cost, item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
@@ -745,10 +754,16 @@ def upload_item_csv():
                 return redirect(request.url)
 
             # Make sure the columns are all in the CSV
-            required_columns = ['name', 'item_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield']
-            if not all(column in df.columns for column in required_columns):
-                flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+            required_columns = ['name', 'item_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield', 'case_weight', 'labor']
+            missing_columns = [column for column in required_columns if column not in df.columns]
+
+            if missing_columns:
+                flash(f'Invalid CSV format. Missing columns: {", ".join(missing_columns)}', 'danger')
                 return redirect(request.url)
+            
+            # if not all(column in df.columns for column in required_columns):
+            #     flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
+            #     return redirect(request.url)
 
             # Process the DataFrame and add items to the database
             for index, row in df.iterrows():
@@ -759,6 +774,15 @@ def upload_item_csv():
                 ranch = row['ranch'].strip().lower() == 'true'
                 item_designation = row['item_designation'].strip()
                 packaging_type = row['packaging_type'].strip()
+                case_weight = row.get('case_weight', 0.0)  # Default to 0.0 if not provided
+                #labor = row.get('labor', 0.0)  # Default to 0.0 if not provided
+
+                try:
+                    labor = float(row['labor'])
+                except (ValueError, TypeError) as e:
+                    flash(f'Invalid labor value "{row["labor"]}" for item "{name}". Defaulting to 0.0.', 'warning')
+                    labor = 0.0
+
                 #yield_value = float(row['yield'].replace('%', '').strip())
                 raw_yield = row['yield']
                 yield_str = str(raw_yield).strip()
@@ -777,7 +801,7 @@ def upload_item_csv():
                         product_yield=yield_value,
                         item_id=existing_item.id,
                         # change this if we add labor hours to the CSV
-                        labor_hours=0.0,  # Assuming a default labor hours
+                        labor_hours=labor,
                         date=pd.Timestamp.now().date(),
                         company_id=current_user.company_id
                     )
@@ -803,6 +827,12 @@ def upload_item_csv():
                     continue
                 # If the item designation is not provided, default to 'FOODSERVICE'
                 item_designation = item_designation if item_designation else 'FOODSERVICE'
+
+                # check if ranch is true or false (is yes or no in csv)
+                if (ranch == 'yes' or ranch == 'Yes'):
+                    ranch = True
+                else:
+                    ranch = False
 
                 # Create a new item object
                 item = Item(
@@ -838,33 +868,47 @@ def upload_item_csv():
                 item_info = ItemInfo(
                     product_yield=yield_value,
                     item_id=item.id,
-                    labor_hours=0.0,  # Assuming a default labor hours
+                    labor_hours=labor,  # Assuming a default labor hours
                     date=pd.Timestamp.now().date(),
                     company_id=current_user.company_id
                 )
-
-                # find the total cost of the item
-
-
-                # make a total_item_cost object
-                total_item_cost = ItemTotalCost(
-                    item_id=item.id,
-                    date=pd.Timestamp.now().date(),
-                    total_cost=calculate_item_cost(item.id),
-                    company_id=current_user.company_id
-                )
-
-                # add the total item cost to the database
-                db.session.add(total_item_cost)
-                # commit the session to save the item and total item cost
-                db.session.commit()
 
                 # Add the item info to the database
                 db.session.add(item_info)
                 db.session.commit()
+
+                # find the total cost of the item
+                update_item_total_cost(item.id)
+                
                 #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
     return redirect(url_for('items'))
+
+# view an individual item cost
+@app.route('/item_cost/<int:item_cost_id>')
+@login_required
+def view_item_cost(item_cost_id):
+    # Find the item cost in the database
+    item_cost = ItemTotalCost.query.filter_by(id=item_cost_id, company_id=current_user.company_id).first()
+    if not item_cost:
+        flash('Item cost not found or you do not have permission to view it.', 'danger')
+        return redirect(url_for('items'))
+
+    # Get the item associated with this cost
+    item = Item.query.filter_by(id=item_cost.item_id, company_id=current_user.company_id).first()
+    if not item:
+        flash('Item not found or you do not have permission to view it.', 'danger')
+        return redirect(url_for('items'))
+
+    # Get the most recent item info for this item
+    most_recent_info = (
+        ItemInfo.query
+        .filter_by(item_id=item.id)
+        .order_by(ItemInfo.date.desc(), ItemInfo.id.desc())
+        .first()
+    )
+
+    return render_template('view_item_cost.html', title='View Item Cost', item_cost=item_cost, item=item, most_recent_info=most_recent_info)
 
 def calculate_item_cost(item_id):
     # Get the item from the database
@@ -873,14 +917,18 @@ def calculate_item_cost(item_id):
     
     if not item:
         flash('Item not found or you do not have permission to calculate cost.', 'danger')
+        print(f'Item with ID {item_id} not found for company {current_user.company_id}.')
         return 0.0
     
     if not itemInfo:
         flash(f'No item info found for item "{item.name}".', 'warning')
+        print(f'No item info found for item with ID {item_id} for company {current_user.company_id}.')
         return 0.0
 
     # Calculate the total cost of the item based on its raw products and packaging costs
     total_cost = 0.0
+
+    raw_product_cost = 0.0
 
     # get the (raw price/yield) for each raw product
     for raw_product in item.raw_products:
@@ -894,9 +942,12 @@ def calculate_item_cost(item_id):
             # calculate the cost per unit of yield
             cost_per_unit_yield = most_recent_cost.cost / (itemInfo.product_yield or 1)  # Avoid division by zero
             total_cost += (cost_per_unit_yield * item.case_weight)
+            raw_product_cost += (cost_per_unit_yield * item.case_weight)
 
     # get the packaging cost for the item
     packaging_costs = PackagingCost.query.filter_by(packaging_id=item.packaging_id).order_by(PackagingCost.date.desc()).all()
+    total_packaging_cost = 0.0
+
     if packaging_costs:
         # Use the most recent packaging cost
         most_recent_packaging_cost = packaging_costs[0]
@@ -906,8 +957,17 @@ def calculate_item_cost(item_id):
             most_recent_packaging_cost.tray_andor_chemical_cost +
             most_recent_packaging_cost.label_andor_tape_cost
         )
+        # update total_packaging_cost
+        total_packaging_cost = (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
     else:
         flash(f'No packaging costs found for item "{item.name}".', 'warning')
+
+    labor_cost = 0.0
 
     # Calculate the total cost based on labor hours and other factors
     if itemInfo and itemInfo.labor_hours:
@@ -920,24 +980,49 @@ def calculate_item_cost(item_id):
             labor_cost_per_hour = 0
 
         total_cost += itemInfo.labor_hours * labor_cost_per_hour
+        labor_cost = itemInfo.labor_hours * labor_cost_per_hour
+
+    designation_cost = 0.0
 
     # add 2.25 if snakpak, add 1 otherwise
     if item.item_designation == 'SNAKPAK':
         total_cost += 2.25
+        designation_cost = 2.25
     else:
         total_cost += 1.00
+        designation_cost = 1.00
 
-    # return the total
-    return total_cost
+    # return the different costs and the total
+    return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost
 
 # automatically update total cost for an item
 def update_item_total_cost(item_id):
-    cost = calculate_item_cost(item_id)
+    #cost = calculate_item_cost(item_id)
+    cost, labor_cost, designation_cost, packaging_cost, raw_product_cost = calculate_item_cost(item_id)
+
+    # checks
+    if cost is None:
+        flash(f'Could not calculate cost for item with ID {item_id}.', 'danger')
+        return
+    if cost <= 0:
+        flash(f'Calculated cost for item with ID {item_id} is not positive: ${cost:.2f}.', 'warning')
+        return
+    
+    # Check if the item exists
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    if not item:
+        flash(f'Item with ID {item_id} not found for company {current_user.company_id}.', 'danger')
+        return
+
     total_cost = ItemTotalCost(
         item_id=item_id,
         date=datetime.datetime.utcnow().date(),
         total_cost=cost,
-        company_id=current_user.company_id
+        company_id=current_user.company_id,
+        labor_cost=labor_cost,
+        designation_cost=designation_cost,
+        packaging_cost=packaging_cost,
+        raw_product_cost=raw_product_cost
     )
     db.session.add(total_cost)
     db.session.commit()
