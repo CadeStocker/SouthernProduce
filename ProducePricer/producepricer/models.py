@@ -70,6 +70,30 @@ item_raw = db.Table('item_raw',
     db.Column('raw_product_id', db.Integer, db.ForeignKey('raw_product.id'), primary_key=True)
 )
 
+# store the total cost of each item on a given date
+# item_total_cost = db.Table('item_total_cost',
+#     db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True),
+#     db.Column('date', db.Date, primary_key=True)
+# )
+
+# table to store total costs of items on a given date
+class ItemTotalCost(db.Model):
+    __tablename__ = 'item_total_cost'
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    total_cost = db.Column(db.Float, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, item_id, date, total_cost, company_id):
+        self.item_id = item_id
+        self.date = date
+        self.total_cost = total_cost
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"ItemTotalCost('{self.item_id}', '{self.date}', '{self.total_cost}')"
+
 # table of each item we sell
 class Item(db.Model):
     __tablename__ = 'item'
@@ -175,7 +199,7 @@ class RawProduct(db.Model):
     def __repr__(self):
         return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"
 
-
+# cost for a raw product on a given date
 # COST IS BASED EXCLUSIVELY ON PRICE SENN SELLS TO US AT
 class CostHistory(db.Model):
     __tablename__ = 'cost_history'

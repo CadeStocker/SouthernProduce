@@ -1,6 +1,6 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, Item, ItemInfo, PackagingCost, RawProduct, User, Company, Packaging
+from producepricer.models import CostHistory, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
 from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
@@ -181,6 +181,14 @@ def add_packaging_cost(packaging_id):
                                        company_id=current_user.company_id)
         db.session.add(packaging_cost)
         db.session.commit()
+
+        # update TotalItemCost of any items using this packaging
+        with db.session.no_autoflush:
+            items_using_packaging = Item.query.filter_by(packaging_id=packaging_id, company_id=current_user.company_id).all()
+            for item in items_using_packaging:
+                # update the total cost for the item
+                update_item_total_cost(item.id)
+
         # redirect to the packaging page
         return redirect(url_for('packaging'))
     # if the form is not submitted or is invalid, render the add packaging cost page
@@ -272,6 +280,19 @@ def upload_packaging_csv():
                 db.session.add(packaging_cost)
                 db.session.commit()
 
+                # update TotalItemCost of any items using this packaging
+                items_using_packaging = Item.query.filter_by(packaging_id=packaging.id, company_id=current_user.company_id).all()
+                for item in items_using_packaging:
+                    total_cost = calculate_item_cost(item.id)
+                    item_cost = ItemTotalCost(
+                        item_id=item.id,
+                        total_cost=total_cost,
+                        date=pd.Timestamp.now().date(),
+                        company_id=current_user.company_id
+                    )
+                    db.session.add(item_cost)
+                db.session.commit()
+
             flash('Packaging costs added successfully!', 'success')
             return redirect(url_for('packaging'))
     return render_template('upload_packaging_csv.html', title='Upload Packaging CSV', form=form)
@@ -349,6 +370,12 @@ def delete_raw_product_cost(cost_id):
     db.session.delete(cost)
     db.session.commit()
 
+    # Update the total cost for any items using this raw product
+    items_using_raw_product = Item.query.filter(Item.raw_products.any(id=cost.raw_product_id)).all()
+    
+    for item in items_using_raw_product:
+        update_item_total_cost(item.id)
+
     flash('Raw product cost has been deleted successfully.', 'success')
     return redirect(url_for('view_raw_product', raw_product_id=cost.raw_product_id))
 
@@ -396,6 +423,13 @@ def add_raw_product_cost(raw_product_id):
         )
         db.session.add(cost_history)
         db.session.commit()
+
+        # Update the total cost for any items using this raw product
+        items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
+    
+        for item in items_using_raw_product:
+            update_item_total_cost(item.id)
+
         flash(f'Cost added for raw product!', 'success')
     else:
         flash('Invalid data submitted.', 'danger')
@@ -650,12 +684,19 @@ def view_item(item_id):
     
     # get all the item info for this item
     item_info = ItemInfo.query.filter_by(item_id=item_id).order_by(ItemInfo.date.desc()).all()
-
     packaging = Packaging.query.filter_by(id=item.packaging_id, company_id=current_user.company_id).first()
     raw_products = [rp for rp in item.raw_products]
+
+    # most recent labor cost
+    most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
+
+    # history of total costs for this item
+    item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
+
+    # form
     update_item_info_form = UpdateItemInfo()
 
-    return render_template('view_item.html', update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
+    return render_template('view_item.html', item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
@@ -802,12 +843,135 @@ def upload_item_csv():
                     company_id=current_user.company_id
                 )
 
+                # find the total cost of the item
+
+
+                # make a total_item_cost object
+                total_item_cost = ItemTotalCost(
+                    item_id=item.id,
+                    date=pd.Timestamp.now().date(),
+                    total_cost=calculate_item_cost(item.id),
+                    company_id=current_user.company_id
+                )
+
+                # add the total item cost to the database
+                db.session.add(total_item_cost)
+                # commit the session to save the item and total item cost
+                db.session.commit()
+
                 # Add the item info to the database
                 db.session.add(item_info)
                 db.session.commit()
                 #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
     return redirect(url_for('items'))
+
+def calculate_item_cost(item_id):
+    # Get the item from the database
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    itemInfo = ItemInfo.query.filter_by(item_id=item_id).order_by(ItemInfo.date.desc(), ItemInfo.id.desc()).first()
+    
+    if not item:
+        flash('Item not found or you do not have permission to calculate cost.', 'danger')
+        return 0.0
+    
+    if not itemInfo:
+        flash(f'No item info found for item "{item.name}".', 'warning')
+        return 0.0
+
+    # Calculate the total cost of the item based on its raw products and packaging costs
+    total_cost = 0.0
+
+    # get the (raw price/yield) for each raw product
+    for raw_product in item.raw_products:
+        most_recent_cost = (
+            CostHistory.query
+            .filter_by(raw_product_id=raw_product.id)
+            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+            .first()
+        )
+        if most_recent_cost:
+            # calculate the cost per unit of yield
+            cost_per_unit_yield = most_recent_cost.cost / (itemInfo.product_yield or 1)  # Avoid division by zero
+            total_cost += (cost_per_unit_yield * item.case_weight)
+
+    # get the packaging cost for the item
+    packaging_costs = PackagingCost.query.filter_by(packaging_id=item.packaging_id).order_by(PackagingCost.date.desc()).all()
+    if packaging_costs:
+        # Use the most recent packaging cost
+        most_recent_packaging_cost = packaging_costs[0]
+        total_cost += (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
+    else:
+        flash(f'No packaging costs found for item "{item.name}".', 'warning')
+
+    # Calculate the total cost based on labor hours and other factors
+    if itemInfo and itemInfo.labor_hours:
+        # Assuming a fixed labor cost per hour, e.g., $15/hour
+        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
+        if labor_cost_per_hour:
+            labor_cost_per_hour = labor_cost_per_hour.cost
+        else:
+            flash('Labor cost not found. Assuming $0 per hour.', 'warning')
+            labor_cost_per_hour = 0
+
+        total_cost += itemInfo.labor_hours * labor_cost_per_hour
+
+    # add 2.25 if snakpak, add 1 otherwise
+    if item.item_designation == 'SNAKPAK':
+        total_cost += 2.25
+    else:
+        total_cost += 1.00
+
+    # return the total
+    return total_cost
+
+# automatically update total cost for an item
+def update_item_total_cost(item_id):
+    cost = calculate_item_cost(item_id)
+    total_cost = ItemTotalCost(
+        item_id=item_id,
+        date=datetime.datetime.utcnow().date(),
+        total_cost=cost,
+        company_id=current_user.company_id
+    )
+    db.session.add(total_cost)
+    db.session.commit()
+    flash(f'Total cost for item: {item_id} has been updated to ${cost:.2f}.', 'success')
+
+# price page for showing cost of each item and different prices (along with associated profit and margins)
+@app.route('/price')
+@login_required
+def price():
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('index'))
+
+    # Get all items for the current user's company
+    items = Item.query.filter_by(company_id=current_user.company_id).all()
+
+    # Get the most recent total cost for each item
+    item_costs = {}
+    for item in items:
+        most_recent_cost = (
+            ItemTotalCost.query
+            .filter_by(item_id=item.id)
+            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+            .first()
+        )
+        if most_recent_cost:
+            item_costs[item.id] = most_recent_cost
+        else:
+            # if no cost found, attempt to calculate it
+            update_item_total_cost(item.id)
+
+    return render_template('price.html', title='Price', items=items, item_costs=item_costs)
 
 # only true if this file is run directly
 if __name__ == '__main__':

@@ -29,6 +29,35 @@
         </div>
     </div>
 
+    <!-- Item Costs -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Item Cost History</h5>
+        </div>
+        <div class="card-body">
+            {% if item_costs %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cost in item_costs %}
+                            <tr>
+                                <td>{{ cost.date.strftime('%Y-%m-%d') }}</td>
+                                <td>${{ "%.2f"|format(cost.total_cost) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No costs available for this item.</p>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Item Info History -->
     <div class="card">
         <div class="card-header">

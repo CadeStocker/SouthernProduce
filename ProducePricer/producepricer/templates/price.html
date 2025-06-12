@@ -1,0 +1,41 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/price.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Item Pricing</h1>
+
+    {% if items %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Item Code</th>
+                    <th>Total Cost</th>
+                    <th>Retail Price</th>
+                    <th>Profit</th>
+                    <th>Margin (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    {% set cost = item_costs[item.id].total_cost if item.id in item_costs else 0 %}
+                    {% set retail_price = cost * 1.5 %} <!-- Example: Retail price is 1.5x the cost -->
+                    {% set profit = retail_price - cost %}
+                    {% set margin = (profit / retail_price * 100) if retail_price > 0 else 0 %}
+                    <tr>
+                        <td><a href="{{ url_for('view_item', item_id=item.id) }}">{{ item.name }}</a></td>
+                        <td>{{ item.code }}</td>
+                        <td>${{ "%.2f"|format(cost) }}</td>
+                        <td>${{ "%.2f"|format(retail_price) }}</td>
+                        <td>${{ "%.2f"|format(profit) }}</td>
+                        <td>{{ "%.2f"|format(margin) }}%</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No items found for your company.</p>
+    {% endif %}
+</div>
+{% endblock %}
