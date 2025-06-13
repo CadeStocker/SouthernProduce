@@ -1,0 +1,83 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/add_labor_cost.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Labor Costs</h1>
+
+    <!-- Table for Past Labor Costs -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Past Labor Costs</h5>
+        </div>
+        <div class="card-body">
+            {% if past_labor_costs %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Cost (per hour)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for labor_cost in past_labor_costs %}
+                            <tr>
+                                <td>{{ labor_cost.date.strftime('%Y-%m-%d') }}</td>
+                                <td>${{ "%.2f"|format(labor_cost.labor_cost) }}</td>
+                                <td>
+                                    <!-- Delete Button -->
+                                    <form method="POST" action="{{ url_for('delete_labor_cost', cost_id=labor_cost.id) }}" style="display: inline;">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this labor cost?');">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No past labor costs available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Button to Open Modal -->
+    <button type="button" class="btn btn-primary mt-4" data-toggle="modal" data-target="#addLaborCostModal">
+        Add New Labor Cost
+    </button>
+</div>
+
+<!-- Modal for Adding Labor Cost -->
+<div class="modal fade" id="addLaborCostModal" tabindex="-1" role="dialog" aria-labelledby="addLaborCostModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addLaborCostModalLabel">Add New Labor Cost</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('add_labor_cost') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="form-group">
+                        <label for="cost">Labor Cost (per hour)</label>
+                        {{ form.cost(class="form-control", id="cost") }}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        {{ form.date(class="form-control", id="date") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Labor Cost</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

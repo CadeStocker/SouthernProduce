@@ -13,7 +13,12 @@
         <div class="card-body">
             <p><strong>Packaging Type:</strong> {{ packaging.packaging_type }}</p>
             <p><strong>Company:</strong> {{ packaging.company.name }}</p>
+            <!-- Button to Open Modal -->
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addCostModal">
+                Add New Packaging Cost
+            </button>
         </div>
+
     </div>
 
     <!-- Packaging Costs -->
@@ -32,6 +37,7 @@
                             <th>Tray/Chemical Cost</th>
                             <th>Label/Tape Cost</th>
                             <th>Total Cost</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,6 +52,15 @@
                                     ${{ "%.2f"|format(
                                         cost.box_cost + cost.bag_cost + cost.tray_andor_chemical_cost + cost.label_andor_tape_cost
                                     ) }}
+                                </td>
+                                <td>
+                                    <!-- Delete Button -->
+                                    <form method="POST" action="{{ url_for('delete_packaging_cost', cost_id=cost.id) }}" style="display: inline;">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this cost?');">
+                                            Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -132,5 +147,47 @@
         }
     });
 </script>
+
+<!-- Modal for Adding New Packaging Cost -->
+<div class="modal fade" id="addCostModal" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCostModalLabel">Add New Packaging Cost</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('add_packaging_cost', packaging_id=packaging.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        {{ form.date(class="form-control", id="date") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="box_cost">Box Cost</label>
+                        {{ form.box_cost(class="form-control", id="box_cost") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="bag_cost">Bag Cost</label>
+                        {{ form.bag_cost(class="form-control", id="bag_cost") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="tray_andor_chemical_cost">Tray/Chemical Cost</label>
+                        {{ form.tray_andor_chemical_cost(class="form-control", id="tray_andor_chemical_cost") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="label_andor_tape_cost">Label/Tape Cost</label>
+                        {{ form.label_andor_tape_cost(class="form-control", id="label_andor_tape_cost") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Cost</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

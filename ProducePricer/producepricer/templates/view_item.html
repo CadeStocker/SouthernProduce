@@ -14,7 +14,13 @@
             <p><strong>Item Name:</strong> {{ item.name }}</p>
             <p><strong>Item Code:</strong> {{ item.code }}</p>
             <p><strong>Case Weight:</strong> {{ "%.2f"|format(item.case_weight) }} lbs</p>
-            <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'No Packaging' }}</p>
+            <p><strong>Packaging:</strong>
+                {% if packaging %}
+                    <a href="{{ url_for('view_packaging', packaging_id=packaging.id) }}">{{ packaging.packaging_type }}</a>
+                {% else %}
+                    No Packaging
+                {% endif %}
+            </p>
             <p><strong>Raw Products:</strong> 
                 {% if raw_products %}
                     {% for raw_product in raw_products %}

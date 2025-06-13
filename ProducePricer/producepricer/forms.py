@@ -97,3 +97,8 @@ class UpdateItemInfo(FlaskForm):
 class UploadItemCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
+
+class AddLaborCost(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()])
+    cost = FloatField('Cost', validators=[DataRequired()])
+    submit = SubmitField('Add Labor Cost')

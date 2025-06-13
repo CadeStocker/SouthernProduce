@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
 from producepricer.models import CostHistory, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddItem, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
+from producepricer.forms import AddItem, AddLaborCost, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -137,7 +137,9 @@ def view_packaging(packaging_id):
     # get all the packaging costs for this packaging
     packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
 
-    return render_template('view_packaging.html', title='View Packaging', packaging=packaging, packaging_costs=packaging_costs)
+    form = AddPackagingCost()
+
+    return render_template('view_packaging.html', title='View Packaging', packaging=packaging, packaging_costs=packaging_costs, form=form)
 
 
 @app.route('/add_package', methods=['POST'])
@@ -190,7 +192,7 @@ def add_packaging_cost(packaging_id):
                 update_item_total_cost(item.id)
 
         # redirect to the packaging page
-        return redirect(url_for('packaging'))
+        return redirect(url_for('view_packaging', packaging_id=packaging_id))
     # if the form is not submitted or is invalid, render the add packaging cost page
     flash('Invalid Information.', 'danger')
     return render_template('add_packaging_cost.html', title='Add Packaging Cost', form=form, packaging=packaging)
@@ -214,6 +216,22 @@ def delete_packaging(packaging_id):
 
     flash(f'Packaging "{packaging.packaging_type}" and its associated costs have been deleted.', 'success')
     return redirect(url_for('packaging'))
+
+@app.route('/delete_packaging_cost/<int:cost_id>', methods=['POST'])
+@login_required
+def delete_packaging_cost(cost_id):
+    cost = PackagingCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
+    packaging = Packaging.query.filter_by(id=cost.packaging_id, company_id=current_user.company_id).first() if cost else None
+    
+    if not cost:
+        flash('Packaging cost not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('packaging'))
+
+    db.session.delete(cost)
+    db.session.commit()
+
+    flash('Packaging cost has been deleted.', 'success')
+    return redirect(url_for('view_packaging', packaging_id=packaging.id))
 
 @app.route('/upload_packaging_csv', methods=['GET', 'POST'])
 @login_required
@@ -974,7 +992,7 @@ def calculate_item_cost(item_id):
         # Assuming a fixed labor cost per hour, e.g., $15/hour
         labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
         if labor_cost_per_hour:
-            labor_cost_per_hour = labor_cost_per_hour.cost
+            labor_cost_per_hour = labor_cost_per_hour.labor_cost
         else:
             flash('Labor cost not found. Assuming $0 per hour.', 'warning')
             labor_cost_per_hour = 0
@@ -1057,6 +1075,80 @@ def price():
             update_item_total_cost(item.id)
 
     return render_template('price.html', title='Price', items=items, item_costs=item_costs)
+
+# page to add labor cost
+@app.route('/add_labor_cost', methods=['GET', 'POST'])
+@login_required
+def add_labor_cost():
+    form = AddLaborCost()
+
+    if form.validate_on_submit():
+        # Create a new labor cost entry
+        labor_cost = LaborCost(
+            labor_cost=form.cost.data,
+            date=form.date.data,
+            company_id=current_user.company_id
+        )
+        db.session.add(labor_cost)
+        db.session.commit()
+        update_item_costs_on_labor_change()
+        flash('Labor cost added successfully!', 'success')
+
+        # get past labor costs for the current user
+        past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+
+    else:
+        flash('Invalid data submitted.', 'danger')
+
+        # get past labor costs for the current user
+        past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+
+    return render_template('add_labor_cost.html', title='Add Labor Cost', form=form, past_labor_costs=past_labor_costs)
+
+# delete a labor cost
+@app.route('/delete_labor_cost/<int:cost_id>', methods=['POST'])
+@login_required
+def delete_labor_cost(cost_id):
+    # see if you're deleting the most recent labor cost
+    # if so, allow deletion but then update all item costs
+    most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
+    if most_recent_labor_cost and most_recent_labor_cost.id == cost_id:
+        # Find the labor cost in the database
+        labor_cost = LaborCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
+        if not labor_cost:
+            flash('Labor cost not found or you do not have permission to delete it.', 'danger')
+            return redirect(url_for('add_labor_cost'))
+
+        # Delete the labor cost
+        db.session.delete(labor_cost)
+        db.session.commit()
+
+        update_item_costs_on_labor_change()
+
+    else:
+        # Find the labor cost in the database
+        labor_cost = LaborCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
+        if not labor_cost:
+            flash('Labor cost not found or you do not have permission to delete it.', 'danger')
+            return redirect(url_for('add_labor_cost'))
+
+        # Delete the labor cost
+        db.session.delete(labor_cost)
+        db.session.commit()
+
+    flash('Labor cost has been deleted successfully.', 'success')
+    return redirect(url_for('add_labor_cost'))
+
+# update all item costs when a labor cost is added or deleted
+def update_item_costs_on_labor_change():
+    # Get all items for the current user's company
+    items = Item.query.filter_by(company_id=current_user.company_id).all()
+
+    # Update the total cost for each item
+    for item in items:
+        update_item_total_cost(item.id)
+
+    flash('All item costs have been updated based on the latest labor costs.', 'success')
 
 # only true if this file is run directly
 if __name__ == '__main__':
