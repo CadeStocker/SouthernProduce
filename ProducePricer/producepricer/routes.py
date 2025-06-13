@@ -596,6 +596,12 @@ def items():
 @app.route('/add_item', methods=['POST'])
 @login_required
 def add_item():
+    # make sure a labor cost exists for the current user
+    most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
+    if not most_recent_labor_cost:
+        flash('Please add a labor cost before adding items.', 'warning')
+        return redirect(url_for('items'))
+
     # add item form
     form = AddItem()
     form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
@@ -743,6 +749,12 @@ def delete_item_info(item_info_id):
 @app.route('/upload_item_csv', methods=['GET', 'POST'])
 @login_required
 def upload_item_csv():
+    # make sure a labor cost exists for the current user
+    most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
+    if not most_recent_labor_cost:
+        flash('Please add a labor cost before uploading items.', 'warning')
+        return redirect(url_for('items'))
+
     form = UploadItemCSV()
     if form.validate_on_submit():
         # Check if the post request has the file part
