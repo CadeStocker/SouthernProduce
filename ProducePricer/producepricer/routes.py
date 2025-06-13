@@ -1162,6 +1162,29 @@ def update_item_costs_on_labor_change():
 
     flash('All item costs have been updated based on the latest labor costs.', 'success')
 
+# company page
+@app.route('/company')
+@login_required
+def company():
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('index'))
+    
+    # get all users in the company
+    users = User.query.filter_by(company_id=current_user.company_id).all()
+
+    # get the owner's account
+    admin_email = company.admin_email if company else None
+    admin = User.query.filter_by(email=admin_email).first() if admin_email else None
+    if not admin:
+        flash('Admin user not found for this company.', 'danger')
+        return redirect(url_for('index'))
+
+    return render_template('company.html', title='Company', company=company, users=users, admin=admin)
+
+
 # only true if this file is run directly
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,63 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/company.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Company Details</h1>
+
+    <!-- Company Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Company Information</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Company Name:</strong> {{ company.name }}</p>
+            <p><strong>Admin Email:</strong> {{ company.admin_email }}</p>
+        </div>
+    </div>
+
+    <!-- Admin Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Admin Information</h5>
+        </div>
+        <div class="card-body">
+            {% if admin %}
+                <p><strong>Admin Name:</strong> {{ admin.first_name }} {{ admin.last_name }}</p>
+                <p><strong>Admin Email:</strong> {{ admin.email }}</p>
+            {% else %}
+                <p>No admin information available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Users in the Company -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Users in the Company</h5>
+        </div>
+        <div class="card-body">
+            {% if users %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <td>{{ user.email }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No users found in this company.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
