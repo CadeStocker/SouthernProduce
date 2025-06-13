@@ -1,7 +1,7 @@
 import datetime
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddItem, AddLaborCost, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
+from producepricer.models import CostHistory, Customer, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
+from producepricer.forms import AddCustomer, AddItem, AddLaborCost, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadCustomerCSV, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -1184,6 +1184,122 @@ def company():
 
     return render_template('company.html', title='Company', company=company, users=users, admin=admin)
 
+# customer page
+@app.route('/customer')
+@login_required
+def customer():
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('index'))
+
+    # Get all customers for the current user's company
+    customers = Customer.query.filter_by(company_id=current_user.company_id).all()
+
+    form = AddCustomer()
+    import_form = UploadCustomerCSV()
+
+    return render_template('customer.html', form=form, import_form=import_form, title='Customer', customers=customers, company=company)
+
+# add new customer
+@app.route('/add_customer', methods=['POST'])
+@login_required
+def add_customer():
+    form = AddCustomer()
+    if form.validate_on_submit():
+        customer = Customer(
+            name=form.name.data,
+            email=form.email.data,
+            company_id=current_user.company_id
+        )
+        db.session.add(customer)
+        db.session.commit()
+        flash('Customer added successfully!', 'success')
+        return redirect(url_for('customer'))
+
+    return render_template('add_customer.html', title='Add Customer', form=form)
+
+# delete a customer
+@app.route('/delete_customer/<int:customer_id>', methods=['POST'])
+@login_required
+def delete_customer(customer_id):
+    # Find the customer in the database
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
+    if not customer:
+        flash('Customer not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('customer'))
+
+    # Delete the customer
+    db.session.delete(customer)
+    db.session.commit()
+    flash(f'Customer "{customer.name}" has been deleted successfully.', 'success')
+    return redirect(url_for('customer'))
+
+# upload customer CSV
+@app.route('/upload_customer_csv', methods=['GET', 'POST'])
+@login_required
+def upload_customer_csv():
+    form = UploadCustomerCSV()
+    if form.validate_on_submit():
+        # Check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['file']
+        # If user does not select a file, browser also submits an empty part without filename
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file:
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
+            # Save the file securely
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            # Read the CSV file into a pandas DataFrame
+            try:
+                df = pd.read_csv(filepath)
+            except Exception as e:
+                flash(f'Error reading CSV file: {e}', 'danger')
+                return redirect(request.url)
+
+            # Make sure the columns are all in the CSV
+            required_columns = ['name', 'email']
+            missing_columns = [column for column in required_columns if column not in df.columns]
+
+            if missing_columns:
+                flash(f'Invalid CSV format. Missing columns: {", ".join(missing_columns)}', 'danger')
+                return redirect(request.url)
+
+            # Process the DataFrame and add customers to the database
+            for index, row in df.iterrows():
+                name = row['name'].strip()
+                email = row['email'].strip()
+
+                # Check if the customer already exists
+                existing_customer = Customer.query.filter_by(name=name, company_id=current_user.company_id).first()
+                if existing_customer:
+                    flash(f'Customer "{name}" already exists. Skipping.', 'warning')
+                    continue
+
+                # Create a new customer object
+                customer = Customer(
+                    name=name,
+                    email=email,
+                    company_id=current_user.company_id
+                )
+
+                # Add the customer to the database
+                db.session.add(customer)
+                db.session.commit()
+
+            flash('Customers imported successfully!', 'success')
+    return redirect(url_for('customer'))
 
 # only true if this file is run directly
 if __name__ == '__main__':

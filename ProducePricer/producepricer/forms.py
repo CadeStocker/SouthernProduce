@@ -102,3 +102,12 @@ class AddLaborCost(FlaskForm):
     date = DateField('Date', validators=[DataRequired()])
     cost = FloatField('Cost', validators=[DataRequired()])
     submit = SubmitField('Add Labor Cost')
+
+class AddCustomer(FlaskForm):
+    name = StringField('Customer Name', validators=[DataRequired()])
+    email = StringField('Customer Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Add Customer')
+
+class UploadCustomerCSV(FlaskForm):
+    file = FileField('Upload CSV', validators=[DataRequired()])
+    submit = SubmitField('Upload')
