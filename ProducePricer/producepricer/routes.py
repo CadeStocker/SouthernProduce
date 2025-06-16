@@ -1202,6 +1202,23 @@ def customer():
 
     return render_template('customer.html', form=form, import_form=import_form, title='Customer', customers=customers, company=company)
 
+@app.route('/edit_customer/<int:customer_id>', methods=['POST'])
+@login_required
+def edit_customer(customer_id):
+    # Find the customer in the database
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
+    if not customer:
+        flash('Customer not found or you do not have permission to edit it.', 'danger')
+        return redirect(url_for('customer'))
+
+    # Update the customer's details
+    customer.name = request.form['name']
+    customer.email = request.form['email']
+    db.session.commit()
+
+    flash(f'Customer "{customer.name}" has been updated successfully!', 'success')
+    return redirect(url_for('customer'))
+
 # add new customer
 @app.route('/add_customer', methods=['POST'])
 @login_required

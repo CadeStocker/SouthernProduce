@@ -43,10 +43,45 @@
                                 <td>{{ customer.name }}</td>
                                 <td>{{ customer.email }}</td>
                                 <td>
+                                    <div class="d-flex align-items-center">
+                                    <!-- Edit Button -->
+                                    <button type="button" class="btn btn-warning btn-sm mr-2" data-toggle="modal" data-target="#editCustomerModal{{ customer.id }}">
+                                        Edit
+                                    </button>
                                     <form method="POST" action="{{ url_for('delete_customer', customer_id=customer.id) }}">
                                         {{ form.hidden_tag() }}
                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                     </form>
+                                    </div>
+
+                                    <!-- Modal for Editing Customer -->
+                                    <div class="modal fade" id="editCustomerModal{{ customer.id }}" tabindex="-1" role="dialog" aria-labelledby="editCustomerModalLabel{{ customer.id }}" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="editCustomerModalLabel{{ customer.id }}">Edit Customer</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form method="POST" action="{{ url_for('edit_customer', customer_id=customer.id) }}">
+                                                        {{ form.hidden_tag() }}
+                                                        <div class="form-group">
+                                                            <label for="name">Name</label>
+                                                            <input type="text" name="name" class="form-control" id="name" value="{{ customer.name }}" required>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="email">Email</label>
+                                                            <input type="email" name="email" class="form-control" id="email" value="{{ customer.email }}" required>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </td>
                             </tr>
                         {% endfor %}
