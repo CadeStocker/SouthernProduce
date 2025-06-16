@@ -12,26 +12,40 @@
                     <th>Item Name</th>
                     <th>Item Code</th>
                     <th>Total Cost</th>
-                    <th>Retail Price</th>
-                    <th>Profit</th>
-                    <th>Margin (%)</th>
+                    <th>Cost/LB</th>
+                    <th>Cost/Oz</th>
+                    <th>Labor</th>
+                    <th>Packaging Cost</th>
+                    <th>Unit Cost</th>
+                    <th>25% Rounded</th>
+                    <th>30% Rounded</th>
+                    <th>35% Rounded</th>
+                    <th>40% Rounded</th>
+                    <th>45% Rounded</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items %}
-                    {% set cost = item_costs[item.id].total_cost if item.id in item_costs else 0 %}
-                    {% set retail_price = cost * 1.5 %} <!-- Example: Retail price is 1.5x the cost -->
-                    {% set profit = retail_price - cost %}
-                    {% set margin = (profit / retail_price * 100) if retail_price > 0 else 0 %}
-                    <tr>
-                        <td><a href="{{ url_for('view_item', item_id=item.id) }}">{{ item.name }}</a></td>
-                        <td>{{ item.code }}</td>
-                        <td>${{ "%.2f"|format(cost) }}</td>
-                        <td>${{ "%.2f"|format(retail_price) }}</td>
-                        <td>${{ "%.2f"|format(profit) }}</td>
-                        <td>{{ "%.2f"|format(margin) }}%</td>
-                    </tr>
-                {% endfor %}
+        <tr>
+            <td>
+                <a href="{{ url_for('view_item', item_id=item.id) }}">
+                    {{ item.name }}
+                </a>
+            </td>
+            <td>{{ item.code }}</td>
+            <td>${{ item.total_cost }}</td>
+            <td>${{ item.cost_per_lb }}</td>
+            <td>${{ item.cost_per_oz }}</td>
+            <td>${{ item.labor_cost }}</td>
+            <td>${{ item.packaging_cost }}</td>
+            <td>${{ item.unit_cost }}</td>
+            <td>${{ item.rounded_25 }}</td>
+            <td>${{ item.rounded_30 }}</td>
+            <td>${{ item.rounded_35 }}</td>
+            <td>${{ item.rounded_40 }}</td>
+            <td>${{ item.rounded_45 }}</td>
+        </tr>
+    {% endfor %}
             </tbody>
         </table>
     {% else %}

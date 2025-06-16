@@ -1,4 +1,5 @@
 import datetime
+import math
 from flask import redirect, render_template, request, url_for, flash
 from producepricer.models import CostHistory, Customer, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
 from producepricer.forms import AddCustomer, AddItem, AddLaborCost, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadCustomerCSV, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
@@ -1086,7 +1087,61 @@ def price():
             # if no cost found, attempt to calculate it
             update_item_total_cost(item.id)
 
-    return render_template('price.html', title='Price', items=items, item_costs=item_costs)
+    item_data = []
+    for item in items:
+        # Get the most recent total cost for the item
+        most_recent_cost = (
+            ItemTotalCost.query
+            .filter_by(item_id=item.id)
+            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+            .first()
+        )
+        if not most_recent_cost:
+            # If no cost is found, calculate it
+            update_item_total_cost(item.id)
+            most_recent_cost = (
+                ItemTotalCost.query
+                .filter_by(item_id=item.id)
+                .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+                .first()
+            )
+
+        # Calculate additional values
+        cost_per_lb = most_recent_cost.total_cost / item.case_weight if item.case_weight else 0.0
+        cost_per_oz = cost_per_lb / 16  # 1 pound = 16 ounces
+        labor_cost = most_recent_cost.labor_cost
+        packaging_cost = most_recent_cost.packaging_cost
+        unit_cost = most_recent_cost.total_cost
+
+        # Rounded costs (rounded up to the nearest .25)
+        def round_up_to_nearest_quarter(value):
+            return math.ceil(value * 4) / 4
+
+        rounded_25 = round_up_to_nearest_quarter(unit_cost * 1.25)
+        rounded_30 = round_up_to_nearest_quarter(unit_cost * 1.30)
+        rounded_35 = round_up_to_nearest_quarter(unit_cost * 1.35)
+        rounded_40 = round_up_to_nearest_quarter(unit_cost * 1.40)
+        rounded_45 = round_up_to_nearest_quarter(unit_cost * 1.45)
+
+        # Append data for this item
+        item_data.append({
+            'id': item.id,
+            'name': item.name,
+            'code': item.code,
+            'total_cost': f"{most_recent_cost.total_cost:.2f}",
+            'cost_per_lb': f"{cost_per_lb:.2f}",
+            'cost_per_oz': f"{cost_per_oz:.2f}",
+            'labor_cost': f"{labor_cost:.2f}",
+            'packaging_cost': f"{packaging_cost:.2f}",
+            'unit_cost': f"{unit_cost:.2f}",
+            'rounded_25': f"{rounded_25:.2f}",
+            'rounded_30': f"{rounded_30:.2f}",
+            'rounded_35': f"{rounded_35:.2f}",
+            'rounded_40': f"{rounded_40:.2f}",
+            'rounded_45': f"{rounded_45:.2f}",
+        })
+
+    return render_template('price.html', title='Price', items=item_data, item_costs=item_costs, item_data=item_data, company=company)
 
 # page to add labor cost
 @app.route('/add_labor_cost', methods=['GET', 'POST'])
