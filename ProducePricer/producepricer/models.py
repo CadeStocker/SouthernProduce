@@ -134,6 +134,22 @@ class Item(db.Model):
     def __repr__(self):
         return f"Item('{self.name}', '{self.code}', '{self.unit_of_weight}', '{self.weight}')"
 
+# store ranch price
+class RanchPrice(db.Model):
+    __tablename__ = 'ranch_price'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, date, price, company_id):
+        self.date = date
+        self.price = price
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"RanchPrice('{self.date}', '{self.price}')"
+
 
 # store entries for items
 class ItemInfo(db.Model):

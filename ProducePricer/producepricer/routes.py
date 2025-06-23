@@ -605,6 +605,8 @@ def add_item():
 
     # add item form
     form = AddItem()
+    # form to add yield and labor hours
+    update_item_info_form = UpdateItemInfo()
     form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
     form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
 
@@ -638,6 +640,19 @@ def add_item():
         # add the item to the database
         db.session.add(item)
         db.session.commit()
+
+        # add the item info
+        item_info = ItemInfo(
+            product_yield=update_item_info_form.product_yield.data,
+            labor_hours=update_item_info_form.labor_hours.data,
+            date=update_item_info_form.date.data,
+            item_id=item.id,
+            company_id=current_user.company_id
+        )
+        # add the item info to the database
+        db.session.add(item_info)
+        db.session.commit()
+
         # flash a message to the user
         flash(f'Item "{form.name.data}" has been added successfully!', 'success')
         # redirect to the items page
@@ -949,12 +964,12 @@ def calculate_item_cost(item_id):
     if not item:
         flash('Item not found or you do not have permission to calculate cost.', 'danger')
         print(f'Item with ID {item_id} not found for company {current_user.company_id}.')
-        return 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0
     
     if not itemInfo:
         flash(f'No item info found for item "{item.name}".', 'warning')
         print(f'No item info found for item with ID {item_id} for company {current_user.company_id}.')
-        return 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0
 
     # Calculate the total cost of the item based on its raw products and packaging costs
     total_cost = 0.0
@@ -1112,6 +1127,7 @@ def price():
         labor_cost = most_recent_cost.labor_cost
         packaging_cost = most_recent_cost.packaging_cost
         unit_cost = most_recent_cost.total_cost
+        
 
         # Rounded costs (rounded up to the nearest .25)
         def round_up_to_nearest_quarter(value):
@@ -1238,6 +1254,28 @@ def company():
         return redirect(url_for('index'))
 
     return render_template('company.html', title='Company', company=company, users=users, admin=admin)
+
+# ability for business owner to delete users
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    # Check if the current user is the admin of the company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company or current_user.email != company.admin_email:
+        flash('You do not have permission to delete users.', 'danger')
+        return redirect(url_for('company'))
+
+    # Find the user in the database
+    user = User.query.filter_by(id=user_id, company_id=current_user.company_id).first()
+    if not user:
+        flash('User not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('company'))
+
+    # Delete the user
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User "{user.email}" has been deleted successfully.', 'success')
+    return redirect(url_for('company'))
 
 # customer page
 @app.route('/customer')

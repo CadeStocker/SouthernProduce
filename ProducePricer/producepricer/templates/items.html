@@ -27,6 +27,7 @@
           <th>Item Designation</th>
           <th>Packaging Type</th>
           <th>Raw Product(s)</th>
+          <th>Ranch</th>
           <th>Product Yield</th>
           <th>Labor Hours</th>
           <th>Actions</th>
@@ -69,6 +70,14 @@
               {% else %}
                 No raw products
               {% endif %}
+            </td>
+
+            <td>
+                {% if item.ranch %}
+                <p> Yes </p>
+                {% else %}
+                <p> No </p>
+                {% endif %}
             </td>
 
             <td>
@@ -209,12 +218,29 @@
                 {{ form.case_weight(class="form-control") }}
             </div>
             <div class="form-group">
+                {{ form.ranch.label(class="form-control-label") }}
+                {{ form.ranch(class="form-control") }}
+            </div>
+            <div class="form-group">
                 {{ form.packaging.label(class="form-control-label") }}
                 {{ form.packaging(class="form-control") }}
             </div>
             <div class="form-group">
                 {{ form.raw_products.label(class="form-control-label") }}
                 {{ form.raw_products(class="form-control") }}
+            </div>
+
+            <div class="form-group">
+                {{ update_item_info_form.product_yield.label(class="form-control-label") }}
+                {{ update_item_info_form.product_yield(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ update_item_info_form.labor_hours.label(class="form-control-label") }}
+                {{ update_item_info_form.labor_hours(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ update_item_info_form.date.label(class="form-control-label") }}
+                {{ update_item_info_form.date(class="form-control") }}
             </div>
 
         </div>

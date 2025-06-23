@@ -3,6 +3,10 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('items') }}" class="btn btn-secondary">Back to Item List</a>
+    </div>
     <h1 class="mb-4">Item Details: {{ item.name }}</h1>
 
     <!-- Item Details -->
@@ -14,6 +18,16 @@
             <p><strong>Item Name:</strong> {{ item.name }}</p>
             <p><strong>Item Code:</strong> {{ item.code }}</p>
             <p><strong>Case Weight:</strong> {{ "%.2f"|format(item.case_weight) }} lbs</p>
+            <p><strong>Item Designation:</strong> 
+                {{ item.item_designation.value if item.item_designation else 'No designation' }}
+            </p>
+            <p><strong>Ranch:</strong>
+                {% if item.ranch %}
+                    Yes
+                {% else %}
+                    No
+                {% endif %}
+            </p>
             <p><strong>Packaging:</strong>
                 {% if packaging %}
                     <a href="{{ url_for('view_packaging', packaging_id=packaging.id) }}">{{ packaging.packaging_type }}</a>
@@ -30,9 +44,6 @@
                     No Raw Products
                 {% endif %}
             </p>
-            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addItemInfoModal-{{ item.id }}">
-                Add Item Info
-            </button>
         </div>
     </div>
 
@@ -83,12 +94,17 @@
                 <p>No current cost breakdown available.</p>
             {% endif %}
         </div>
+    </div>
 
     <!-- Item Info History -->
     <div class="card">
         <div class="card-header">
             <h5>Item Info History</h5>
+            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addItemInfoModal-{{ item.id }}">
+                Add Item Info
+            </button>
         </div>
+
         <div class="card-body">
             {% if item_info %}
                 <table class="table table-striped">
@@ -123,12 +139,6 @@
             {% endif %}
         </div>
     </div>
-
-    <!-- Back Button -->
-    <div class="mt-4">
-        <a href="{{ url_for('items') }}" class="btn btn-secondary">Back to Item List</a>
-    </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -176,11 +186,6 @@
         <div class="card-body">
             <canvas id="itemInfoChart" width="400" height="200"></canvas>
         </div>
-    </div>
-
-    <!-- Back Button -->
-    <div class="mt-4">
-        <a href="{{ url_for('items') }}" class="btn btn-secondary">Back to Item List</a>
     </div>
 </div>
 
@@ -260,4 +265,72 @@
     });
 </script>
 
+<!-- Cost History Chart -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Item Cost History</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="itemCostChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<script>
+    const itemCostData = {
+        labels: [
+            {% for cost in item_costs %}
+                "{{ cost.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ],
+        costData: [
+            {% for cost in item_costs %}
+                {{ "%.2f"|format(cost.total_cost) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        ]
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('itemCostChart').getContext('2d');
+        const itemCostChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: itemCostData.labels,
+                datasets: [
+                    {
+                        label: 'Total Cost',
+                        data: itemCostData.costData,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Cost ($)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
