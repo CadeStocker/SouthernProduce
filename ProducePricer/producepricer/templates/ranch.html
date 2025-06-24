@@ -1,0 +1,79 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/ranch.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Ranch Prices and Costs</h1>
+
+    <!-- Button to trigger the modal -->
+    <button type="button" class="btn btn-primary mb-4" data-toggle="modal" data-target="#addRanchPriceModal">
+        Add Ranch Price and Cost
+    </button>
+
+    <!-- Table to display previous ranch prices and costs -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Previous Ranch Prices and Costs</h5>
+        </div>
+        <div class="card-body">
+            {% if ranch_prices %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Price</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ranch_price in ranch_prices %}
+                            <tr>
+                                <td>{{ ranch_price.date.strftime('%Y-%m-%d') }}</td>
+                                <td>${{ "%.2f"|format(ranch_price.price) }}</td>
+                                <td>${{ "%.2f"|format(ranch_price.cost) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No ranch prices or costs found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding a new ranch price and cost -->
+<div class="modal fade" id="addRanchPriceModal" tabindex="-1" role="dialog" aria-labelledby="addRanchPriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRanchPriceModalLabel">Add Ranch Price and Cost</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('ranch') }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="price">Price</label>
+                        {{ form.price(class="form-control", id="price") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="cost">Cost</label>
+                        {{ form.cost(class="form-control", id="cost") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        {{ form.date(class="form-control", id="date") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -14,6 +14,9 @@
         <div class="card-header">
             <h5>Item Information</h5>
         </div>
+        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editItemModal">
+                Edit Item
+        </button>
         <div class="card-body">
             <p><strong>Item Name:</strong> {{ item.name }}</p>
             <p><strong>Item Code:</strong> {{ item.code }}</p>
@@ -191,6 +194,53 @@
         </div>
         <div class="card-body">
             <canvas id="itemInfoChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1" role="dialog" aria-labelledby="editItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editItemModalLabel">Edit Item: {{ item.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="case_weight">Case Weight</label>
+                        {{ form.case_weight(class="form-control", id="case_weight") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="unit_of_weight">Unit of Weight</label>
+                        {{ form.unit_of_weight(class="form-control", id="unit_of_weight") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="item_designation">Item Designation</label>
+                        {{ form.item_designation(class="form-control", id="item_designation") }}
+                    </div>
+                    <div class="form-group form-check">
+                        {{ form.ranch(class="form-check-input", id="ranch") }}
+                        <label class="form-check-label" for="ranch">Ranch</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="packaging">Packaging</label>
+                        {{ form.packaging(class="form-control", id="packaging") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="raw_products">Raw Products</label>
+                        {{ form.raw_products(class="form-control", id="raw_products") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

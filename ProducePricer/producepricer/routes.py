@@ -1,8 +1,8 @@
 import datetime
 import math
 from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, Customer, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RawProduct, User, Company, Packaging
-from producepricer.forms import AddCustomer, AddItem, AddLaborCost, AddPackagingCost, AddRawProduct, AddRawProductCost, CreatePackage, SignUp, Login, CreateCompany, UpdateItemInfo, UploadCustomerCSV, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
+from producepricer.models import CostHistory, Customer, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RanchPrice, RawProduct, User, Company, Packaging
+from producepricer.forms import AddCustomer, AddItem, AddLaborCost, AddPackagingCost, AddRanchPrice, AddRawProduct, AddRawProductCost, CreatePackage, EditItem, SignUp, Login, CreateCompany, UpdateItemInfo, UploadCustomerCSV, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
@@ -744,8 +744,21 @@ def view_item(item_id):
 
     # form
     update_item_info_form = UpdateItemInfo()
+    form = EditItem()
 
-    return render_template('view_item.html', current_cost=current_cost, item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
+    form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
+    form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
+    # populate the form with the item's data
+    #form.name.data = item.name
+    #form.item_code.data = item.code
+    form.unit_of_weight.data = item.unit_of_weight
+    form.case_weight.data = item.case_weight if item.case_weight else 0.0
+    form.ranch.data = item.ranch
+    form.item_designation.data = item.item_designation
+    form.packaging.data = item.packaging_id
+    form.raw_products.data = [rp.id for rp in item.raw_products]
+
+    return render_template('view_item.html', form=form, current_cost=current_cost, item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
@@ -977,6 +990,51 @@ def delete_item_cost(item_cost_id):
     flash('Item cost has been deleted successfully.', 'success')
     return redirect(url_for('items'))
 
+@app.route('/edit_item/<int:item_id>', methods=['POST'])
+@login_required
+def edit_item(item_id):
+    # Find the item in the database
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+    if not item:
+        flash('Item not found or you do not have permission to edit it.', 'danger')
+        return redirect(url_for('items'))
+
+    # Initialize the form
+    form = EditItem()
+    form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
+    form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
+
+    if form.validate_on_submit():
+        # Update the item's attributes
+        item.case_weight = form.case_weight.data
+        item.item_designation = form.item_designation.data
+        item.ranch = form.ranch.data
+        item.packaging_id = form.packaging.data
+        item.unit_of_weight = form.unit_of_weight.data
+
+        # Update the raw products
+        item.raw_products = []
+        for raw_product_id in form.raw_products.data:
+            raw_product = RawProduct.query.get(raw_product_id)
+            if raw_product:
+                item.raw_products.append(raw_product)
+
+        # Commit the changes to the database
+        db.session.commit()
+        # Update the total cost for the item
+        update_item_total_cost(item.id)
+        # Flash a success message
+        flash(f'Item "{item.name}" has been updated successfully!', 'success')
+        return redirect(url_for('view_item', item_id=item.id))
+
+    flash('Invalid data submitted.', 'danger')
+    # print the form errors
+    for field, errs in form.errors.items():
+        for e in errs:
+            flash(f"{getattr(form, field).label.text}: {e}", 'danger')
+
+    return redirect(url_for('view_item', item_id=item.id))
+
 def calculate_item_cost(item_id):
     # Get the item from the database
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
@@ -996,6 +1054,17 @@ def calculate_item_cost(item_id):
     total_cost = 0.0
 
     raw_product_cost = 0.0
+
+    ranch_cost = 0.0
+
+    # if ranch is true, add most recent ranch cost
+    if item.ranch:
+        most_recent_ranch_cost = RanchPrice.query.order_by(RanchPrice.date.desc(), RanchPrice.id.desc()).filter_by(company_id=current_user.company_id).first()
+        if most_recent_ranch_cost:
+            ranch_cost = most_recent_ranch_cost.cost
+            total_cost += ranch_cost
+        else:
+            flash(f'No ranch cost found for item "{item.name}".', 'warning')
 
     # get the (raw price/yield) for each raw product
     for raw_product in item.raw_products:
@@ -1060,12 +1129,12 @@ def calculate_item_cost(item_id):
         designation_cost = 1.00
 
     # return the different costs and the total
-    return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost
+    return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost, ranch_cost
 
 # automatically update total cost for an item
 def update_item_total_cost(item_id):
     #cost = calculate_item_cost(item_id)
-    cost, labor_cost, designation_cost, packaging_cost, raw_product_cost = calculate_item_cost(item_id)
+    cost, labor_cost, designation_cost, packaging_cost, raw_product_cost, ranch_cost = calculate_item_cost(item_id)
 
     # checks
     if cost is None:
@@ -1089,6 +1158,7 @@ def update_item_total_cost(item_id):
         labor_cost=labor_cost,
         designation_cost=designation_cost,
         packaging_cost=packaging_cost,
+        ranch_cost=ranch_cost,
         raw_product_cost=raw_product_cost
     )
     db.session.add(total_cost)
@@ -1160,12 +1230,15 @@ def price():
         rounded_40 = round_up_to_nearest_quarter(unit_cost * 1.40)
         rounded_45 = round_up_to_nearest_quarter(unit_cost * 1.45)
 
+        
+
         # Append data for this item
         item_data.append({
             'id': item.id,
             'name': item.name,
             'code': item.code,
             'total_cost': f"{most_recent_cost.total_cost:.2f}",
+            'ranch_cost': f"{most_recent_cost.ranch_cost:.2f}",
             'cost_per_lb': f"{cost_per_lb:.2f}",
             'cost_per_oz': f"{cost_per_oz:.2f}",
             'labor_cost': f"{labor_cost:.2f}",
@@ -1431,6 +1504,43 @@ def upload_customer_csv():
 
             flash('Customers imported successfully!', 'success')
     return redirect(url_for('customer'))
+
+@app.route('/ranch', methods=['GET', 'POST'])
+@login_required
+def ranch():
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('index'))
+
+    # Get all previous ranch prices and costs for the current user's company
+    ranch_prices = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.desc()).all()
+
+    # Initialize the form
+    form = AddRanchPrice()
+
+    if form.validate_on_submit():
+        # Create a new ranch price entry
+        ranch_price = RanchPrice(
+            price=form.price.data,
+            cost=form.cost.data,
+            date=form.date.data,
+            company_id=current_user.company_id
+        )
+        db.session.add(ranch_price)
+        db.session.commit()
+
+        # Update all item costs that use ranch prices
+        items = Item.query.filter_by(company_id=current_user.company_id, ranch=True).all()
+        for item in items:
+            update_item_total_cost(item.id)
+
+        # Flash a success message
+        flash('Ranch price and cost updated successfully!', 'success')
+        return redirect(url_for('ranch'))
+
+    return render_template('ranch.html', title='Ranch', ranch_prices=ranch_prices, form=form)
 
 # only true if this file is run directly
 if __name__ == '__main__':

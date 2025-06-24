@@ -111,3 +111,20 @@ class AddCustomer(FlaskForm):
 class UploadCustomerCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
+
+class EditItem(FlaskForm):
+    #name = StringField('Item Name', validators=[DataRequired()])
+    #item_code = StringField('Item Code', validators=[DataRequired()])
+    unit_of_weight = SelectField('Unit of Weight', choices=[(choice.name, choice.value) for choice in UnitOfWeight], validators=[DataRequired()])
+    packaging = SelectField('Packaging', coerce=int, validators=[DataRequired()])
+    raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
+    ranch = BooleanField('Ranch', default=False)
+    case_weight = FloatField('Case Weight', default=0.0)
+    item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service')], validators=[DataRequired()])
+    submit = SubmitField('Update Item')
+
+class AddRanchPrice(FlaskForm):
+    date = DateField('Date', validators=[DataRequired()])
+    cost = FloatField('Cost', validators=[DataRequired()])
+    price = FloatField('Price', validators=[DataRequired()])
+    submit = SubmitField('Add Ranch Price')

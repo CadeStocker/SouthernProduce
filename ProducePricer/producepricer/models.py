@@ -82,6 +82,7 @@ class ItemTotalCost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
+    ranch_cost = db.Column(db.Float, nullable=False)  # cost of ranch items
     total_cost = db.Column(db.Float, nullable=False)
     packaging_cost = db.Column(db.Float, nullable=False)  # cost of packaging for the item
     raw_product_cost = db.Column(db.Float, nullable=False)  # cost of raw products for the item
@@ -89,10 +90,11 @@ class ItemTotalCost(db.Model):
     designation_cost = db.Column(db.Float, nullable=False)  # cost based on item designation
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, item_id, date, total_cost, packaging_cost, raw_product_cost, labor_cost, designation_cost, company_id):
+    def __init__(self, item_id, date, total_cost, ranch_cost, packaging_cost, raw_product_cost, labor_cost, designation_cost, company_id):
         self.item_id = item_id
         self.date = date
         self.total_cost = total_cost
+        self.ranch_cost = ranch_cost  # cost of ranch items
         self.packaging_cost = packaging_cost
         self.raw_product_cost = raw_product_cost
         self.labor_cost = labor_cost
@@ -139,11 +141,13 @@ class RanchPrice(db.Model):
     __tablename__ = 'ranch_price'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
+    cost = db.Column(db.Float, nullable=False)  # cost of the ranch item
     price = db.Column(db.Float, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, date, price, company_id):
+    def __init__(self, date, cost, price, company_id):
         self.date = date
+        self.cost = cost  # cost of the ranch item
         self.price = price
         self.company_id = company_id
 
