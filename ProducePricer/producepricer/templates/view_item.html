@@ -59,6 +59,7 @@
                         <tr>
                             <th>Date</th>
                             <th>Total Cost</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -66,6 +67,11 @@
                             <tr>
                                 <td><a href="{{ url_for('view_item_cost', item_cost_id=cost.id) }}">{{ cost.date.strftime('%Y-%m-%d') }}</a></td>
                                 <td>${{ "%.2f"|format(cost.total_cost) }}</td>
+                                <td>
+                                    <a href="{{ url_for('delete_item_cost', item_cost_id=cost.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this item cost?');">
+                                        Delete
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

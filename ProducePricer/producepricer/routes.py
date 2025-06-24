@@ -956,6 +956,27 @@ def view_item_cost(item_cost_id):
 
     return render_template('view_item_cost.html', title='View Item Cost', item_cost=item_cost, item=item, most_recent_info=most_recent_info)
 
+# delete an item cost
+@app.route('/delete_item_cost/<int:item_cost_id>', methods=['GET','POST'])
+@login_required
+def delete_item_cost(item_cost_id):
+    # find the item in the database
+    item = Item.query.filter_by(id=item_cost_id, company_id=current_user.company_id).first()
+    # Find the item cost in the database
+    item_cost = ItemTotalCost.query.filter_by(id=item_cost_id, company_id=current_user.company_id).first()
+    if not item_cost:
+        flash('Item cost not found or you do not have permission to delete it.', 'danger')
+        if item:
+            return redirect(url_for('view_item', item_id=item.id))
+        return redirect(url_for('items'))
+
+    # Delete the item cost
+    db.session.delete(item_cost)
+    db.session.commit()
+
+    flash('Item cost has been deleted successfully.', 'success')
+    return redirect(url_for('items'))
+
 def calculate_item_cost(item_id):
     # Get the item from the database
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
