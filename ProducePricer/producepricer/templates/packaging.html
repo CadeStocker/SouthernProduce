@@ -12,6 +12,21 @@
         Import Packages
     </button>
 
+    <!-- Search form -->
+  <form method="GET" action="{{ url_for('packaging') }}" class="form-inline mb-3">
+        <input
+        type="text"
+        name="q"
+        class="form-control mr-2"
+        placeholder="Search packaging..."
+        value="{{ q }}"
+        >
+        <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+        {% if q %}
+        <a href="{{ url_for('packaging') }}" class="btn btn-link">Clear</a>
+        {% endif %}
+    </form>
+
     {% if packaging %}
         <table class="table table-striped">
             <thead>

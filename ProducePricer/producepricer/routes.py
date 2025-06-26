@@ -135,10 +135,21 @@ def create_company():
 @app.route('/packaging')
 @login_required
 def packaging():
-    # get the current user's company
-    company = Company.query.filter_by(id=current_user.company_id).first()
-    # get the packaging for the current user's company
-    packaging = company.packaging
+    # search feature
+    q = request.args.get('q', '').strip()
+
+    if q:
+        # filter the packaging by the search query
+        packaging = Packaging.query.filter(
+            Packaging.packaging_type.ilike(f'%{q}%'),
+            Packaging.company_id == current_user.company_id
+        ).all()
+    else:
+        # get the current user's company
+        company = Company.query.filter_by(id=current_user.company_id).first()
+        # get the packaging for the current user's company
+        packaging = company.packaging
+        
     # get the most recent packaging cost for each packaging
     packaging_costs = {}
     for pack in packaging:
@@ -156,7 +167,8 @@ def packaging():
             packaging=packaging,
             create_package_form=create_package_form,
             upload_csv_form=upload_packaging_csv_form,
-            packaging_costs=packaging_costs
+            packaging_costs=packaging_costs,
+            q=q
         )
 
 # view an individual package
