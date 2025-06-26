@@ -12,6 +12,21 @@
         Import Raw Products
     </button>
 
+    <!-- Search form -->
+  <form method="GET" action="{{ url_for('raw_product') }}" class="form-inline mb-3">
+        <input
+        type="text"
+        name="q"
+        class="form-control mr-2"
+        placeholder="Search raw products..."
+        value="{{ q }}"
+        >
+        <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+        {% if q %}
+        <a href="{{ url_for('raw_product') }}" class="btn btn-link">Clear</a>
+        {% endif %}
+    </form>
+
     {% if raw_products %}
         <table class="table table-striped">
             <thead>

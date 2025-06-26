@@ -149,7 +149,7 @@ def packaging():
         company = Company.query.filter_by(id=current_user.company_id).first()
         # get the packaging for the current user's company
         packaging = company.packaging
-        
+
     # get the most recent packaging cost for each packaging
     packaging_costs = {}
     for pack in packaging:
@@ -365,10 +365,22 @@ def upload_packaging_csv():
 @app.route('/raw_product')
 @login_required
 def raw_product():
-    # Get the current user's company
-    company = Company.query.filter_by(id=current_user.company_id).first()
-    # Get the raw products for the current user's company
-    raw_products = company.raw_products if company else []
+    # search feature
+    q = request.args.get('q', '').strip()
+
+    if q:
+        # filter the raw products by the search query
+        raw_products = RawProduct.query.filter(
+            RawProduct.company_id == current_user.company_id,
+            RawProduct.name.ilike(f'%{q}%')
+        ).all()
+
+    else:
+        # Get the current user's company
+        company = Company.query.filter_by(id=current_user.company_id).first()
+        # Get the raw products for the current user's company
+        raw_products = company.raw_products if company else []
+
     # Get the most recent cost for each raw product
     raw_product_costs = {}
     for raw_product in raw_products:
@@ -398,7 +410,8 @@ def raw_product():
         raw_product_costs=raw_product_costs,
         form=form,
         cost_form=cost_form,
-        upload_csv_form=upload_raw_product_csv_form
+        upload_csv_form=upload_raw_product_csv_form,
+        q=q
     )
 
 # view an individual raw product
