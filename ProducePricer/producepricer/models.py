@@ -1,3 +1,5 @@
+from flask import current_app
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from producepricer import db, login_manager
 from flask_login import UserMixin
 from enum import Enum
@@ -64,6 +66,59 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
     
+    def generate_reset_password_token(self):
+        #self.password_hash = self.password  # Store the password hash for token generation
+
+        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        return serializer.dumps(self.email, salt=self.password)
+    
+    def set_password(self, password: str):
+        """Set the user's password."""
+        self.password = password
+
+    @staticmethod
+    def verify_reset_password_token(token: str, user_id: int):
+        user = User.query.get(user_id)
+
+        if user is None:
+            return None
+
+        serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        try:
+            token_user_email = serializer.loads(
+                token,
+                max_age=current_app.config["RESET_PASS_TOKEN_MAX_AGE"],
+                salt=user.password,
+            )
+        except (BadSignature, SignatureExpired):
+            return None
+
+        if token_user_email != user.email:
+            return None
+
+        return user
+    
+    @staticmethod
+    def validate_reset_password_token(token: str, user_id: int):
+        user = User.query.get(user_id)
+
+        if user is None:
+            return None
+
+        serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+        try:
+            token_user_email = serializer.loads(
+                token,
+                max_age=current_app.config["RESET_PASS_TOKEN_MAX_AGE"],
+                salt=user.password,
+            )
+        except (BadSignature, SignatureExpired):
+            return None
+
+        if token_user_email != user.email:
+            return None
+
+        return user
 
 item_raw = db.Table('item_raw',
     db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True),
@@ -309,3 +364,8 @@ class PackagingCost(db.Model):
 
     def __repr__(self):
         return f"PackagingCost('{self.box_cost}', '{self.bag_cost}', '{self.tray_andor_chemical_cost}', '{self.label_andor_tape_cost}')"
+
+def generate_reset_password_token(self):
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+    return serializer.dumps(self.email, salt=self.password)

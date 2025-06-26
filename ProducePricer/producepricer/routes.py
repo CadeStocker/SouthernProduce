@@ -1,13 +1,47 @@
 import datetime
 import math
-from flask import redirect, render_template, request, url_for, flash
-from producepricer.models import CostHistory, Customer, Item, ItemInfo, ItemTotalCost, LaborCost, PackagingCost, RanchPrice, RawProduct, User, Company, Packaging
-from producepricer.forms import AddCustomer, AddItem, AddLaborCost, AddPackagingCost, AddRanchPrice, AddRawProduct, AddRawProductCost, CreatePackage, EditItem, SignUp, Login, CreateCompany, UpdateItemInfo, UploadCustomerCSV, UploadItemCSV, UploadPackagingCSV, UploadRawProductCSV
+from flask import redirect, render_template, render_template_string, request, url_for, flash
+from producepricer.models import (
+    CostHistory, 
+    Customer, 
+    Item, 
+    ItemInfo, 
+    ItemTotalCost, 
+    LaborCost, 
+    PackagingCost, 
+    RanchPrice, 
+    RawProduct, 
+    User, 
+    Company, 
+    Packaging
+)
+from producepricer.forms import(
+    AddCustomer, 
+    AddItem, 
+    AddLaborCost, 
+    AddPackagingCost, 
+    AddRanchPrice, 
+    AddRawProduct, 
+    AddRawProductCost, 
+    CreatePackage, 
+    EditItem, 
+    ResetPasswordForm, 
+    ResetPasswordRequestForm, 
+    SignUp, 
+    Login, 
+    CreateCompany, 
+    UpdateItemInfo, 
+    UploadCustomerCSV, 
+    UploadItemCSV, 
+    UploadPackagingCSV, 
+    UploadRawProductCSV
+)
 from flask_login import login_user, login_required, current_user, logout_user
 from producepricer import app, db, bcrypt
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
+from flask_mailman import EmailMessage
 
 # route for the root URL
 @login_required
@@ -1230,8 +1264,6 @@ def price():
         rounded_40 = round_up_to_nearest_quarter(unit_cost * 1.40)
         rounded_45 = round_up_to_nearest_quarter(unit_cost * 1.45)
 
-        
-
         # Append data for this item
         item_data.append({
             'id': item.id,
@@ -1541,6 +1573,72 @@ def ranch():
         return redirect(url_for('ranch'))
 
     return render_template('ranch.html', title='Ranch', ranch_prices=ranch_prices, form=form)
+
+@app.route("/reset/_password", methods=["GET", "POST"])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = ResetPasswordRequestForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            send_reset_password_email(user)
+            flash('An email has been sent with instructions to reset your password.', 'info')
+        else:
+            flash('No account found with that email address.', 'danger')
+        return redirect(url_for('login'))
+    return render_template('reset_password_request.html', title='Reset Password', form=form)
+
+# get content for the actual email body
+from producepricer.templates.reset_password_email_content import (
+    reset_password_email_html_content
+)
+
+def send_reset_password_email(user):
+    reset_password_url = url_for(
+        'reset_password',
+        token=user.generate_reset_password_token(),
+        user_id=user.id,
+        _external=True
+    )
+
+    email_body = render_template_string(
+        reset_password_email_html_content,
+        reset_password_url=reset_password_url
+    )
+
+    message = EmailMessage(
+        subject='Reset Your Password',
+        to=[user.email],
+        body=email_body
+    )
+
+    message.content_subtype = 'html'  # Set the content type to HTML
+
+    try:
+        message.send()
+        flash('An email has been sent with instructions to reset your password.', 'info')
+    except Exception as e:
+        flash(f'An error occurred while sending the email: {e}', 'danger')
+
+@app.route('/reset_password/<token>/<int:user_id>', methods=['GET', 'POST'])
+def reset_password(token, user_id):
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    user = User.query.get(user_id)
+    if not user or not user.verify_reset_password_token(token, user_id):
+        flash('Invalid or expired token.', 'danger')
+        return redirect(url_for('reset_password_request'))
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been reset successfully!', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', title='Reset Password', form=form, user=user)
 
 # only true if this file is run directly
 if __name__ == '__main__':

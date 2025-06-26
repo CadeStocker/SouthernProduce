@@ -128,3 +128,20 @@ class AddRanchPrice(FlaskForm):
     cost = FloatField('Cost', validators=[DataRequired()])
     price = FloatField('Price', validators=[DataRequired()])
     submit = SubmitField('Add Ranch Price')
+
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Request Password Reset')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Reset Password')
+
+    def validate_password(self, password):
+        if len(password.data) < 6:
+            raise ValidationError('Password must be at least 6 characters long.')
+        if not any(char.isdigit() for char in password.data):
+            raise ValidationError('Password must contain at least one digit.')
+        if not any(char.isalpha() for char in password.data):
+            raise ValidationError('Password must contain at least one letter.')
