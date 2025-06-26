@@ -5,6 +5,21 @@
 <div class="container mt-4">
     <h1 class="mb-4">Item Pricing</h1>
 
+    <!-- Search form -->
+    <form method="GET" action="{{ url_for('price') }}" class="form-inline mb-3">
+        <input
+            type="text"
+            name="q"
+            class="form-control mr-2"
+            placeholder="Search items..."
+            value="{{ q }}"
+        >
+        <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+        {% if q %}
+            <a href="{{ url_for('price') }}" class="btn btn-link">Clear</a>
+        {% endif %}
+    </form>
+
     {% if items %}
         <table class="table table-striped">
             <thead>

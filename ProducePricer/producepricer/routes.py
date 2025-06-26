@@ -1247,9 +1247,18 @@ def price():
     if not company:
         flash('Company not found.', 'danger')
         return redirect(url_for('index'))
-
-    # Get all items for the current user's company
-    items = Item.query.filter_by(company_id=current_user.company_id).all()
+    
+    # search feature
+    q = request.args.get('q', '').strip()
+    if q:
+        # filter the items by the search query
+        items = Item.query.filter(
+            Item.company_id == current_user.company_id,
+            Item.name.ilike(f'%{q}%')
+        ).all()
+    else:
+        # Get all items for the current user's company
+        items = Item.query.filter_by(company_id=current_user.company_id).all()
 
     # Get the most recent total cost for each item
     item_costs = {}
@@ -1322,7 +1331,13 @@ def price():
             'rounded_45': f"{rounded_45:.2f}",
         })
 
-    return render_template('price.html', title='Price', items=item_data, item_costs=item_costs, item_data=item_data, company=company)
+    return render_template('price.html',
+                           title='Price',
+                           items=item_data,
+                           item_costs=item_costs,
+                           item_data=item_data,
+                           company=company,
+                           q=q)
 
 # page to add labor cost
 @app.route('/add_labor_cost', methods=['GET', 'POST'])
