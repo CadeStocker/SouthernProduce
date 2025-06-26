@@ -18,6 +18,20 @@
     Import Items
   </button>
 
+  <!-- Search Form -->
+  <form method="GET" action="{{ url_for('items') }}" class="form-inline mb-3">
+    <input
+      type="text"
+      name="q"
+      class="form-control mr-2"
+      placeholder="Search items..."
+      value="{{ q }}">
+    <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+    {% if q %}
+      <a href="{{ url_for('items') }}" class="btn btn-link">Clear</a>
+    {% endif %}
+  </form>
+
   {% if items %}
     <table class="table table-striped">
       <thead>

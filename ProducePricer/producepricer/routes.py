@@ -602,23 +602,36 @@ def delete_raw_product(raw_product_id):
 @app.route('/items')
 @login_required
 def items():
+    # get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
+
+    # forms
     form = AddItem()
     update_item_form = UpdateItemInfo()
     form.packaging.choices = [(pack.id, pack.packaging_type) for pack in company.packaging] if company else []
     form.raw_products.choices = [(raw.id, raw.name) for raw in company.raw_products] if company else []
     upload_item_csv = UploadItemCSV()
-    # get the current user's company
-    company = Company.query.filter_by(id=current_user.company_id).first()
-    # get the items from the current user's company
-    items = company.items if company else []
-    #packaging = Packaging.query.filter_by(company_id=current_user.company_id).all()
     
+    # search feature
+    q = request.args.get('q', '').strip()
+    if q:
+        # filter the items by the search query
+        items = Item.query.filter(
+            Item.company_id == current_user.company_id,
+            Item.name.ilike(f'%{q}%')
+        ).all()
+    else:
+        # get the items from the current user's company
+        items = company.items if company else []
+    #packaging = Packaging.query.filter_by(company_id=current_user.company_id).all()
+
+    # get the packaging types for the current user's company
     packaging_lookup = {
         p.id: p.packaging_type
         for p in Packaging.query.filter_by(company_id=current_user.company_id).all()
     }
 
+    # get the raw products for the current user's company
     raw_product_lookup = {
         rp.id: rp.name
         for rp in RawProduct.query.filter_by(company_id=current_user.company_id).all()
@@ -650,7 +663,8 @@ def items():
         form=form,
         update_item_info_form=update_item_form,
         item_info_lookup=item_info_lookup,
-        upload_item_csv=upload_item_csv
+        upload_item_csv=upload_item_csv,
+        q=q
     )
     
 @app.route('/add_item', methods=['POST'])
