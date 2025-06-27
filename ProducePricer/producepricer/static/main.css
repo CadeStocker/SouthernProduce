@@ -34,6 +34,18 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
+/* Table styling */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.table th, .table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6; /* Light gray border */
+}
+
 /* Heading styling */
 h1 {
     color: black; /* Bootstrap primary color */

@@ -974,7 +974,8 @@ def upload_item_csv():
                     unit_of_weight=row.get('unit_of_weight', 'POUND'),  # Default to 'kg' if not provided
                     #weight=row.get('weight', 1.0),  # Default to 1.0 if not provided
                     # weight and case weight are the same, but only using case weight for now
-                    case_weight=row.get('case_weight', 0.0),  # Default to 0.0 if not provided
+                    #case_weight=row.get('case_weight', 0.0),  # Default to 0.0 if not provided
+                    case_weight=case_weight if case_weight else 0.0,
                     packaging_id=packaging.id,
                     company_id=current_user.company_id,
                     ranch=ranch,
@@ -1319,6 +1320,7 @@ def price():
             'id': item.id,
             'name': item.name,
             'code': item.code,
+            'case_weight': item.case_weight,
             'total_cost': f"{most_recent_cost.total_cost:.2f}",
             'ranch_cost': f"{most_recent_cost.ranch_cost:.2f}",
             'cost_per_lb': f"{cost_per_lb:.2f}",
@@ -1372,7 +1374,7 @@ def add_labor_cost():
 
             # get past labor costs for the current user
             past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
-            
+
         else:
             flash('Invalid data submitted.', 'danger')
 

@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <h1 class="mb-4">Item Pricing</h1>
 
     <!-- Search form -->
@@ -26,6 +26,7 @@
                 <tr>
                     <th>Item Name</th>
                     <th>Item Code</th>
+                    <th>Case Weight</th>
                     <th>Total Cost</th>
                     <th>Cost/LB</th>
                     <th>Cost/Oz</th>
@@ -49,6 +50,7 @@
                 </a>
             </td>
             <td>{{ item.code }}</td>
+            <td>{{ item.case_weight }} lbs</td>
             <td>${{ item.total_cost }}</td>
             <td>${{ item.cost_per_lb }}</td>
             <td>${{ item.cost_per_oz }}</td>

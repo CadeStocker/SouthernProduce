@@ -33,6 +33,7 @@
   </form>
 
   {% if items %}
+  <div class="table-responsive">
     <table class="table table-striped">
       <thead>
         <tr>
@@ -194,6 +195,7 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
   {% else %}
     <p>No items available for your company.</p>
   {% endif %}

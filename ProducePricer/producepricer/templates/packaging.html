@@ -28,6 +28,7 @@
     </form>
 
     {% if packaging %}
+        <div class="container-fluid">
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -69,6 +70,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     {% else %}
         <p>No packaging information available.</p>
     {% endif %}
