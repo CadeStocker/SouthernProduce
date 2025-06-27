@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
-from wtforms.validators import DataRequired, Email, EqualTo, Length
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
 from producepricer.models import UnitOfWeight, User, Company
 
 class SignUp(FlaskForm):
@@ -145,3 +145,13 @@ class ResetPasswordForm(FlaskForm):
             raise ValidationError('Password must contain at least one digit.')
         if not any(char.isalpha() for char in password.data):
             raise ValidationError('Password must contain at least one letter.')
+        
+class PriceQuoterForm(FlaskForm):
+    #item         = SelectField('Item', coerce=int)
+    name        = StringField('Item Name')
+    packaging    = SelectField('Packaging', coerce=int, validators=[DataRequired()])
+    raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
+    ranch       = BooleanField('Ranch', default=False)
+    product_yield= FloatField('Yield (lbs)', validators=[DataRequired(), NumberRange(min=0)])
+    labor_hours  = FloatField('Labor Hours', validators=[DataRequired(), NumberRange(min=0)])
+    submit       = SubmitField('Calculate')

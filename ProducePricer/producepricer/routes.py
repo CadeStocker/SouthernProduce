@@ -26,7 +26,8 @@ from producepricer.forms import(
     AddRawProduct, 
     AddRawProductCost, 
     CreatePackage, 
-    EditItem, 
+    EditItem,
+    PriceQuoterForm, 
     ResetPasswordForm, 
     ResetPasswordRequestForm, 
     SignUp, 
@@ -1900,6 +1901,113 @@ def reset_password(token, user_id):
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', title='Reset Password', form=form, user=user)
+
+@app.route('/price_quoter', methods=['GET','POST'])
+@login_required
+def price_quoter():
+    form = PriceQuoterForm()
+
+    # Populate the dropdowns
+    # items = Item.query.filter_by(company_id=current_user.company_id).all()
+    # form.item.choices = [(i.id, i.name) for i in items]
+
+    packs = Packaging.query.filter_by(company_id=current_user.company_id).all()
+    form.packaging.choices = [(p.id, p.packaging_type) for p in packs]
+
+    raws = RawProduct.query.filter_by(company_id=current_user.company_id).all()
+    form.raw_products.choices = [(r.id, r.name) for r in raws]
+
+    result = None
+
+    # Pre‐fill the form if an item has been selected via query param
+    item_id = request.args.get('item_id', type=int)
+    if item_id and not form.is_submitted():
+        item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
+        if item:
+            form.item.data = item.id
+            form.packaging.data = item.packaging_id
+            form.raw_products.data = [r.id for r in item.raw_products]
+
+            # Load most recent ItemInfo for yield & labor_hours
+            info = (ItemInfo.query
+                        .filter_by(item_id=item.id)
+                        .order_by(ItemInfo.date.desc(), ItemInfo.id.desc())
+                        .first())
+            if info:
+                form.product_yield.data = info.product_yield
+                form.labor_hours.data   = info.labor_hours
+
+    # When the user submits the variables, do the calculation
+    if form.validate_on_submit():
+        # look up your selections
+        pack = Packaging.query.get(form.packaging.data)
+        selected_raws = RawProduct.query.filter(
+            RawProduct.id.in_(form.raw_products.data)
+        ).all()
+
+        # get latest costs...
+        pc = (PackagingCost.query
+                .filter_by(packaging_id=pack.id)
+                .order_by(PackagingCost.date.desc(), PackagingCost.id.desc())
+                .first())
+        pack_cost = sum([
+            pc.box_cost, pc.bag_cost,
+            pc.tray_andor_chemical_cost, pc.label_andor_tape_cost
+        ]) if pc else 0
+
+        # get the total cost of the selected raw products
+        total_raw = 0
+        for r in selected_raws:
+            rh = (CostHistory.query
+                     .filter_by(raw_product_id=r.id)
+                     .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+                     .first())
+            if rh:
+                total_raw += rh.cost
+
+        # get the most recent labor cost
+        lc = (LaborCost.query
+                .filter_by(company_id=current_user.company_id)
+                .order_by(LaborCost.date.desc(), LaborCost.id.desc())
+                .first())
+        labor_cost = (lc.labor_cost * form.labor_hours.data) if lc else 0
+
+        total      = pack_cost + total_raw + labor_cost
+        cpl        = total / form.product_yield.data if form.product_yield.data else 0
+        cpo        = cpl / 16
+
+        # compute the rounded values
+        r25 = total * 1.25
+        r30 = total * 1.30
+        r35 = total * 1.35
+        r40 = total * 1.40
+        r45 = total * 1.45
+
+        result = {
+            #'item':         dict(form.item.choices).get(form.item.data),
+            'name':         form.name.data,  # Use the item name directly,
+            'raw_cost':     total_raw,
+            'packaging':    dict(form.packaging.choices)[form.packaging.data],
+            'raws':         [r.name for r in selected_raws],
+            'product_yield':form.product_yield.data,
+            'labor_hours':  form.labor_hours.data,
+            'total_cost':   total,
+            'cost_per_lb':  cpl,
+            'cost_per_oz':  cpo,
+            'rounded_25':   r25,
+            'rounded_30':   r30,
+            'rounded_35':   r35,
+            'rounded_40':   r40,
+            'rounded_45':   r45,
+        }
+
+    return render_template(
+        'price_quoter.html',
+        title='Price Quoter',
+        form=form,
+        result=result,
+        #selected_item_id=item_id
+    )
 
 # only true if this file is run directly
 if __name__ == '__main__':

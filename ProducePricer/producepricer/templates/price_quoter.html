@@ -1,0 +1,115 @@
+ <!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/price_quoter.html -->
+{% extends "base.html" %}
+{% block title %}Price Quoter{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row">
+    <!-- Left column: input form -->
+    <div class="col-lg-5 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h4 class="card-title mb-3">Enter Variables</h4>
+          <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+              {{ form.name.label(class="form-label") }} (Optional)
+              {{ form.name(class="form-control") }}
+            </div>
+            <div class="form-group">
+              {{ form.packaging.label(class="form-label") }}
+              {{ form.packaging(class="form-control") }}
+            </div>
+            <div class="form-group">
+              {{ form.raw_products.label(class="form-label") }}
+              {{ form.raw_products(class="form-control", multiple=true, size=5) }}
+            </div>
+            <div class="form-group">
+              {{ form.product_yield.label(class="form-label") }}
+              {{ form.product_yield(class="form-control") }}
+            </div>
+            <div class="form-group">
+              {{ form.labor_hours.label(class="form-label") }}
+              {{ form.labor_hours(class="form-control") }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-block mt-3">{{ form.submit.label }}</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: results -->
+    <div class="col-lg-7">
+      {% if result %}
+      <div class="card shadow-sm">
+        <div class="card-body">
+            {% if result.name %}
+          <h4 class="card-title mb-3">Quotation Results for {{ result.name }}</h4>
+            {% else %}
+          <h4 class="card-title mb-3">Quotation Results</h4>
+            {% endif %}
+          <table class="table table-borderless mb-0">
+            <tr>
+              <th class="pr-4">Packaging</th>
+              <td>{{ result.packaging }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Raw Products</th>
+              <td>{{ result.raws|join(', ') }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Raw Cost</th>
+              <td>${{ result.raw_cost|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Yield (lbs)</th>
+              <td>{{ result.product_yield }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Labor Hours</th>
+              <td>{{ result.labor_hours }}</td>
+            </tr>
+            <tr class="border-top">
+              <th class="pr-4">Total Cost per Case</th>
+              <td>${{ result.total_cost|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Cost per lb</th>
+              <td>${{ result.cost_per_lb|round(4) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">Cost per oz</th>
+              <td>${{ result.cost_per_oz|round(4) }}</td>
+            </tr>
+            <tr class="border-top">
+              <th class="pr-4">+25% Rounded</th>
+              <td>${{ result.rounded_25|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">+30% Rounded</th>
+              <td>${{ result.rounded_30|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">+35% Rounded</th>
+              <td>${{ result.rounded_35|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">+40% Rounded</th>
+              <td>${{ result.rounded_40|round(2) }}</td>
+            </tr>
+            <tr>
+              <th class="pr-4">+45% Rounded</th>
+              <td>${{ result.rounded_45|round(2) }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="d-flex align-items-center justify-content-center h-100">
+        <p class="text-muted">Fill in the form to see a quotation here.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
