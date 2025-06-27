@@ -903,7 +903,8 @@ def upload_item_csv():
                 name = row['name'].strip()
                 item_code = row['item_code'].strip()
                 raw_product = row['raw_product'].strip()
-                ranch = row['ranch'].strip().lower() == 'true'
+                #ranch = row['ranch'].strip().lower() == 'true'
+                ranch = row['ranch'].strip()  # Expecting 'yes' or 'no'
                 item_designation = row['item_designation'].strip()
                 packaging_type = row['packaging_type'].strip()
                 case_weight = row.get('case_weight', 0.0)  # Default to 0.0 if not provided
@@ -1306,6 +1307,7 @@ def price():
         def round_up_to_nearest_quarter(value):
             return math.ceil(value * 4) / 4
 
+        # Calculate rounded prices
         rounded_25 = round_up_to_nearest_quarter(unit_cost * 1.25)
         rounded_30 = round_up_to_nearest_quarter(unit_cost * 1.30)
         rounded_35 = round_up_to_nearest_quarter(unit_cost * 1.35)
@@ -1331,6 +1333,7 @@ def price():
             'rounded_45': f"{rounded_45:.2f}",
         })
 
+    # render the price page with the item data
     return render_template('price.html',
                            title='Price',
                            items=item_data,
@@ -1352,6 +1355,7 @@ def add_labor_cost():
             date=form.date.data,
             company_id=current_user.company_id
         )
+        # add to db
         db.session.add(labor_cost)
         db.session.commit()
         update_item_costs_on_labor_change()
