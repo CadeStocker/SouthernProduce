@@ -39,6 +39,7 @@
         <tr>
           <th>Item</th>
           <th>Item Code</th>
+          <th>Case Weight</th>
           <th>Item Designation</th>
           <th>Packaging Type</th>
           <th>Raw Product(s)</th>
@@ -60,6 +61,13 @@
             </td>
 
             <td>{{ item.code }}</td>
+
+            <td>
+              {% if item.case_weight %}
+                {{ item.case_weight }} lbs
+              {% else %}
+                No case weight
+              {% endif %}
 
             <td>
               {{ item.item_designation.value if item.item_designation else 'No designation' }}
