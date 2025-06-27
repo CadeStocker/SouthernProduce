@@ -14,7 +14,8 @@ from producepricer.models import (
     RawProduct, 
     User, 
     Company, 
-    Packaging
+    Packaging,
+    PendingUser
 )
 from producepricer.forms import(
     AddCustomer, 
@@ -93,21 +94,24 @@ def signup():
             flash('Welcome, you’re now the admin!', 'success')
             return redirect(url_for('home'))
 
-        # otherwise create account *but don’t log in* + email admin
-        # build payload
-        payload = {
-            'first_name': form.first_name.data,
-            'last_name': form.last_name.data,
-            'email': form.email.data,
-            'password': form.password.data,
-            'company_id': company.id
-        }
+        # store pending user data
+        pending = PendingUser(
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            email=form.email.data,
+            password=form.password.data,  # you might want to hash this
+            company_id=company.id
+        )
+        # add to db
+        db.session.add(pending)
+        db.session.commit()
+
         # token and serializer
         s = Serializer(app.config['SECRET_KEY'], salt='user-approval')  # 1 hour expiration
-        token = s.dumps(payload)
+        token = s.dumps({'pending_user_id': pending.id})
 
         # send link to admin
-        send_admin_approval_email(token, payload['company_id'])
+        send_admin_approval_email(token, company.id)
         flash('Account request submitted. Admin will review and approve.', 'info')
 
         return redirect(url_for('login'))
@@ -128,15 +132,17 @@ def send_admin_approval_email(token, company_id):
     )
     msg.send()
 
+# route to approve a user
 @app.route('/approve_user/<token>')
 @login_required
 def approve_user(token):
-    # only the company-admin may approve
-    company = Company.query.filter_by(id=current_user.company_id).first()
+    # only company-admin may approve
+    company = Company.query.get(current_user.company_id)
     if not company or current_user.email != company.admin_email:
         flash('Not authorized.', 'danger')
         return redirect(url_for('home'))
 
+    # deserialize the token
     s = Serializer(app.config['SECRET_KEY'], salt='user-approval')
     try:
         data = s.loads(token, max_age=3600)
@@ -144,24 +150,116 @@ def approve_user(token):
         flash('Invalid or expired token.', 'danger')
         return redirect(url_for('home'))
 
-    # check duplicate
-    if User.query.filter_by(email=data['email']).first():
-        flash('User already exists.', 'warning')
+    # get the pending user
+    pending = PendingUser.query.get(data.get('pending_user_id'))
+    if not pending:
+        flash('No pending request found or already processed.', 'warning')
         return redirect(url_for('company'))
 
-    # create the real user
+    # check duplicate
+    if User.query.filter_by(email=pending.email).first():
+        flash('User already exists.', 'warning')
+        db.session.delete(pending)
+        db.session.commit()
+        return redirect(url_for('company'))
+
+    # create real user
     user = User(
-      first_name=data['first_name'],
-      last_name= data['last_name'],
-      email=data['email'],
-      password=data['password'],    # if you hashed in signup, use hash here
-      company_id=data['company_id']
+        first_name = pending.first_name,
+        last_name  = pending.last_name,
+        email      = pending.email,
+        password   = pending.password,  # if hashed in PendingUser, okay
+        company_id = pending.company_id
     )
     db.session.add(user)
+    # remove pending row
+    db.session.delete(pending)
     db.session.commit()
 
     flash(f'User {user.email} approved and created.', 'success')
-    # optionally email the user here…
+    return redirect(url_for('company'))
+
+# company page
+@app.route('/company')
+@login_required
+def company():
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('index'))
+    
+    # get all users in the company
+    users = User.query.filter_by(company_id=current_user.company_id).all()
+
+    # get pending users
+    pending_users = PendingUser.query.filter_by(company_id=current_user.company_id).all()
+
+    # get the owner's account
+    admin_email = company.admin_email if company else None
+    admin = User.query.filter_by(email=admin_email).first() if admin_email else None
+    if not admin:
+        flash('Admin user not found for this company.', 'danger')
+        return redirect(url_for('index'))
+
+    return render_template('company.html',
+                           title='Company',
+                           company=company,
+                           users=users,
+                           admin=admin,
+                           pending_users=pending_users)
+
+
+# approve a user from the company page
+@app.route('/approve_pending/<int:pending_id>', methods=['POST'])
+@login_required
+def approve_pending(pending_id):
+    company = Company.query.get(current_user.company_id)
+    if not company or current_user.email != company.admin_email:
+        flash('Not authorized.', 'danger')
+        return redirect(url_for('company'))
+
+    # get the pending user
+    pending = PendingUser.query.get(pending_id)
+    if not pending:
+        flash('Pending user not found.', 'warning')
+        return redirect(url_for('company'))
+
+    # create real user
+    user = User(
+        first_name = pending.first_name,
+        last_name  = pending.last_name,
+        email      = pending.email,
+        password   = pending.password,
+        company_id = pending.company_id
+    )
+    # add to db and get rid of pending request
+    db.session.add(user)
+    db.session.delete(pending)
+    db.session.commit()
+
+    flash(f'User {user.email} approved and created.', 'success')
+    return redirect(url_for('company'))
+
+# deny a pending user from the company page
+@app.route('/deny_pending/<int:pending_id>', methods=['POST'])
+@login_required
+def deny_pending(pending_id):
+    # only company-admin may deny
+    company = Company.query.get(current_user.company_id)
+    if not company or current_user.email != company.admin_email:
+        flash('Not authorized.', 'danger')
+        return redirect(url_for('company'))
+
+    # get the pending user
+    pending = PendingUser.query.get(pending_id)
+    if not pending:
+        flash('Pending user not found.', 'warning')
+    else:
+        db.session.delete(pending)
+        db.session.commit()
+        flash(f'Request from {pending.email} denied.', 'info')
+
     return redirect(url_for('company'))
 
 # login page
@@ -1543,28 +1641,6 @@ def update_item_costs_on_labor_change():
         update_item_total_cost(item.id)
 
     flash('All item costs have been updated based on the latest labor costs.', 'success')
-
-# company page
-@app.route('/company')
-@login_required
-def company():
-    # Get the current user's company
-    company = Company.query.filter_by(id=current_user.company_id).first()
-    if not company:
-        flash('Company not found.', 'danger')
-        return redirect(url_for('index'))
-    
-    # get all users in the company
-    users = User.query.filter_by(company_id=current_user.company_id).all()
-
-    # get the owner's account
-    admin_email = company.admin_email if company else None
-    admin = User.query.filter_by(email=admin_email).first() if admin_email else None
-    if not admin:
-        flash('Admin user not found for this company.', 'danger')
-        return redirect(url_for('index'))
-
-    return render_template('company.html', title='Company', company=company, users=users, admin=admin)
 
 # ability for business owner to delete users
 @app.route('/delete_user/<int:user_id>', methods=['POST'])

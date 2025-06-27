@@ -295,6 +295,25 @@ class RawProduct(db.Model):
     def __repr__(self):
         return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"
 
+class PendingUser(db.Model):
+    __tablename__ = 'pending_user'
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, first_name, last_name, email, password, company_id):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.password = password
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"PendingUser('{self.first_name}', '{self.last_name}', '{self.email}')"
+
 # cost for a raw product on a given date
 # COST IS BASED EXCLUSIVELY ON PRICE SENN SELLS TO US AT
 class CostHistory(db.Model):

@@ -31,6 +31,44 @@
         </div>
     </div>
 
+    <h2 class="mt-5">Pending User Requests</h2>
+  {% if pending_users %}
+    <table class="table table-bordered">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for pu in pending_users %}
+        <tr>
+          <td>{{ pu.first_name }} {{ pu.last_name }}</td>
+          <td>{{ pu.email }}</td>
+          <td>
+  <form method="post"
+        action="{{ url_for('approve_pending', pending_id=pu.id) }}"
+        style="display:inline">
+    <input type="hidden"
+           name="csrf_token"
+           value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-success">Approve</button>
+  </form>
+
+  <form method="post"
+        action="{{ url_for('deny_pending', pending_id=pu.id) }}"
+        style="display:inline">
+    <input type="hidden"
+           name="csrf_token"
+           value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-danger">Deny</button>
+  </form>
+</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No pending user requests.</p>
+  {% endif %}
+
     <!-- Users in the Company -->
     <div class="card">
         <div class="card-header">
