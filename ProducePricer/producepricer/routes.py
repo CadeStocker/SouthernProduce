@@ -1,6 +1,7 @@
 import datetime
 import math
 from flask import redirect, render_template, render_template_string, request, url_for, flash
+from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     CostHistory, 
     Customer, 
@@ -58,32 +59,110 @@ def about():
 # signup page
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    # if the user is already logged in, redirect to home
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     
+    # signup form
     form = SignUp()
-    form.company.choices = [(company.id, company.name) for company in Company.query.all()]
-    
+    # existing companies to select from
+    form.company.choices = [(c.id, c.name) for c in Company.query.all()]
+
     if form.validate_on_submit():
-        # flash a message to the user
-        flash(f'Account created for {form.first_name.data}!', 'success')
-        # make a new user object for database
-        user = User(first_name=form.first_name.data,
-                    last_name=form.last_name.data,
-                    email=form.email.data,
-                    password=form.password.data,
-                    company_id=form.company.data)
-        db.session.add(user)
-        db.session.commit()
-        # log the user in
-        login_user(user)
-        # flash a message to the user
-        flash(f'Welcome {form.first_name.data}!', 'success')
-        # redirect to the home page
-        return redirect(url_for('home'))
-    # if the form is not submitted or is invalid, render the signup page
-    flash('Invalid Information.', 'danger')
+        # see if the email is already registered
+        existing = User.query.filter_by(email=form.email.data).first()
+        if existing:
+            flash('Email already registered.', 'warning')
+            return redirect(url_for('login'))
+
+        # grab the company
+        company = Company.query.get(form.company.data)
+
+        # if they are the company owner, auto-approve
+        if form.email.data == company.admin_email:
+            user = User( first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        email=form.email.data,
+                        password=form.password.data,
+                        company_id=company.id )
+            # add to db
+            db.session.add(user)
+            db.session.commit()
+            # log them in
+            login_user(user)
+            flash('Welcome, you’re now the admin!', 'success')
+            return redirect(url_for('home'))
+
+        # otherwise create account *but don’t log in* + email admin
+        # build payload
+        payload = {
+            'first_name': form.first_name.data,
+            'last_name': form.last_name.data,
+            'email': form.email.data,
+            'password': form.password.data,
+            'company_id': company.id
+        }
+        # token and serializer
+        s = Serializer(app.config['SECRET_KEY'], salt='user-approval')  # 1 hour expiration
+        token = s.dumps(payload)
+
+        # send link to admin
+        send_admin_approval_email(token, payload['company_id'])
+        flash('Account request submitted. Admin will review and approve.', 'info')
+
+        return redirect(url_for('login'))
+    
     return render_template('signup.html', title='Sign Up', form=form)
+
+def send_admin_approval_email(token, company_id):
+    # lookup admin email
+    company = Company.query.get(company_id)
+    admin_email = company.admin_email
+    link = url_for('approve_user', token=token, _external=True)
+
+    msg = EmailMessage(
+      subject='Approve new user request',
+      to=[admin_email],
+      body=f'Click to approve new user:\n\n{link}\n\n'
+           'This link will expire in 1 hour.'
+    )
+    msg.send()
+
+@app.route('/approve_user/<token>')
+@login_required
+def approve_user(token):
+    # only the company-admin may approve
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company or current_user.email != company.admin_email:
+        flash('Not authorized.', 'danger')
+        return redirect(url_for('home'))
+
+    s = Serializer(app.config['SECRET_KEY'], salt='user-approval')
+    try:
+        data = s.loads(token, max_age=3600)
+    except (BadSignature, SignatureExpired):
+        flash('Invalid or expired token.', 'danger')
+        return redirect(url_for('home'))
+
+    # check duplicate
+    if User.query.filter_by(email=data['email']).first():
+        flash('User already exists.', 'warning')
+        return redirect(url_for('company'))
+
+    # create the real user
+    user = User(
+      first_name=data['first_name'],
+      last_name= data['last_name'],
+      email=data['email'],
+      password=data['password'],    # if you hashed in signup, use hash here
+      company_id=data['company_id']
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    flash(f'User {user.email} approved and created.', 'success')
+    # optionally email the user here…
+    return redirect(url_for('company'))
 
 # login page
 @app.route('/login', methods=['GET', 'POST'])
