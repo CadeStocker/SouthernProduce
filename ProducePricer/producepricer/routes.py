@@ -1237,7 +1237,7 @@ def update_item_total_cost(item_id):
     )
     db.session.add(total_cost)
     db.session.commit()
-    flash(f'Total cost for item: {item_id} has been updated to ${cost:.2f}.', 'success')
+    #flash(f'Total cost for item: {item_id} has been updated to ${cost:.2f}.', 'success')
 
 # price page for showing cost of each item and different prices (along with associated profit and margins)
 @app.route('/price')
@@ -1348,27 +1348,33 @@ def price():
 def add_labor_cost():
     form = AddLaborCost()
 
-    if form.validate_on_submit():
-        # Create a new labor cost entry
-        labor_cost = LaborCost(
-            labor_cost=form.cost.data,
-            date=form.date.data,
-            company_id=current_user.company_id
-        )
-        # add to db
-        db.session.add(labor_cost)
-        db.session.commit()
-        update_item_costs_on_labor_change()
-        flash('Labor cost added successfully!', 'success')
+    # get past labor costs for the current user
+    past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
 
-        # get past labor costs for the current user
-        past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+    # if a new labor cost is being added
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            # Create a new labor cost entry
+            labor_cost = LaborCost(
+                labor_cost=form.cost.data,
+                date=form.date.data,
+                company_id=current_user.company_id
+            )
 
-    else:
-        flash('Invalid data submitted.', 'danger')
+            # add to db
+            db.session.add(labor_cost)
+            db.session.commit()
 
-        # get past labor costs for the current user
-        past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+            # update all item costs based on the new labor cost
+            update_item_costs_on_labor_change()
+
+            flash('Labor cost added successfully!', 'success')
+
+            # get past labor costs for the current user
+            past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+            
+        else:
+            flash('Invalid data submitted.', 'danger')
 
     return render_template('add_labor_cost.html', title='Add Labor Cost', form=form, past_labor_costs=past_labor_costs)
 
