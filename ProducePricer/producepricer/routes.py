@@ -325,6 +325,9 @@ def upload_packaging_csv():
                 tray_andor_chemical_cost = float(row['tray_andor_chemical_cost'].replace('$', '').strip())
                 label_andor_tape_cost = float(row['label_andor_tape_cost'].replace('$', '').strip())
 
+                # get the total cost of the packaging
+                total_packaging_cost = box_cost + bag_cost + tray_andor_chemical_cost + label_andor_tape_cost
+
                 # Check if the package already exists
                 packaging = Packaging.query.filter_by(packaging_type=row['name'], company_id=current_user.company_id).first()
                 if packaging is None:
@@ -348,15 +351,51 @@ def upload_packaging_csv():
                 # update TotalItemCost of any items using this packaging
                 items_using_packaging = Item.query.filter_by(packaging_id=packaging.id, company_id=current_user.company_id).all()
                 for item in items_using_packaging:
-                    total_cost = calculate_item_cost(item.id)
-                    item_cost = ItemTotalCost(
-                        item_id=item.id,
-                        total_cost=total_cost,
-                        date=pd.Timestamp.now().date(),
-                        company_id=current_user.company_id
-                    )
-                    db.session.add(item_cost)
-                db.session.commit()
+                    # update the total cost for the item
+                    update_item_total_cost(item.id)
+
+            # BELOW IS COMMENTED OUT BECAUSE THE UPDATE_ITEM_TOTAL_COST DOES ALL OF THIS ALREADY
+                    #calculate_item_cost(item.id)
+                    # # see if the item has ranch
+                    # if item.ranch:
+                    #     ranch_cost = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.desc()).first()
+                    # else:
+                    #     ranch_cost = 0
+
+                #     # raw product cost for the item
+                #     raw_product_costs = 0
+                #     for raw_product in item.raw_products:
+                #         most_recent_cost = (
+                #             CostHistory.query
+                #             .filter_by(raw_product_id=raw_product.id)
+                #             .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+                #             .first()
+                #         )
+                #         if most_recent_cost:
+                #             raw_product_costs += most_recent_cost.cost
+                    
+                #     # designation cost of the item
+                #     if item.item_designation == 'SNAKPAK':
+
+                #     """item_cost = ItemTotalCost(
+                #         item_id=item.id,
+                #         total_cost=total_cost,
+                #         date=pd.Timestamp.now().date(),
+                #         company_id=current_user.company_id
+                #     )"""
+                #     item_cost = ItemTotalCost(
+                #         item_id=item.id,
+                #         total_cost=total_cost,
+                #         date=pd.Timestamp.now().date(),
+                #         company_id=current_user.company_id,
+                #         packaging_cost=total_packaging_cost,
+                #         ranch_cost=ranch_cost.cost,
+                #         raw_product_cost=raw_product_costs,
+                #         labor_cost=LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).first(),
+
+                #     )
+                #     db.session.add(item_cost)
+                # db.session.commit()
 
             flash('Packaging costs added successfully!', 'success')
             return redirect(url_for('packaging'))
@@ -943,7 +982,8 @@ def upload_item_csv():
                     flash(f'Item "{name}" already exists. Skipping item.', 'warning')
                     continue
 
-                # Check if the packaging exists
+                # Check if the packaging exists (fix issue of capitalization)
+                packaging_type = packaging_type.strip().upper()
                 packaging = Packaging.query.filter_by(packaging_type=packaging_type, company_id=current_user.company_id).first()
                 if not packaging:
                     # If packaging does not exist, create it
