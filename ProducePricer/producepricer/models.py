@@ -191,6 +191,24 @@ class Item(db.Model):
     def __repr__(self):
         return f"Item('{self.name}', '{self.code}', '{self.unit_of_weight}', '{self.weight}')"
 
+# designation cost
+class DesignationCost(db.Model):
+    __tablename__ = 'designation_cost'
+    id = db.Column(db.Integer, primary_key=True)
+    item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
+    cost = db.Column(db.Float, nullable=False)  # cost based on item designation
+    date = db.Column(db.Date, nullable=False)  # date of the cost
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, item_designation, cost, date, company_id):
+        self.item_designation = item_designation
+        self.cost = cost
+        self.date = date
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"DesignationCost('{self.item_designation}', '{self.cost}', '{self.date}')"
+
 # store ranch price
 class RanchPrice(db.Model):
     __tablename__ = 'ranch_price'

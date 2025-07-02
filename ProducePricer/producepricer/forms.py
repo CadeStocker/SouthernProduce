@@ -149,9 +149,38 @@ class ResetPasswordForm(FlaskForm):
 class PriceQuoterForm(FlaskForm):
     #item         = SelectField('Item', coerce=int)
     name        = StringField('Item Name')
+    code        = StringField('Item Code')
+    item_designation = SelectField('Item Designation', 
+        choices=[('SNAKPAK', 'SnakPak'), 
+                 ('RETAIL', 'Retail'), 
+                 ('FOODSERVICE', 'Food Service')],
+        validators=[DataRequired()]
+    )
+    case_weight = FloatField('Case Weight')
     packaging    = SelectField('Packaging', coerce=int, validators=[DataRequired()])
     raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
     ranch       = BooleanField('Ranch', default=False)
     product_yield= FloatField('Yield (lbs)', validators=[DataRequired(), NumberRange(min=0)])
     labor_hours  = FloatField('Labor Hours', validators=[DataRequired(), NumberRange(min=0)])
     submit       = SubmitField('Calculate')
+
+class AddDesignationCost(FlaskForm):
+    item_designation = SelectField(
+        'Designation',
+        choices=[
+            ('SNAKPAK','SNAKPAK'),
+            ('RETAIL','RETAIL'),
+            ('FOODSERVICE','FOODSERVICE')
+        ],
+        validators=[DataRequired()]
+    )
+    cost = FloatField(
+        'Cost',
+        validators=[DataRequired(), NumberRange(min=0)]
+    )
+    date = DateField(
+        'Date',
+        format='%Y-%m-%d',
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Save')

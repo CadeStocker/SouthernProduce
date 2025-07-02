@@ -1,0 +1,38 @@
+<!-- filepath: producepricer/templates/designation_costs.html -->
+{% extends "base.html" %}
+{% block title %}Designation Costs{% endblock %}
+{% block content %}
+<div class="container mt-5" style="max-width:600px;">
+  <h1>Designation Costs</h1>
+  <form method="POST" class="mb-4">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.item_designation.label }} {{ form.item_designation(class="form-control") }}
+    </div>
+    <div class="form-group">
+      {{ form.cost.label }} {{ form.cost(class="form-control") }}
+    </div>
+    <div class="form-group">
+      {{ form.date.label }} {{ form.date(class="form-control") }}
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+
+  <h2>Current Costs</h2>
+  {% if current_costs %}
+  <table class="table table-bordered">
+    <thead><tr><th>Designation</th><th>Cost</th></tr></thead>
+    <tbody>
+      {% for designation, cost in current_costs.items() %}
+      <tr>
+        <td>{{ designation }}</td>
+        <td>${{ cost|round(2) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No designation costs set yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

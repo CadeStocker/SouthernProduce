@@ -4,21 +4,25 @@ from flask import redirect, render_template, render_template_string, request, ur
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     CostHistory, 
-    Customer, 
-    Item, 
+    Customer,
+    DesignationCost, 
+    Item,
+    ItemDesignation, 
     ItemInfo, 
     ItemTotalCost, 
     LaborCost, 
     PackagingCost, 
     RanchPrice, 
-    RawProduct, 
+    RawProduct,
+    UnitOfWeight, 
     User, 
     Company, 
     Packaging,
     PendingUser
 )
 from producepricer.forms import(
-    AddCustomer, 
+    AddCustomer,
+    AddDesignationCost, 
     AddItem, 
     AddLaborCost, 
     AddPackagingCost, 
@@ -1424,6 +1428,162 @@ def calculate_item_cost(item_id):
     # return the different costs and the total
     return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost, ranch_cost
 
+# overriden version of calculate_item_cost that takes item info as args, rather than
+# just the item id
+def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case_weight, ranch, item_designation, raw_products):
+    # Calculate the total cost of the item based on its raw products and packaging costs
+    total_cost = 0.0
+
+    raw_product_cost = 0.0
+
+    ranch_cost = 0.0
+
+    # if ranch is true, add most recent ranch cost
+    if ranch:
+        most_recent_ranch_cost = RanchPrice.query.order_by(RanchPrice.date.desc(), RanchPrice.id.desc()).filter_by(company_id=current_user.company_id).first()
+        if most_recent_ranch_cost:
+            ranch_cost = most_recent_ranch_cost.cost
+            total_cost += ranch_cost
+        else:
+            flash('No ranch cost found.', 'warning')
+
+    # get the (raw price/yield) for each raw product
+    for raw_product in raw_products:
+        most_recent_cost = (
+            CostHistory.query
+            .filter_by(raw_product_id=raw_product.id)
+            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+            .first()
+        )
+        if most_recent_cost:
+            # calculate the cost per unit of yield
+            cost_per_unit_yield = most_recent_cost.cost / (product_yield or 1)  # Avoid division by zero
+            total_cost += (cost_per_unit_yield * case_weight)
+            raw_product_cost += (cost_per_unit_yield * case_weight)
+
+    # get the packaging cost for the item
+    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
+    total_packaging_cost = 0.0
+
+    if packaging_costs:
+        # Use the most recent packaging cost
+        most_recent_packaging_cost = packaging_costs[0]
+        total_cost += (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
+        # update total_packaging_cost
+        total_packaging_cost = (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
+    else:
+        flash('No packaging costs found.', 'warning')
+
+    labor_cost = 0.0
+
+    # Calculate the total cost based on labor hours and other factors
+    if labor_hours:
+        # Assuming a fixed labor cost per hour, e.g., $15/hour
+        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
+        if labor_cost_per_hour:
+            labor_cost_per_hour = labor_cost_per_hour.labor_cost
+        else:
+            flash('Labor cost not found. Assuming $0 per hour.', 'warning')
+            labor_cost_per_hour = 0
+
+        total_cost += labor_hours * labor_cost_per_hour
+        labor_cost = labor_hours * labor_cost_per_hour
+
+    designation_cost = 0.0
+
+    # Calculate designation cost
+    designation_cost += find_designation_cost(item_designation)
+
+    # return the different costs and the total
+    return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost, ranch_cost
+
+# overriden version of calculate_item_cost that takes item info as args, rather than
+# just the item id
+def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case_weight, ranch, item_designation, raw_products):
+    # Calculate the total cost of the item based on its raw products and packaging costs
+    total_cost = 0.0
+
+    raw_product_cost = 0.0
+
+    ranch_cost = 0.0
+
+    # if ranch is true, add most recent ranch cost
+    if ranch:
+        most_recent_ranch_cost = RanchPrice.query.order_by(RanchPrice.date.desc(), RanchPrice.id.desc()).filter_by(company_id=current_user.company_id).first()
+        if most_recent_ranch_cost:
+            ranch_cost = most_recent_ranch_cost.cost
+            total_cost += ranch_cost
+        else:
+            flash('No ranch cost found.', 'warning')
+
+    # get the (raw price/yield) for each raw product
+    for raw_product in raw_products:
+        most_recent_cost = (
+            CostHistory.query
+            .filter_by(raw_product_id=raw_product.id)
+            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+            .first()
+        )
+        if most_recent_cost:
+            # calculate the cost per unit of yield
+            cost_per_unit_yield = most_recent_cost.cost / (product_yield or 1)  # Avoid division by zero
+            total_cost += (cost_per_unit_yield * case_weight)
+            raw_product_cost += (cost_per_unit_yield * case_weight)
+
+    # get the packaging cost for the item
+    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
+    total_packaging_cost = 0.0
+
+    if packaging_costs:
+        # Use the most recent packaging cost
+        most_recent_packaging_cost = packaging_costs[0]
+        total_cost += (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
+        # update total_packaging_cost
+        total_packaging_cost = (
+            most_recent_packaging_cost.box_cost +
+            most_recent_packaging_cost.bag_cost +
+            most_recent_packaging_cost.tray_andor_chemical_cost +
+            most_recent_packaging_cost.label_andor_tape_cost
+        )
+    else:
+        flash('No packaging costs found.', 'warning')
+
+    labor_cost = 0.0
+    # Calculate the total cost based on labor hours and other factors
+    if labor_hours:
+        # Assuming a fixed labor cost per hour, e.g., $15/hour
+        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
+        if labor_cost_per_hour:
+            labor_cost_per_hour = labor_cost_per_hour.labor_cost
+        else:
+            flash('Labor cost not found. Assuming $0 per hour.', 'warning')
+            labor_cost_per_hour = 0
+
+        total_cost += labor_hours * labor_cost_per_hour
+        labor_cost = labor_hours * labor_cost_per_hour
+
+    # Calculate designation cost
+    designation_cost = 0.0
+    designation_cost += find_designation_cost(item_designation)
+
+    # add designation cost to the total
+    total_cost += designation_cost
+
 # automatically update total cost for an item
 def update_item_total_cost(item_id):
     #cost = calculate_item_cost(item_id)
@@ -1908,15 +2068,18 @@ def price_quoter():
     form = PriceQuoterForm()
 
     # Populate the dropdowns
-    # items = Item.query.filter_by(company_id=current_user.company_id).all()
-    # form.item.choices = [(i.id, i.name) for i in items]
+    items = Item.query.filter_by(company_id=current_user.company_id).all()
+    #form.item.choices = [(i.id, i.name) for i in items]
 
+    # Populate the packaging and raw products dropdowns
     packs = Packaging.query.filter_by(company_id=current_user.company_id).all()
     form.packaging.choices = [(p.id, p.packaging_type) for p in packs]
 
+    # Populate the raw products dropdown
     raws = RawProduct.query.filter_by(company_id=current_user.company_id).all()
     form.raw_products.choices = [(r.id, r.name) for r in raws]
 
+    # Initialize the result variable
     result = None
 
     # Pre‐fill the form if an item has been selected via query param
@@ -1939,13 +2102,16 @@ def price_quoter():
 
     # When the user submits the variables, do the calculation
     if form.validate_on_submit():
+        # user can either create the item or just calculate the price
+        action = request.form.get('action', 'create')
+
         # look up your selections
         pack = Packaging.query.get(form.packaging.data)
         selected_raws = RawProduct.query.filter(
             RawProduct.id.in_(form.raw_products.data)
         ).all()
 
-        # get latest costs...
+        # get latest costs for the packaging
         pc = (PackagingCost.query
                 .filter_by(packaging_id=pack.id)
                 .order_by(PackagingCost.date.desc(), PackagingCost.id.desc())
@@ -1965,6 +2131,21 @@ def price_quoter():
             if rh:
                 total_raw += rh.cost
 
+        # ranch cost
+        ranch_cost = 0
+        if form.ranch.data:
+            # get the most recent ranch cost
+            rc = (RanchPrice.query
+                    .filter_by(company_id=current_user.company_id)
+                    .order_by(RanchPrice.date.desc(), RanchPrice.id.desc())
+                    .first())
+            ranch_cost = rc.cost if rc else 0
+
+        # designation cost
+        designation_cost = 0
+        item_designation = form.item_designation.data
+        designation_cost += DesignationCost.query.filter_by(item_designation=item_designation, company_id=current_user.company_id).first().cost if item_designation else 0
+
         # get the most recent labor cost
         lc = (LaborCost.query
                 .filter_by(company_id=current_user.company_id)
@@ -1972,7 +2153,8 @@ def price_quoter():
                 .first())
         labor_cost = (lc.labor_cost * form.labor_hours.data) if lc else 0
 
-        total      = pack_cost + total_raw + labor_cost
+        # sum of all costs to find total cost
+        total      = pack_cost + total_raw + labor_cost + ranch_cost + designation_cost
         cpl        = total / form.product_yield.data if form.product_yield.data else 0
         cpo        = cpl / 16
 
@@ -1983,14 +2165,21 @@ def price_quoter():
         r40 = total * 1.40
         r45 = total * 1.45
 
+        # results to be displayed
         result = {
             #'item':         dict(form.item.choices).get(form.item.data),
             'name':         form.name.data,  # Use the item name directly,
             'raw_cost':     total_raw,
+            'ranch_cost':  ranch_cost,
+            'designation_cost': designation_cost,
+            'item_designation': form.item_designation.data,
+            'case_weight':  form.case_weight.data,
             'packaging':    dict(form.packaging.choices)[form.packaging.data],
+            'packaging_cost': pack_cost,
             'raws':         [r.name for r in selected_raws],
             'product_yield':form.product_yield.data,
             'labor_hours':  form.labor_hours.data,
+            'labor_cost':  labor_cost,
             'total_cost':   total,
             'cost_per_lb':  cpl,
             'cost_per_oz':  cpo,
@@ -2001,12 +2190,117 @@ def price_quoter():
             'rounded_45':   r45,
         }
 
+        if action == 'create':
+            # Create a new item with the calculated values
+            item = Item(
+                name=form.name.data,
+                code=form.code.data,
+                case_weight=form.case_weight.data,
+                ranch=form.ranch.data,
+                packaging_id=form.packaging.data,
+                unit_of_weight=UnitOfWeight.POUND,
+                company_id=current_user.company_id
+            )
+            # Add the raw products to the item
+            for raw_product_id in form.raw_products.data:
+                raw_product = RawProduct.query.get(raw_product_id)
+                if raw_product:
+                    item.raw_products.append(raw_product)
+
+            db.session.add(item)
+            db.session.flush()
+
+            info = ItemInfo(
+                item_id=item.id,
+                product_yield=form.product_yield.data,
+                labor_hours=form.labor_hours.data,
+                date=pd.Timestamp.now().date(),
+                company_id=current_user.company_id
+            )
+            db.session.add(info)
+            db.session.commit()
+
+            # flash that the item has been created
+            flash(f'Item "{form.name.data}" has been created successfully!', 'success')
+            # update the total cost for the item
+            update_item_total_cost(item.id)
+
+            return redirect(url_for('items'))
+        
+    # print the errors in the form if there are any
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'Error in {field}: {error}', 'danger')
+
     return render_template(
         'price_quoter.html',
         title='Price Quoter',
         form=form,
         result=result,
         #selected_item_id=item_id
+    )
+
+# get the most recently dated cost for the given item designation
+def find_designation_cost(item_designation):
+    designation_cost = DesignationCost.query.filter_by(
+        item_designation=item_designation,
+        company_id=current_user.company_id
+    ).order_by(DesignationCost.date.desc()).first()
+    if designation_cost:
+        return designation_cost.cost
+    else:
+        flash(f'No designation cost found for {item_designation}. Using default cost of $1.00.', 'warning')
+        return 1.00  # Default cost if not found
+
+# page to add designation costs
+@app.route('/designation_costs', methods=['GET','POST'])
+@login_required
+def designation_costs():
+    form = AddDesignationCost()
+    # load all past entries
+    all_entries = DesignationCost.query.filter_by(
+        company_id=current_user.company_id
+    ).all()
+
+    # build lookup of most‐recent cost for each designation
+    current_costs = {}
+    for entry in all_entries:
+        latest = (DesignationCost.query
+                  .filter_by(item_designation=entry.item_designation,
+                             company_id=current_user.company_id)
+                  .order_by(DesignationCost.date.desc(), DesignationCost.id.desc())
+                  .first())
+        current_costs[entry.item_designation] = latest.cost if latest else 0.0
+
+    if form.validate_on_submit():
+        new_cost = DesignationCost(
+            item_designation=form.item_designation.data,
+            cost=form.cost.data,
+            company_id=current_user.company_id,
+            date=form.date.data
+        )
+        db.session.add(new_cost)
+        db.session.commit()
+        flash('Designation cost added successfully!', 'success')
+        # redirect to avoid double‐POST
+
+        # update prices of all items with this designation
+        items = Item.query.filter_by(
+            company_id=current_user.company_id,
+            item_designation=form.item_designation.data
+        ).all()
+        for item in items:
+            update_item_total_cost(item.id)
+            
+        return redirect(url_for('designation_costs'))
+
+    # always render the page on GET or invalid POST
+    return render_template(
+        'designation_costs.html',
+        title='Designation Costs',
+        form=form,
+        current_costs=current_costs
     )
 
 # only true if this file is run directly

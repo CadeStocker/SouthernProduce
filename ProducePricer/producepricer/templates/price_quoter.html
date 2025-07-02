@@ -12,9 +12,14 @@
           <h4 class="card-title mb-3">Enter Variables</h4>
           <form method="POST">
             {{ form.hidden_tag() }}
+            
             <div class="form-group">
               {{ form.name.label(class="form-label") }} (Optional)
               {{ form.name(class="form-control") }}
+            </div>
+            <div class="form-group">
+              {{ form.code.label(class="form-label") }} (Optional)
+              {{ form.code(class="form-control") }}
             </div>
             <div class="form-group">
               {{ form.packaging.label(class="form-label") }}
@@ -24,6 +29,18 @@
               {{ form.raw_products.label(class="form-label") }}
               {{ form.raw_products(class="form-control", multiple=true, size=5) }}
             </div>
+            <div class="form-group form-check">
+              {{ form.ranch(class="form-check-input", id="ranch") }}
+              <label class="form-check-label" for="ranch">Is this a ranch item?</label>
+            </div>
+            <div class="form-group">
+              {{ form.item_designation.label(class="form-label") }}
+              {{ form.item_designation(class="form-control") }}
+            </div>
+            <div class="form-group">
+              {{ form.case_weight.label(class="form-label") }} (lbs)
+              {{ form.case_weight(class="form-control") }}
+            </div>
             <div class="form-group">
               {{ form.product_yield.label(class="form-label") }}
               {{ form.product_yield(class="form-control") }}
@@ -32,7 +49,18 @@
               {{ form.labor_hours.label(class="form-label") }}
               {{ form.labor_hours(class="form-control") }}
             </div>
-            <button type="submit" class="btn btn-primary btn-block mt-3">{{ form.submit.label }}</button>
+            <button type="submit"
+                    name="action"
+                    value="calculate"
+                    class="btn btn-primary btn-block mt-3">
+              Calculate
+            </button>
+            <button type="submit"
+                    name="action"
+                    value="create"
+                    class="btn btn-secondary btn-block mt-2">
+              Save as New Item
+            </button>
           </form>
         </div>
       </div>
@@ -41,74 +69,117 @@
     <!-- Right column: results -->
     <div class="col-lg-7">
       {% if result %}
-      <div class="card shadow-sm">
-        <div class="card-body">
-            {% if result.name %}
-          <h4 class="card-title mb-3">Quotation Results for {{ result.name }}</h4>
-            {% else %}
-          <h4 class="card-title mb-3">Quotation Results</h4>
-            {% endif %}
-          <table class="table table-borderless mb-0">
-            <tr>
-              <th class="pr-4">Packaging</th>
-              <td>{{ result.packaging }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Raw Products</th>
-              <td>{{ result.raws|join(', ') }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Raw Cost</th>
-              <td>${{ result.raw_cost|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Yield (lbs)</th>
-              <td>{{ result.product_yield }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Labor Hours</th>
-              <td>{{ result.labor_hours }}</td>
-            </tr>
-            <tr class="border-top">
-              <th class="pr-4">Total Cost per Case</th>
-              <td>${{ result.total_cost|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Cost per lb</th>
-              <td>${{ result.cost_per_lb|round(4) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">Cost per oz</th>
-              <td>${{ result.cost_per_oz|round(4) }}</td>
-            </tr>
-            <tr class="border-top">
-              <th class="pr-4">+25% Rounded</th>
-              <td>${{ result.rounded_25|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">+30% Rounded</th>
-              <td>${{ result.rounded_30|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">+35% Rounded</th>
-              <td>${{ result.rounded_35|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">+40% Rounded</th>
-              <td>${{ result.rounded_40|round(2) }}</td>
-            </tr>
-            <tr>
-              <th class="pr-4">+45% Rounded</th>
-              <td>${{ result.rounded_45|round(2) }}</td>
-            </tr>
-          </table>
-        </div>
+<div class="row mt-4">
+  <!-- Inputs card -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-header bg-light">
+        <strong>Inputs</strong>
       </div>
-      {% else %}
-      <div class="d-flex align-items-center justify-content-center h-100">
-        <p class="text-muted">Fill in the form to see a quotation here.</p>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">Packaging: {{ result.packaging }}</li>
+        <li class="list-group-item">
+          Raw Products: {{ result.raws|join(', ') }}
+        </li>
+        <li class="list-group-item">
+          Raw Cost: ${{ result.raw_cost|round(2) }}
+        </li>
+        <li class="list-group-item">
+            Case Weight: {{ result.case_weight }} lbs
+        </li>
+        <li class="list-group-item">
+          Yield: {{ result.product_yield }} lbs
+        </li>
+        <li class="list-group-item">
+          Labor Hours: {{ result.labor_hours }}
+        </li>
+        <li class="list-group-item">
+          Labor Cost: ${{ result.labor_cost|round(2) }}
+        </li>
+        <li class="list-group-item">
+          Ranch Cost: ${{ result.ranch_cost|round(2) }}
+        </li>
+        <li class="list-group-item">
+          Designation Cost: ${{ result.designation_cost|round(2) }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Outputs card -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-header bg-light">
+        <strong>Results</strong>
       </div>
-      {% endif %}
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+          Unit Cost: ${{ result.total_cost|round(2) }}
+        </li>
+        <li class="list-group-item">
+          Cost per lb: ${{ result.cost_per_lb|round(4) }}
+        </li>
+        <li class="list-group-item">
+          Cost per oz: ${{ result.cost_per_oz|round(4) }}
+        </li>
+        <li class="list-group-item">
+          +25% Margin: ${{ result.rounded_25|round(2) }}
+        </li>
+        <li class="list-group-item">
+          +30% Margin: ${{ result.rounded_30|round(2) }}
+        </li>
+        <li class="list-group-item">
+          +35% Margin: ${{ result.rounded_35|round(2) }}
+        </li>
+        <li class="list-group-item">
+          +40% Margin: ${{ result.rounded_40|round(2) }}
+        </li>
+        <li class="list-group-item">
+          +45% Margin: ${{ result.rounded_45|round(2) }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+
+<!-- Unit cost breakdown card-->
+<div class="col-md-6 mb-3">
+<div class="card mt-4">
+  <div class="card-header bg-light">
+    <strong>Unit Cost Breakdown</strong>
+  </div>
+  <div class="card-body">
+    <ul class="list-group">
+      <li class="list-group-item">
+        Raw Cost: ${{ result.raw_cost|round(2) }}
+      </li>
+      <li class="list-group-item">
+        Packaging Cost: ${{ result.packaging_cost|round(2) }}
+      </li>
+      <li class="list-group-item">
+        Labor Cost: ${{ result.labor_cost|round(2) }}
+      </li>
+      <li class="list-group-item">
+        Ranch Cost: ${{ result.ranch_cost|round(2) }}
+      </li>
+      <li class="list-group-item">
+        Designation Cost: ${{ result.designation_cost|round(2) }}
+      </li>
+      <li class="list-group-item">
+        Total Unit Cost: ${{ result.total_cost|round(2) }}
+      </li>
+    </ul>
+  </div>
+</div>
+</div>
+
+
+
+{% else %}
+<div class="text-center text-muted mt-4">
+  Fill in the form to see a quotation here.
+</div>
+{% endif %}
     </div>
   </div>
 </div>
