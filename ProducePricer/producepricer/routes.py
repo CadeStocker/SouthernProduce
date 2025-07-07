@@ -423,7 +423,12 @@ def add_packaging_cost(packaging_id):
         # redirect to the packaging page
         return redirect(url_for('view_packaging', packaging_id=packaging_id))
     # if the form is not submitted or is invalid, render the add packaging cost page
-    flash('Invalid Information.', 'danger')
+    #flash('Invalid Information.', 'danger')
+    else:
+        # print errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'Error in {field}: {error}', 'danger')
     return render_template('add_packaging_cost.html', title='Add Packaging Cost', form=form, packaging=packaging)
 
 # delete a package
