@@ -76,8 +76,9 @@ def signup():
 
     if form.validate_on_submit():
         # see if the email is already registered
+        existing_pending = PendingUser.query.filter_by(email=form.email.data).first()
         existing = User.query.filter_by(email=form.email.data).first()
-        if existing:
+        if existing or existing_pending:
             flash('Email already registered.', 'warning')
             return redirect(url_for('login'))
 
