@@ -28,49 +28,55 @@
     </form>
 
     {% if packaging %}
-        <div class="container-fluid">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Packaging Type</th>
-                    <th>Box Cost</th>
-                    <th>Bag Cost</th>
-                    <th>Tray / Chemical</th>
-                    <th>Labels / Tape</th>
-                    <th>Date of Cost</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in packaging %}
-                    <tr>
-                        <td>
-                        <a href="{{ url_for('view_packaging', packaging_id=item.id) }}">
-                            {{ item.packaging_type }}
-                        </a>
-                        </td>
-                        
-                        {% if packaging_costs[item.id] %}
-                            <td>${{ packaging_costs[item.id].box_cost }}</td>
-                            <td>${{ packaging_costs[item.id].bag_cost }}</td>
-                            <td>${{ packaging_costs[item.id].tray_andor_chemical_cost }}</td>
-                            <td>${{ packaging_costs[item.id].label_andor_tape_cost }}</td>
-                            <td>{{ packaging_costs[item.id].date.strftime('%Y-%m-%d') }}</td>
-                        {% else %}
-                            <td colspan="5">No cost data available</td>
-                        {% endif %}
-                        <td>
-                            <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
-                            </form>
-                            <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Packaging Details</h5>
         </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Packaging Type</th>
+                            <th>Box Cost</th>
+                            <th>Bag Cost</th>
+                            <th>Tray / Chemical</th>
+                            <th>Labels / Tape</th>
+                            <th>Date of Cost</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in packaging %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('view_packaging', packaging_id=item.id) }}">
+                                        {{ item.packaging_type }}
+                                    </a>
+                                </td>
+                                {% if packaging_costs[item.id] %}
+                                    <td>${{ packaging_costs[item.id].box_cost }}</td>
+                                    <td>${{ packaging_costs[item.id].bag_cost }}</td>
+                                    <td>${{ packaging_costs[item.id].tray_andor_chemical_cost }}</td>
+                                    <td>${{ packaging_costs[item.id].label_andor_tape_cost }}</td>
+                                    <td>{{ packaging_costs[item.id].date.strftime('%Y-%m-%d') }}</td>
+                                {% else %}
+                                    <td colspan="5">No cost data available</td>
+                                {% endif %}
+                                <td>
+                                    <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
+                                    </form>
+                                    <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     {% else %}
         <p>No packaging information available.</p>
     {% endif %}

@@ -1,179 +1,199 @@
-<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/raw_product.html -->
 {% extends "base.html" %}
-{% block title %}Raw Product{% endblock %}
+{% block title %}Raw Products{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>Raw Product List</h1>
-    <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#addRawProductModal">
-        Add New Raw Product
-    </button>
-    <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#importRawProductsModal">
-        Import Raw Products
-    </button>
+<div class="container mt-5">
+  <h1 class="mb-4">Raw Product List</h1>
 
-    <!-- Search form -->
-  <form method="GET" action="{{ url_for('raw_product') }}" class="form-inline mb-3">
-        <input
-        type="text"
-        name="q"
-        class="form-control mr-2"
-        placeholder="Search raw products..."
-        value="{{ q }}"
-        >
-        <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
-        {% if q %}
-        <a href="{{ url_for('raw_product') }}" class="btn btn-link">Clear</a>
-        {% endif %}
-    </form>
+  <!-- Add / Import Buttons -->
+  <div class="mb-3">
+    <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#addRawProductModal">
+      Add New Raw Product
+    </button>
+    <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#importRawProductsModal">
+      Import Raw Products
+    </button>
+  </div>
 
-    {% if raw_products %}
-        <table class="table table-striped">
+  <!-- Search Form -->
+  <form method="GET" action="{{ url_for('raw_product') }}" class="form-inline mb-4">
+    <input type="text"
+           name="q"
+           class="form-control mr-2"
+           placeholder="Search raw products..."
+           value="{{ q }}">
+    <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+    {% if q %}
+      <a href="{{ url_for('raw_product') }}" class="btn btn-link">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if raw_products %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <strong>Raw Product List</strong>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
             <thead>
-                <tr>
-                    <th>Raw Product</th>
-                    <th>Most Recent Cost</th>
-                    <th>Date of Cost</th>
-                    <th>Actions</th>
-                </tr>
+              <tr>
+                <th>Name</th>
+                <th>Most Recent Cost</th>
+                <th>Date of Cost</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
-                {% for raw_product in raw_products %}
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('view_raw_product', raw_product_id=raw_product.id) }}">
-                                {{ raw_product.name }}
-                            </a>
-                        </td>
-                        {% if raw_product_costs[raw_product.id] %}
-                            <td>${{ raw_product_costs[raw_product.id].cost }}</td>
-                            <td>{{ raw_product_costs[raw_product.id].date.strftime('%Y-%m-%d') }}</td>
-                        {% else %}
-                            <td colspan="2">None available</td>
-                        {% endif %}
-                        <td>
-                            <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteRawProductModal-{{ raw_product.id }}">
-                                Delete
-                            </button>
-                            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addCostModal-{{ raw_product.id }}">
-                                Add/Update Cost
-                            </button>
-                            
-                        </td>
-                    </tr>
-
-                    <!-- Delete Raw Product Modal -->
-                    <div class="modal fade" id="deleteRawProductModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRawProductModalLabel-{{ raw_product.id }}" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="deleteRawProductModalLabel-{{ raw_product.id }}">Delete Raw Product</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <div class="modal-body">
-                                    Are you sure you want to delete "{{ raw_product.name }}" and all its associated cost history? This action cannot be undone.
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                    <form method="POST" action="{{ url_for('delete_raw_product', raw_product_id=raw_product.id) }}" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal fade" id="addRawProductModal" tabindex="-1" role="dialog" aria-labelledby="addRawProductModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <form method="POST" action="{{ url_for('add_raw_product') }}">
-                                    {{ form.hidden_tag() }}
-                                    <div class="modal-body">
-                                        <div class="form-group">
-                                            {{ form.name.label(class="form-control-label") }}
-                                            {{ form.name(class="form-control") }}
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                        {{ form.submit(class="btn btn-primary") }}
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Add Cost Modal for this Raw Product -->
-                    <div class="modal fade" id="addCostModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ raw_product.id }}" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="addCostModalLabel-{{ raw_product.id }}">Add Cost for {{ raw_product.name }}</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <form method="POST" action="{{ url_for('add_raw_product_cost', raw_product_id=raw_product.id) }}">
-                                    {{ cost_form.hidden_tag() }}
-                                    <div class="modal-body">
-                                        <div class="form-group">
-                                            {{ cost_form.cost.label(class="form-control-label") }}
-                                            {{ cost_form.cost(class="form-control") }}
-                                        </div>
-                                        <div class="form-group">
-                                            {{ cost_form.date.label(class="form-control-label") }}
-                                            {{ cost_form.date(class="form-control") }}
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                        <button type="submit" class="btn btn-primary">Add Cost</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
+              {% for rp in raw_products %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('view_raw_product', raw_product_id=rp.id) }}">
+                    {{ rp.name }}
+                  </a>
+                </td>
+                {% if raw_product_costs[rp.id] %}
+                  <td>${{ raw_product_costs[rp.id].cost|round(2) }}</td>
+                  <td>{{ raw_product_costs[rp.id].date.strftime('%Y-%m-%d') }}</td>
+                {% else %}
+                  <td colspan="2">None available</td>
+                {% endif %}
+                <td>
+                  <button type="button"
+                          class="btn btn-sm btn-secondary mr-1"
+                          data-toggle="modal"
+                          data-target="#addCostModal-{{ rp.id }}">
+                    Add/Update Cost
+                  </button>
+                  <button type="button"
+                          class="btn btn-sm btn-danger"
+                          data-toggle="modal"
+                          data-target="#deleteRawProductModal-{{ rp.id }}">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
             </tbody>
-        </table>
-    {% else %}
-        <p>No raw products available for your company.</p>
-    {% endif %}
-</div>
-
-<!-- Import Raw Products Modal -->
-<div class="modal fade" id="importRawProductsModal" tabindex="-1" role="dialog" aria-labelledby="importRawProductsModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="importRawProductsModalLabel">Import Raw Products</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form method="POST" action="{{ url_for('upload_raw_product_csv') }}" enctype="multipart/form-data">
-                {{ upload_csv_form.hidden_tag() }}
-                <div class="modal-body">
-                    <div class="form-group">
-                        {{ upload_csv_form.file.label(class="form-control-label") }}
-                        {{ upload_csv_form.file(class="form-control") }}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    {{ upload_csv_form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
+          </table>
         </div>
+      </div>
     </div>
+
+    {# Modals per raw product #}
+    {% for rp in raw_products %}
+    <!-- Add/Update Cost Modal -->
+    <div class="modal fade" id="addCostModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ rp.id }}" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <form method="POST" action="{{ url_for('add_raw_product_cost', raw_product_id=rp.id) }}">
+            {{ cost_form.hidden_tag() }}
+            <div class="modal-header">
+              <h5 class="modal-title" id="addCostModalLabel-{{ rp.id }}">Add Cost for {{ rp.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                {{ cost_form.cost.label(class="form-control-label") }}
+                {{ cost_form.cost(class="form-control") }}
+              </div>
+              <div class="form-group">
+                {{ cost_form.date.label(class="form-control-label") }}
+                {{ cost_form.date(class="form-control") }}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Cost</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteRawProductModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRawProductModalLabel-{{ rp.id }}" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <form method="POST" action="{{ url_for('delete_raw_product', raw_product_id=rp.id) }}">
+            {{ csrf_token() }}
+            <div class="modal-header">
+              <h5 class="modal-title" id="deleteRawProductModalLabel-{{ rp.id }}">Delete {{ rp.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to delete <strong>{{ rp.name }}</strong>?</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted">No raw products available for your company.</p>
+  {% endif %}
+
+  {# Add Raw Product Modal #}
+  <div class="modal fade" id="addRawProductModal" tabindex="-1" role="dialog" aria-labelledby="addRawProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('add_raw_product') }}">
+          {{ form.hidden_tag() }}
+          <div class="modal-header">
+            <h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              {{ form.name.label(class="form-control-label") }}
+              {{ form.name(class="form-control") }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# Import CSV Modal #}
+  <div class="modal fade" id="importRawProductsModal" tabindex="-1" role="dialog" aria-labelledby="importRawProductsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('upload_raw_product_csv') }}" enctype="multipart/form-data">
+          {{ upload_csv_form.hidden_tag() }}
+          <div class="modal-header">
+            <h5 class="modal-title" id="importRawProductsModalLabel">Import Raw Products</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              {{ upload_csv_form.file.label(class="form-control-label") }}
+              {{ upload_csv_form.file(class="form-control") }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            {{ upload_csv_form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

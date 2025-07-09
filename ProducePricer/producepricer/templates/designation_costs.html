@@ -3,36 +3,57 @@
 {% block title %}Designation Costs{% endblock %}
 {% block content %}
 <div class="container mt-5" style="max-width:600px;">
-  <h1>Designation Costs</h1>
-  <form method="POST" class="mb-4">
-    {{ form.hidden_tag() }}
-    <div class="form-group">
-      {{ form.item_designation.label }} {{ form.item_designation(class="form-control") }}
+  <!-- Form Card -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Add Designation Cost</strong>
     </div>
-    <div class="form-group">
-      {{ form.cost.label }} {{ form.cost(class="form-control") }}
+    <div class="card-body">
+      <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+          {{ form.item_designation.label }} 
+          {{ form.item_designation(class="form-control") }}
+        </div>
+        <div class="form-group">
+          {{ form.cost.label }} 
+          {{ form.cost(class="form-control") }}
+        </div>
+        <div class="form-group">
+          {{ form.date.label }} 
+          {{ form.date(class="form-control") }}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+      </form>
     </div>
-    <div class="form-group">
-      {{ form.date.label }} {{ form.date(class="form-control") }}
-    </div>
-    {{ form.submit(class="btn btn-primary") }}
-  </form>
+  </div>
 
-  <h2>Current Costs</h2>
-  {% if current_costs %}
-  <table class="table table-bordered">
-    <thead><tr><th>Designation</th><th>Cost</th></tr></thead>
-    <tbody>
-      {% for designation, cost in current_costs.items() %}
-      <tr>
-        <td>{{ designation }}</td>
-        <td>${{ cost|round(2) }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>No designation costs set yet.</p>
-  {% endif %}
+  <!-- Table Card -->
+  <div class="card">
+    <div class="card-header">
+      <strong>Current Costs</strong>
+    </div>
+    <div class="card-body p-0">
+      {% if current_costs %}
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0">
+          <thead>
+            <tr><th>Designation</th><th>Cost</th></tr>
+          </thead>
+          <tbody>
+            {% for designation, cost in current_costs.items() %}
+            <tr>
+              <td>{{ designation.name }}</td>
+              <td>${{ cost|round(2) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="m-3">No designation costs set yet.</p>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}
