@@ -167,6 +167,8 @@ class Item(db.Model):
     name = db.Column(db.String(100), nullable=False)
     code = db.Column(db.String(100), nullable=False) # REMOVED UNIQUE CONSTRAINT
     unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
+    # alternate code ADDED FOR SENN
+    alternate_code = db.Column(db.String(100), nullable=True)  # added to store alternate codes for items
     #weight = db.Column(db.Float, nullable=False)
     ranch = db.Column(db.Boolean, nullable=False, default=False)  # whether the item is a ranch item
     case_weight = db.Column(db.Float, nullable=False, default=0.0)  # weight of the case for the item
@@ -179,6 +181,7 @@ class Item(db.Model):
     def __init__(self, name, code, unit_of_weight, packaging_id, company_id, case_weight=0.0, ranch=False, item_designation=ItemDesignation.FOODSERVICE, raw_product_ids=None):
         #self.raw_product_ids = db.cast(raw_product_ids, db.ARRAY(db.Integer)) if raw_product_ids is not None else db.cast([], db.ARRAY(db.Integer))
         self.name = name
+        #self.alternate_code = alternate_code
         self.code = code
         self.unit_of_weight = unit_of_weight
         self.item_designation = item_designation
@@ -189,7 +192,7 @@ class Item(db.Model):
         self.company_id = company_id
 
     def __repr__(self):
-        return f"Item('{self.name}', '{self.code}', '{self.unit_of_weight}', '{self.weight}')"
+        return f"Item('{self.name}', '{self.alternate_code}', '{self.code}', '{self.unit_of_weight}', '{self.case_weight}', '{self.packaging_id}', '{self.item_designation}')"
 
 # designation cost
 class DesignationCost(db.Model):
@@ -294,6 +297,38 @@ class PriceHistory(db.Model):
     def __repr__(self):
         return f"PriceHistory('{self.item_id}', '{self.date}', '{self.company_id}', '{self.customer_id}', '{self.price}')"
 
+# association table for PriceSheet ↔ Item
+price_sheet_items = db.Table(
+    'price_sheet_items',
+    db.Column('price_sheet_id', db.Integer, db.ForeignKey('price_sheet.id'), primary_key=True),
+    db.Column('item_id',         db.Integer, db.ForeignKey('item.id'),        primary_key=True)
+)
+
+# hold all the items for a price sheet
+class PriceSheet(db.Model):
+    __tablename__ = 'price_sheet'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    #item_ids = db.relationship('Item', secondary='price_sheet_items', backref=db.backref('price_sheets', lazy='dynamic'))
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+
+    items = db.relationship('Item', 
+        secondary=price_sheet_items,
+        backref=db.backref('price_sheets', lazy='dynamic'),
+        lazy='subquery'
+    )
+
+    def __init__(self, name, date, company_id, customer_id):
+        self.name = name
+        self.date = date
+        self.company_id = company_id
+        self.customer_id = customer_id
+        #self.item_ids = items  # list of Item objects
+
+    def __repr__(self):
+        return f"PriceSheet('{self.name}', '{self.date}')"
 
 # table to hold each raw product's information
 class RawProduct(db.Model):

@@ -1,0 +1,46 @@
+<!-- filepath: producepricer/templates/view_price_sheet.html -->
+{% extends "base.html" %}
+{% block title %}Price Sheet – {{ sheet.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <a href="{{ url_for('price_sheet') }}" class="btn btn-secondary mb-4">
+    ← Back to Price Sheets
+  </a>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h2 class="card-title">{{ sheet.name }}</h2>
+      <p><strong>Date:</strong> {{ sheet.date.strftime('%Y-%m-%d') }}</p>
+      <p><strong>Customer:</strong> {{ customer.name }}</p>
+    </div>
+  </div>
+
+  {% if sheet.items %}
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Name</th><th>Code</th><th>Case Wt.</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in sheet.items %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.code }}</td>
+            <td>{{ "%.2f"|format(item.case_weight) }} lbs</td>
+            <td>${{ "%.2f"|format(item.price) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+    <p class="text-muted">No items on this price sheet.</p>
+  {% endif %}
+</div>
+{% endblock %}

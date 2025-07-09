@@ -1,305 +1,305 @@
-﻿name,item_code,raw_product,ranch,item_designation,packaging_type,yield,case_weight,labor
-"ACORN SQUASH, DICED  (4X5#CASE)",AC,"Squash, Acorn",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
-"APPLE, RED WEDGES (4X3#CASE)",GW,"Apples, Gala",No,Foodservice,APPLE BULK 4/3,28,12,0.25
-"APPLE, RED DICED (4X5# CASE)",DRA,"Apples, Gala",No,Foodservice,APPLE BULK 4/5,28,20,0.25
-"APPLE, GREEN DICED (4X5# CASE)",APD,"Apples, Granny",No,Foodservice,APPLE BULK 4/5,28,20,0.25
-"APPLE, GREEN WEDGES (4 X 3)",GRW,"Apples, Granny",No,Foodservice,4/3 TUB,30,12,0.25
-"BEETS, DICED (2X5#CASE)",BET,"Beets, Cut 25#",No,Foodservice,2/5 TUB,18,10,0.25
-"BEETS, CANDY STRIPE DICED (2X5#CASE)",BET,"Beets, Candystripe 25#",No,Foodservice,2/5 TUB,18,10,0.25
-"BEETS, GOLD DICED (2X5#CASE)",BET,"Beets, Gold 25#",No,Foodservice,2/5 TUB,18,10,0.25
-"BOK CHOY, CHOPPED (4 X 5# CASE)",BC,Bok Choy,No,Foodservice,4/5 NEW KRAFT,30,20,0.25
-BROCCOLI FLORETS MCENTIRE (4# CASE),BROF,Broccoli Crowns,No,Foodservice,1/5 TUB,15,4,0.25
-BROCCOLI FLORETS (4X3# CASE),BROF,Broccoli Crowns,No,Foodservice,4/3 NEW KRAFT,14,12,0.25
-BROCCOLI FLORETS (6x3#CASE),BROF63,Broccoli Crowns,No,Foodservice,4/5 NEW KRAFT,14,18,0.25
-BROCCOLI SLAW (4X3#CASE),BRS,Broccoli Slaw,No,Foodservice,4/3 TUB,12,12,0.25
-"BRUSSEL SPROUTS, SHREDDED",BRU,Brussel Sprouts,No,Foodservice,4/5 NEW KRAFT,20,20,0.35
-"BRUSSELS SPROUT, TRIMMED & HALVED (4 X 5# CASE)",BRUH,Brussel Sprouts,No,Foodservice,4/5 NEW KRAFT,20,20,0.75
-BUTTERNUT SQUASH DICED (20# CASE),BD,"Squash, Butternut",No,Foodservice,4/5 NEW KRAFT,26,20,0.27
-"CABBAGE, CHOPPED (20# CASE)",CHCAB,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"CABBAGE, DICED ZESTO (20# CASE)",ZES,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"CABBAGE, SHRED RED (20# CASE)",SR,"Cabbage, Red",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"CHAYOTE, SQUASH 2"" MATCHSTICK (2X5# CASE)",CSM,"Squash, Chayote ",No,Foodservice,2/5 ONION TRAY,10,10,0.27
-CANTALOUPE CUBED (5# CASE),CANC,Canteloupes,No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
-"CANTALOUPE, HALVED (5#CASE)",CANH,Canteloupes,No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
-"CANTALOUPE, SLICED (10# CASE)",CANSL,Canteloupes,No,Foodservice,2/5 FRUIT TRAY,18,10,0.25
-CARROT STICKS MCENTIRE (4# CASE),CARST10,"Carrots,50#",No,Foodservice,1/5 TUB,31,4,0.25
-CARROT STICKS (10# CASE),CARST10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
-CARROT STICKS (20# CASE),CARST,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
-"CARROT, STICKS (BWW)(4 X 5# CASE)",CARSTBW,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
-"CARROTS, COINS  (2X5# CASE)",CCCAR10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
-"CARROTS, COINS (4X5# CASE)",CCCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
-"CARROTS, DICED (2X5# CASE)",DCAR10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
-"CARROTS, DICED (4X5#  CASE)",CARD,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
-"CARROTS, MATCHSTICK (4X5# CASE)",SHCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"CARROTS, PEELED (4X5# CASE)",PCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-CAULIFLOWER FLORETS MCENTIRE (4# CASE),CFL,Cauliflower,No,Foodservice,1/5 TUB,16,4,0.25
-CAULIFLOWER FLORETS (4X3# CASE),CFL,Cauliflower,No,Foodservice,4/3 TUB,16,12,0.25
-CAULIFLOWER FLORETS MULTICOLOR (4X3# CASE),CFL,Cauliflower Tri Color,No,Foodservice,4/3 TUB,4,12,0.25
-CELERY STICKS MCENTIRE (4# CASE),CELST,Celery 30 ct,No,Foodservice,1/5 TUB,32,4,0.25
-CELERY STICKS (4X5# CASE),CELST,Celery 30 ct,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"CELERY, DICED (2X5# CASE)",CELD10,Celery 30 ct,No,Foodservice,2/5 TUB,32,10,0.25
-"CELERY, DICED (4X5# CASE)",CELD,Celery 30 ct,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"CELERY, SLICED  (2X5# CASE)",CELD,Celery 30 ct,No,Foodservice,2/5 TUB,32,10,0.25
-"CELERY, ROOT DICED  (2X5# CASE)",CELD,Celery Root,No,Foodservice,2/5 TUB,20,10,0.25
-"CILANTRO, CLEAN & TRIM (4X1# CASE)",CIL,Cilantro 60ct,No,Foodservice,4/3 TUB,12,4,0.27
-"COLESLAW, DICED (4X5# CASE)",SLAWD,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"COLESLAW, FINE SHREDDED, (4X5# CASE)",SLAWF,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"COLESLAW, SAVOY BLEND (2X5# CASE)",SLAW50/50,"Cabbage, Savoy",No,Foodservice,2/5 TUB,15,10,0.25
-"COLESLAW, SHREDDED MIX (4X5# CASE)",SLAW,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
-"COLLARDS, CLEANED/CUT (6X2# CASE)",COL,"Collards, Dozen",No,Foodservice,4/5 NEW KRAFT,16,12,0.27
-CORN SHUCKED & CUT (1 BUSH),CORNHALF,"Corn, Yellow",No,Foodservice,4/5 NEW KRAFT,1,1,0.3
-"CORN, SHUCKED (4 X 12)",CORN,"Corn, Yellow",No,Foodservice,4/5 NEW KRAFT,1,1,0.35
-"CRIMINI, SLICED (5# CASE)",SC5,"Mushroom, Crimini",No,Foodservice,1/5 TUB,5,5,0.25
-"CUCUMBER, DICED (2 X 5# CASE)",CUKD10,"Cucumber, Select",No,Foodservice,2/5 TUB,40,10,0.25
-"CUCUMBER, SLICED (2 X 5# CASE)",CUKS10,"Cucumber, Select",No,Foodservice,2/5 TUB,40,10,0.25
-"CUCUMBER, WHOLE (5# CASE)",CUW5,"Cucumber, Select",No,Foodservice,5# WHOLE PRODUCE,40,5,0.1
-"FAJITA MIX, PEPPER & ONION, JULIENNE (2 X 5) (10# CASE)",FMJ,Pepper Mix ,No,Foodservice,2/5 TUB,10,10,0.25
-FRENCH FRIES (4X5# CASE),FF,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,40,20,0.25
-FRUIT MIXED (5# CASE),FM,Fruit Mix ,No,Foodservice,1/5 FRUIT TRAY,4,3,0.25
-FRUIT TRAY (5# CASE),FTRAY,Fruit Mix ,No,Foodservice,2/5 FRUIT TRAY,4,3,0.25
-"FRUIT, MIXED (2X5# CASE)",FM10,Fruit Mix ,No,Foodservice,2/5 FRUIT TRAY,4,10,0.25
-"GRAPES, RED  (5# CASE)",GPL,"Grapes, Red SL",No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
-"GRAPES, RED  (1# CASE)",GPL,"Grapes, Red SL",No,Foodservice,1LBS BAG,18,1,0.01
-"GREEN ONION, SLICED, (2X5#CASE)",GRO10,"Onions, Green 4x2#",No,Foodservice,1/5 ONION TRAY,10,2,0.27
-"HONEYDEW, SLICED (2X5# CASE)",HONS,Honeydews,No,Foodservice,2/5 FRUIT TRAY,16,10,0.3
-"HONEYDEW, CUBED (5# CASE)",HON,Honeydews,No,Foodservice,1/5 FRUIT TRAY,16,5,0.25
-"HONEYDEW, HALVED (5# CASE)",HH,Honeydews,No,Foodservice,1/5 FRUIT TRAY,16,5,0.25
-"JALAPENO, SLICED (2X5#CASE)",JS,Jalapenos,No,Foodservice,2/5 FRUIT TRAY,18,10,0.3
-"JALAPENO, WHOLE, (5# CASE)",JW5,Jalapenos,No,Foodservice,1/5 TUB,25,5,0.15
-"JICAMA, SHRED 1/8' (5# CASE)",JSH2/5,Jicama,No,Foodservice,1/5 ONION TRAY,22,5,0.27
-"JICAMA, SHRED 1/8' (2X5# CASE)",JSH2/5,Jicama,No,Foodservice,2/5 ONION TRAY,22,10,0.27
-"KALE, SHREDDED (4 X 1# CASE)",KAL,Kale,No,Foodservice,4/5 NEW KRAFT,16,4,0.3
-"KIWI, PEELED & SLICED (5# CASE)",KI5,"Kiwi, Bulk",No,Foodservice,1/5 FRUIT TRAY,15,5,0.3
-"LEMON WEDGES, (2 X 5# CASE)",LEM2/5,"Lemons, 140",No,Foodservice,2/5 FRUIT TRAY,10,10,0.25
-"MANGO, CUBED (5# CASE)",MANG,Mangoes,No,Foodservice,1/5 FRUIT TRAY,4,5,0.25
-"NAPA CABBAGE, SHREDDED (2 X 5)","NAPA, SHRED",Napa,No,Foodservice,2/5 TUB,35,10,0.25
-"NAPA CABBAGE, SHREDDED (4 X 5)","NAPA, SHRED",Napa,No,Foodservice,2/10 NEW KRAFT,35,20,0.25
-"ONIONS, RED DICED (20# CASE)",ROND,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
-"ONIONS, RED DICED (5# BAG)",RONDB,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,5,0.25
-"ONIONS, RED JULIENNE (10# CASE)",RONJ10,"Onions, Red 25#",No,Foodservice,2/5 ONION TRAY,18,10,0.25
-"ONIONS, RED JULIENNE (20# CASE)",RONJ,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
-"ONIONS, RED JULIENNE (5# BAG)",RONJB,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,5,0.25
-"ONIONS, RED PEELED (20# CASE)",RONP,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
-"ONIONS, RED RINGS (2# BAG)",RONR5,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,2,0.2
-"ONIONS, RED SLICED (10# CASE)",RONSL10,"Onions, Red 25#",No,Foodservice,2/5 ONION TRAY,18,10,0.25
-"ONIONS, RED SLICED (20# CASE)",RONSL,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.3
-"ONIONS, RED WHOLE (5# CASE)",ROW5,"Onions, Red 25#",No,Foodservice,5# WHOLE PRODUCE,25,5,0.1
-"ONIONS, SLICED, (5# TUB)",YONT,"Onions, Yellow 50#",No,Foodservice,1/5 TUB,32,5,0.25
-"ONIONS, YELLOW WHOLE (5# CASE)",YOW5,"Onions, Yellow 50#",No,Foodservice,5# WHOLE PRODUCE,50,5,0.1
-"ONIONS, YELLOW DICED (10# CASE)",YOND10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
-"ONIONS, YELLOW DICED (20# CASE)",YOND,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"ONIONS, YELLOW JULIENNE (10# CASE)",YONJ10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
-"ONIONS, YELLOW JULIENNE (20# CASE)",YONJ,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"ONIONS, YELLOW PEELED (20# CASE)",YONP,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"ONIONS, YELLOW THIN SLICED (5# CASE)",LYONT,"Onions, Yellow 50#",No,Foodservice,1/5 ONION TRAY,32,5,0.12
-"ONIONS, YELLOW SLICED (10# CASE)",YONSL10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
-"ONIONS, YELLOW SLICED (20# CASE)",YONSL,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"ONIONS, SWEET DICED (20# CASE)",YOND,"Onions, Sweet",No,Foodservice,4/5 NEW KRAFT,29,20,0.25
-"ONIONS, RED SHALLOTS (10# CASE)",RONSL10,SHALLOTS,No,Foodservice,2/5 ONION TRAY,5,10,0.25
-"ORANGE SLICES, (2 X 5# TRAY)",OSL,"Oranges, 113 ct",No,Foodservice,2/5 FRUIT TRAY,29,5,0.25
-"ORANGE PEELED & SECTIONED , (5# TRAY)",OSL,"Oranges, 113 ct",No,Foodservice,1/5 TUB,15,5,0.25
-"TANGERINES PEELED & SECTIONED , (5# TRAY)",OSL,"Tangerine, 140ct",No,Foodservice,1/5 TUB,18,5,0.25
-"PARSNIP, COIN CUT, (2 X 5# CASE)",PARS,"Parsnips, 25#",No,Foodservice,2/5 TUB,18,10,0.3
-"PARSNIP, PEEL & DICED (10# CASE)",PARD,"Parsnips, 25#",No,Foodservice,2/5 TUB,18,10,0.25
-"PEPPER, DICED YELLOW(5# CASE)",DYP,"Peppers, Yellow",No,Foodservice,1/5 TUB,15,5,0.25
-"PEPPER, GREEN DICED (5# TRAY)",DP5,"Peppers, Green",No,Foodservice,1/5 FRUIT TRAY,15,5,0.25
-"PEPPER, GREEN JULIENNE, (10# TRAY)",JP10,"Peppers, Green",No,Foodservice,2/5 FRUIT TRAY,15,10,0.27
-"PEPPER, GREEN, DICED, (10# CASE)",DP10,"Peppers, Green",No,Foodservice,2/5 ONION TRAY,15,10,0.25
-"PEPPER, GREEN, JULIENNE (20# CASE)",JP20,"Peppers, Green",No,Foodservice,4/5 NEW KRAFT,15,20,0.25
-"PEPPER, JUL GREEN (5# CASE)",JP5,"Peppers, Green",No,Foodservice,1/5 ONION TRAY,15,5,0.25
-"PEPPER, GREEN WHOLE (5# CASE)",GPW5,"Peppers, Green",No,Foodservice,5# WHOLE PRODUCE,20,5,0.1
-"PEPPER, RED WHOLE (5# CASE)",RPW5,"Peppers, Red",No,Foodservice,5# WHOLE PRODUCE,20,5,0.1
-"PEPPER, RED JULIENNE (10# TRAY)",JPR,"Peppers, Red",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
-"PEPPER, RED, DICED (10# TRAY)",DRP,"Peppers, Red",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
-"PEPPER, YELLOW DICED (10# TRAY)",DPY,"Peppers, Yellow",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
-"PEPPER, YELLOW JULIENNE (10# TRAY)",JPY,"Peppers, Yellow",No,Foodservice,2/5 ONION TRAY,12,10,0.25
-"PEPPERS, DICED, TRI COLOR, (10# CASE)",DP10M,Pepper Mix ,No,Foodservice,2/5 ONION TRAY,12,10,0.25
-"PEPPERS, JULIENNE, TRI COLOR, (10# CASE)",JPM,Pepper Mix ,No,Foodservice,2/5 ONION TRAY,12,10,0.25
-"PEPPER, SUNTAN, DICED, (10# CASE)",DP10,"Peppers, Sun Tan ",No,Foodservice,2/5 ONION TRAY,15,10,0.25
-PICO DE GALLO (2 x 1 GAL/CASE),PDG2/1,Pico de Gallo ,No,Foodservice,Pico De Gallo,10,10,0.25
-PINEAPPLE CUT (5# CASE),PINC,Pineapples,No,Foodservice,1/5 FRUIT TRAY,8.5,5,0.25
-"PINEAPPLE, HALVED (5# CASE)",PH,Pineapples,No,Foodservice,1/5 FRUIT TRAY,8.5,5,0.25
-"PINEAPPLE, SLICED (10# CASE)",PINSL,Pineapples,No,Foodservice,2/5 FRUIT TRAY,8.5,10,0.25
-"POTATO, DICED, SKIN ON (20# CASE)",POTDSO,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,40,20,0.25
-"POTATO, QUARTERED RED (20# CASE)",POTQR,"Potatoes, Red A",No,Foodservice,POTATOES 4/5,38,20,0.25
-"POTATO, WEDGES (20# CASE)",POTWED,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,48,20,0.25
-"POTATOES, DICED (10# BAG)",POTDB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,35,10,0.25
-"POTATOES, DICED (20# CASE)",POTD,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,35,20,0.25
-"POTATOES, HASH BROWN (20# CASE)",POTHB,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
-"POTATOES, QUARTERED (20# CASE)",POTQ,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
-"POTATOES, RED QUARTERED (10# BAG)",POTQRB,"Potatoes, Red A",No,Foodservice,POTATOES 2/5,38,10,0.25
-"POTATOES, SLICED (10# BAG)",POTSLB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,38,10,0.25
-"POTATOES, SLICED (20# CASE)",POTSL,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
-"POTATOES, WHOLE PEELED (10# BAG)",POTWPB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,38,10,0.25
-"POTATOES, WHOLE PEELED (20# CASE)",POTWP,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
-RADISH SLICED (10# CASE),RADS,"Radish, 14/1",No,Foodservice,4/5 NEW KRAFT,35,10,0.25
-"RADISH, SHREDDED (10# CASE)",RADSH,"Radish, 14/1",No,Foodservice,4/5 NEW KRAFT,35,10,0.25
-RAW FRIES (10# BAG),RFB,"Potatoes, Red A",No,Foodservice,POTATOES 2/5,40,10,0.25
-RAW FRIES (20# CASE),RF,"Potatoes, Red A",No,Foodservice,POTATOES 4/5,40,20,0.25
-"ROOT VEGETABLES, MIXED (4 X 3# CS)",RV,"Squash, Butternut",No,Foodservice,4/5 NEW KRAFT,30,12,0.25
-"RUTABAGAS, DICED (20# CASE)",RUTD,Rutabags,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"SQUASH, JULIENNE, (2 X 5# BAG)",SQJ,"Squash, Yellow Full",No,Foodservice,2/5 TUB,32,10,0.25
-"SQUASH, SLICED (20# CASE)",SQS,"Squash, Yellow Full",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"SQUASH, SLICED (5# BAG)",SQSB,"Squash, Yellow Full",No,Foodservice,1/5 TUB,32,5,0.15
-"SQUASH, CHAYOTE, (2 X 5# CASE)",SQJ,"Squash, Chayote ",No,Foodservice,2/5 TUB,10,10,0.25
-"STRAWBERRIES, SLICED (5# CASE)",STRS,Strawberries ,No,Foodservice,1/5 FRUIT TRAY,8,5,0.25
-"STRAWBERRIES, TRIMMED, WASHED (5# TRAY)",STR,Strawberries ,No,Foodservice,1/5 FRUIT TRAY,8,5,0.25
-"SWEET POTATO, PEELED & SHRED (20# CASE)",SPSH,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
-"SWEET POTATO, PEELED STICKS (20# CASE)",SPST,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
-"SWEET POTATO, PEELED, DICED (20# CASE)",SPPD,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
-"SWEET POTATO, WEDGES (20# CASE)",SPW,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,37,20,0.3
-"SWEET POTATOES, DICED (20# CASE)",SPD,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.27
-"SWEET POTATOES, PEELED (20# CASE)",SPP,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
-"SWEET POTATOES, PEELED, QUARTERED (20# CASE)",SPPQ,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
-"TOMATOES, DICED (10# CASE)",DT,"Tomatoes, Roma",No,Foodservice,2/5 FRUIT TRAY,20,10,0.25
-"TOMATOES, DICED (5# CASE)",DT5,"Tomatoes, Roma",No,Foodservice,1/5 FRUIT TRAY,20,5,0.25
-"TOMATOES, DICED (20# CASE)",DT,"Tomatoes, Roma",No,Foodservice,2/5 FRUIT TRAY,20,20,0.25
-"TOMATOES, SLICED (10# CASE)",ST,"Tomatoes, 5x6",No,Foodservice,2/5 FRUIT TRAY,20,10,0.25
-"TOMATOES, GREEN DICED (10# CASE)",DT,"Tomatoes, Green ",No,Foodservice,2/5 FRUIT TRAY,18,10,0.25
-"TURNIP GREENS, CHOPPED (6 X 2#)",TC,Turnip Green ,No,Foodservice,2/10 NEW KRAFT,18,12,0.25
-"TURNIP, DICED, (10# CASE)",TURND,"Turnips, Cut 25#",No,Foodservice,4/5 NEW KRAFT,18,10,0.27
-"TURNIP, DICED, (20# CASE)",TURND,"Turnips, Cut 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.27
-"WATERMELON, CUT (5# CASE)",WAC,"Watermelon, (IND)",No,Foodservice,1/5 FRUIT TRAY,7,5,0.25
-ZUCCHINI SLICED (20# CASE),ZUS,"Squash, Zuke 1/2",No,Foodservice,4/5 NEW KRAFT,17,20,0.25
-"ZUCCHINI, DICED (2 X 5# TRAYS)",ZUD10,"Squash, Zuke 1/2",No,Foodservice,2/5 FRUIT TRAY,17,10,0.25
-"ZUCCHINI, JULIENNE, (2 X 5# BAG)",ZUJ,"Squash, Zuke 1/2",No,Foodservice,2/5 TUB,17,10,0.25
-"ZUCCHINI, SLICED (5# CASE)",ZUS5,"Squash, Zuke 1/2",No,Foodservice,1/5 TUB,17,5,0.15
-"APPLE, GREEN WEDGES (100 X 2oz)",APPG100,"Apples, Granny",No,Snakpak,APPLE SNACK PACK 100CT,30,12.5,0.25
-"APPLE, GREEN WEDGES (50 X 2oz)",APPGR,"Apples, Granny",No,Snakpak,APPLE SNACK PACK 50CT,30,6.25,0.25
-"APPLE, RED WEDGES (100 X 2oz)",APP100,"Apples, Gala",No,Snakpak,APPLE SNACK PACK 100CT,30,12.5,0.25
-"APPLE, RED WEDGES (50 X 2oz)",APP50,"Apples, Gala",No,Snakpak,APPLE SNACK PACK 50CT,30,6.25,0.25
-ASPARAGUS STICKS (50 X 2oz),AS50,"Asparagus, 11# standard",No,Snakpak,SNAKPAK 50CT,8.5,6.25,0.09
-BABY CARROTS (50/2oz) W/ LIGHT RANCH,CB50W,"Carrots, Baby 30/1#",Yes,Snakpak,SNAKPAK 50CT,30,6.25,0.25
-BABY CARROTS  (100 X 2oz),CB100,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 100CT,30,12.5,0.3
-BABY CARROTS  (50 X 2oz),CB50,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 50CT,30,6.25,0.25
-"BEANS, VARIOUS (50 x 2oz)",BEAN50,"Beans, Various, #10 can",No,Snakpak,SNAKPAK 50CT,4.25,12.5,0.25
-"BEETS, CANDYSTRIPE (50 X 2oz)",BE50,"Beets, Candystripe 25#",No,Snakpak,SNAKPAK 50CT,18,6.25,0.3
-BLOOD ORANGE WEDGES (50 X 3.5oz),BO,"Oranges, Blood 88ct 40#",No,Snakpak,SNAKPAK 50CT,38,11,0.25
-BLUEBERRIES  (50 X 2oz),BB,Blueberries 1 Pint,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-BROCCOLI FLORET  (50 X 2oz) ,BF,Broccoli Crowns,No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
-BROCCOLI FLORET  (50 X 4oz) ,BF,Broccoli Crowns,No,Snakpak,SNAKPAK 50CT,18,12.5,0.25
-BROCCOLI FLORET  (50 X 2oz) W/  LIGHT RANCH,BFW,Broccoli Crowns,Yes,Snakpak,SNAKPAK 50CT,18,6.25,0.27
-"CANTALOUPE, CUBED (50 X 2.7oz)",CAN50,Canteloupes,No,Snakpak,SNAKPAK 50CT,17,8.44,0.25
-"CARROT, STICKS SNAKPAK (50X2oz)",CAR50,"Carrots,50#",No,Snakpak,SNAKPAK 50CT,32,6.25,0.25
-"CARROTS, BABY, (50 X 2oz)",CB50,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 50CT,30,6.25,0.25
-"CARROTS, RAINBOW COINS  (50 X 2oz)",CCARR50,"Carrots, Rainbow",No,Snakpak,SNAKPAK 50CT,20,6.25,0.25
-"CARROTS, RAINBOW COINS  (100 X 2oz)",CCARR,"Carrots, Rainbow",No,Snakpak,SNAKPAK 100CT,20,12.5,0.25
-"CARROTS, RAINBOW COINS (50 X 2oz) W/ LIGHT RANCH",CCARR50W,"Carrots, Rainbow",Yes,Snakpak,SNAKPAK 50CT,20,6.25,0.25
-"CARROTS, COINS  (50 X 2oz)",CCAR50,"Carrots,50#",No,Snakpak,SNAKPAK 50CT,32,6.25,0.25
-"CARROTS, COINS  (50 X 2oz) W/ LIGHT RANCH",CCAR50W,"Carrots,50#",Yes,Snakpak,SNAKPAK 50CT,32,6.25,0.25
-CAULIFLOWER FLORET  (50 X 2oz),C,Cauliflower,No,Snakpak,SNAKPAK 50CT,15,6.25,0.25
-CAULIFLOWER FLORET  (50 X 2oz) W/ LIGHT RANCH,CF50W,Cauliflower,Yes,Snakpak,SNAKPAK 50CT,15,6.25,0.28
-CAULIFLOWER FLORET  (50 X 4oz),C,Cauliflower,No,Snakpak,SNAKPAK 50CT,15,12.5,0.25
-CELERY STICKS  (50 X 2oz),CE5,Celery 30 ct,No,Snakpak,SNAKPAK 50CT,32,6.25,0.27
-CELERY STICKS  (50 X 2oz) W/ LIGHT RANCH,CE5W,Celery 30 ct,Yes,Snakpak,SNAKPAK 50CT,32,6.25,0.3
-CELERY STICKS  (50 X 4oz),CE5,Celery 30 ct,No,Snakpak,SNAKPAK 50CT,32,12.5,0.27
-CHERRY TOMATOES SNAKPAK (50 X 2oz),CT,"Tomatoes, Cherry",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-CHERRY TOMATOES SNAKPAK (50 X 2oz) W/ LIGHT RANCH,CTW,"Tomatoes, Cherry",Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.2
-"CUCUMBER, COINS (50 X 2oz)",CU5,"Cucumber, Select",No,Snakpak,SNAKPAK 50CT,40,6.25,0.25
-"CUCUMBER, COINS (50 X 2oz) W/ LIGHT RANCH",CU5W,"Cucumber, Select",Yes,Snakpak,SNAKPAK 50CT,40,6.25,0.25
-"CUCUMBER, COINS (50 X 4oz)",CU5,"Cucumber, Select",No,Snakpak,SNAKPAK 50CT,40,12.5,0.27
-"DRAGON FRUIT, WEDGES (50 X 2oz)",DF50,Dragon Fruit 10#,No,Snakpak,SNAKPAK 50CT,5,6.25,0.25
-"GRAPES, RED  (100 X 3oz)",GP,"Grapes, Red SL",No,Snakpak,SNAKPAK 100CT,18,18.75,0.3
-"GRAPES, RED  (50 X 3oz)",GP50,"Grapes, Red SL",No,Snakpak,SNAKPAK 50CT,18,9.38,0.25
-"GRAPES, COTTON CANDY  (50 X 3oz)",GP50,"Grapes, Cotton Candy",No,Snakpak,SNAKPAK 50CT,18,9.38,0.25
-GRAPE TOMATO  (50 X 2oz) W/ LIGHT RANCH,GTW,"Tomatoes, Grape",Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-GRAPE TOMATO  (50 X 2oz),GT,"Tomatoes, Grape",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-GREEN BEANS  (50 X 2oz),GB50,Green Beans 10#,No,Snakpak,SNAKPAK 50CT,9.5,6.25,0.25
-"GUAVA, WEDGES  (50 X 2oz)",GAV,Guava,No,Snakpak,SNAKPAK 50CT,10,6.25,0.27
-"HONEYDEW, CUBED, (50 X 2.7oz)",HO50,Honeydews,No,Snakpak,SNAKPAK 50CT,16,8.44,0.27
-"JICAMA, STICKS (50 X 2oz)",JSP,Jicama,No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
-"JICAMA, STICKS (50 X 2oz) W/ LIGHT RANCH",JSPW,Jicama,Yes,Snakpak,SNAKPAK 50CT,18,6.25,0.4
-"KIWI, WEDGED SNAKPAK (50 X 2oz)",KI50,"Kiwi, Bulk",No,Snakpak,SNAKPAK 50CT,18.25,6.25,0.25
-"KIWI, GOLDEN WEDGED SNAKPAK (50 X 2oz)",KI50,Golden Kiwi ,No,Snakpak,SNAKPAK 50CT,18.25,6.25,0.25
-"KUMQUAT WHOLE, (50 X 2oz)",KUM,"Kumquat, Bulk 10#",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-"MANGO, CHUNKS (50x2oz)",MANG,Mangoes,No,Snakpak,SNAKPAK 50CT,4.5,6.25,0.25
-ORANGE WEDGE SNAKPAK (50 X 4.7oz.),OW,"Oranges, 113 ct",No,Snakpak,SNAKPAK 50CT,33,14.7,0.25
-"PAPAYA, CHUNKS SNAKPAK (50/2oz)",PAPSP,"Papaya, 9ct",No,Snakpak,SNAKPAK 50CT,20,6.25,0.25
-"PEARS, WEDGED (100 X 2oz)",PE100,"Pears, Green",No,Snakpak,APPLE SNACK PACK 100CT,32,12.5,0.25
-"PEARS, WEDGED (50 X 2oz)",PE50,"Pears, Green",No,Snakpak,APPLE SNACK PACK 50CT,32,6.25,0.27
-"PEPPER STICK, RED, YELLOW, (50 X 2oz)",PSTK100,Pepper Red & Yellow ,No,Snakpak,SNAKPAK 50CT,15,6.25,0.3
-"PEPPER STICKS, SNAKPAK (50 X 2oz)",PSTK,"Peppers, Green",No,Snakpak,SNAKPAK 50CT,18,12.5,0.35
-PINEAPPLE  (50 X 2.3oz),PS,Pineapples,No,Snakpak,SNAKPAK 50CT,8.5,7.18,0.25
-PINEAPPLE PINK (50 X 2.3oz),PS,Pink Pineapples,No,Snakpak,SNAKPAK 50CT,8.5,7.18,0.25
-"RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz)",R,"Radishes, 40#",No,Snakpak,SNAKPAK 50CT,39,6.25,0.27
-"RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",RAD5,"Radishes, 40#",Yes,Snakpak,SNAKPAK 50CT,39,6.25,0.25
-"SQUASH, HALFMOON (50 X 2 oz) W/ LIGHT RANCH",SQ50W,"Squash, Yellow Full",Yes,Snakpak,SNAKPAK 50CT,35,6.25,0.3
-"SQUASH, HALF-MOON (50 X 2oz)",SQ50,"Squash, Yellow Full",No,Snakpak,SNAKPAK 50CT,35,6.25,0.25
-"STRAWBERRIES, TRIMMED (50 X 2oz)",STR50,Strawberries ,No,Snakpak,SNAKPAK 50CT,8,6.25,0.25
-"STRAWBERRIES, WHITE, TRIMMED (50 X 2oz)",STRW50,"Strawberries, White",No,Snakpak,SNAKPAK 50CT,3.75,6.25,0.25
-"SUGAR SNAPS, SNAKPAK  (50 X 2oz)",S5,Sugar Snaps,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-"SUGAR SNAPS, SNAKPAK  (50 X 4oz)",S5,Sugar Snaps,No,Snakpak,SNAKPAK 50CT,9,12.5,0.25
-"SUGAR SNAPS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",S5W,Sugar Snaps,Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-"SWEET POTATO STICKS, SNAKPAK (100 X 2oz)",SW100,"Potatoes, Sweet JBO",No,Snakpak,SNAKPAK 100CT,38,12.5,0.3
-"SWEET POTATO STICKS, SNAKPAK (50 X 2oz)",SW50,"Potatoes, Sweet JBO",No,Snakpak,SNAKPAK 50CT,38,6.25,0.25
-"SWEET POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",SW5W,"Potatoes, Sweet JBO",Yes,Snakpak,SNAKPAK 50CT,38,6.25,0.5
-"SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz)",SWW50,"Potatoes, Sweet WHITE",No,Snakpak,SNAKPAK 50CT,38,6.25,0.25
-"SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",SWW5W,"Potatoes, Sweet WHITE",Yes,Snakpak,SNAKPAK 50CT,38,6.25,0.25
-TANGERINE WEDGE SNAKPAK (50 X 3.5oz),TANG,"Tangerine, 140ct",No,Snakpak,SNAKPAK 50CT,38,10.94,0.25
-TURNIP STICKS (50 X 2oz),TS,"Turnips, Cut 25#",No,Snakpak,SNAKPAK 50CT,20,6.25,0.27
-TURNIP STICKS SNAKPAK (50 X 2oz) W/ LIGHT RANCH,TSW,"Turnips, Cut 25#",Yes,Snakpak,SNAKPAK 50CT,20,6.25,0.4
-UGLY FRUIT  WEDGE SNAKPAK (50 X 3.5oz),UF,Ugly Fruit 30#,No,Snakpak,SNAKPAK 50CT,23,11,0.25
-WATERMELON RADISH STICKS (50 X 2oz),WR,Watermelon Radish 20#,No,Snakpak,SNAKPAK 50CT,15,6.25,0.25
-"WATERMELON, SNAKPAK, (50 X 2oz)",W50,"Watermelon, (IND)",No,Snakpak,SNAKPAK 50CT,7,6.25,0.25
-"ZUCHHINI, SLICED W/ RANCH (50 X 2oz)",Z50W,"Squash, Zuke 1/2",Yes,Snakpak,SNAKPAK 50CT,17,6.25,0.3
-"ZUCHHINI, SLICED (50 X 2oz)",Z50,"Squash, Zuke 1/2",No,Snakpak,SNAKPAK 50CT,17,6.25,0.3
-BUTTERNUT STICKS 50/2OZ,TS,"Squash, Butternut",No,Snakpak,SNAKPAK 50CT,30,6.25,0.27
-DAIKON COIIN CUT 50/2OZ,TS,Daikon Root ,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-MINI SWEET PEPPER,PSTK,Mini Sweet Pepper,No,Snakpak,SNAKPAK 50CT,5,6.25,0.35
-HEIRLOOM GRAPE TOMATO ,GT,Grape Tomato Multicolor,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
-"GRAPES, WHITE  (5# CASE)",GPL,"Grapes, White SL",No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
-GRAPE FRUIT 5#,OSL,Grape Fruit ,No,Foodservice,1/5 FRUIT TRAY,20,5,0.25
-LEMONS WEDGES 50/2.3OZ,LW50,"Lemons, 140",NO,Snakpak,SNAKPAK 50CT,38,7.1,0.25
-PARSNIP COIN CUT 50/2OZ,PAS50,"Parsnips, 25#",No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
-BROCCOLI FLORETS (4X3# CASE),BROF,Broccoli Crowns,No,Foodservice,2/4 SMALL COLLARD,10,4,0.25
-CELERY STICKS (4X5# CASE),CELST,Celery 30 ct,No,Foodservice,2/4 SMALL COLLARD,32,4,0.25
-CARROT STICKS (20# CASE),CARST,"Carrots,50#",No,Foodservice,2/4 SMALL COLLARD,32,4,0.25
-CAULIFLOWER FLORETS (4X3# CASE),CFL,Cauliflower,No,Foodservice,2/4 SMALL COLLARD,16,4,0.25
-APPLE RED CUP (4# CASE),GW,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
-APPLE GREEN CUPS (4#CS),GRW,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
-BLUEBERRIES CUPS  (4# CASE),BB,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,4,0.2
-CANTALOUPE CUPS (4# CASE),CANC,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,4,0.2
-RED GRAPES CUPS (4# CASE),GPL,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,4,0.2
-WHITE GRAPES CUPS (4# CASE),GPLW,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,4,0.2
-HONEYDEW CUPS (4# CASE),HON,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,4,0.2
-KIWI CUPS (4# CASE),KI,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,4,0.2
-MANGO CUPS (4# CASE),MANG,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,4,0.2
-ORANGES CUPS (4# CASE),OSL,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,4,0.2
-PEARS CUPS (4# CASE),PE50,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
-PINEAPPLES CUPS (4# CASE),PINC,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,4,0.2
-STRAWBERIES CUPS (4# CASE),STR,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,4,0.2
-WATERMELON CUPS (4# CASE),WAC,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,4,0.2
-FRUIT MIX (4# CASE),FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,4,0.2
-TROPICAL MIX (4#CASE),TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,4,0.2
-APPLE RED CUP (6# CASE),FM,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
-APPLE GREEN CUPS (6#CS),FM,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
-BLUEBERRIES CUPS  (6# CASE),FM,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,6,0.2
-CANTALOUPE CUPS (6# CASE),FM,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,6,0.2
-RED GRAPES CUPS (6# CASE),FM,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,6,0.2
-WHITE GRAPES CUPS (6# CASE),FM,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,6,0.2
-HONEYDEW CUPS (6# CASE),FM,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,6,0.2
-KIWI CUPS (6# CASE),FM,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,6,0.2
-MANGO CUPS (6# CASE),FM,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,6,0.2
-ORANGES CUPS (6# CASE),FM,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,6,0.2
-PEARS CUPS (6# CASE),FM,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
-PINEAPPLES CUPS (6# CASE),FM,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,6,0.2
-STRAWBERIES CUPS (6# CASE),FM,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,6,0.2
-WATERMELON CUPS (6# CASE),FM,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,6,0.2
-FRUIT MIX (6# CASE),FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,6,0.2
-TROPICAL MIX (6#CASE),TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,6,0.2
-APPLE RED CUP (3# CASE),FM,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
-APPLE GREEN CUPS (3#CS),FM,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
-BLUEBERRIES CUPS  (3# CASE),FM,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,3,0.2
-CANTALOUPE CUPS (3# CASE),FM,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,3,0.2
-RED GRAPES CUPS (3# CASE),FM,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,3,0.2
-WHITE GRAPES CUPS (3# CASE),FM,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,3,0.2
-HONEYDEW CUPS (3# CASE),FM,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,3,0.2
-KIWI CUPS (3# CASE),FM,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,3,0.2
-MANGO CUPS (3# CASE),FM,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,3,0.2
-ORANGES CUPS (3# CASE),FM,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,3,0.2
-PEARS CUPS (3# CASE),FM,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
-PINEAPPLES CUPS (3# CASE),FM,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,3,0.2
-STRAWBERIES CUPS (3# CASE),FM,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,3,0.2
-WATERMELON CUPS (3# CASE),FM,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,3,0.2
-FRUIT MIX (3# CASE),FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,3,0.2
-TROPICAL MIX (3#CASE),TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,3,0.2
+﻿name,alternate_code,item_code,raw_product,ranch,item_designation,packaging_type,yield,case_weight,labor
+"ACORN SQUASH, DICED  (4X5#CASE)",,AC,"Squash, Acorn",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
+"APPLE, RED WEDGES (4X3#CASE)",,GW,"Apples, Gala",No,Foodservice,APPLE BULK 4/3,28,12,0.25
+"APPLE, RED DICED (4X5# CASE)",,DRA,"Apples, Gala",No,Foodservice,APPLE BULK 4/5,28,20,0.25
+"APPLE, GREEN DICED (4X5# CASE)",,APD,"Apples, Granny",No,Foodservice,APPLE BULK 4/5,28,20,0.25
+"APPLE, GREEN WEDGES (4 X 3)",,GRW,"Apples, Granny",No,Foodservice,4/3 TUB,30,12,0.25
+"BEETS, DICED (2X5#CASE)",,BET,"Beets, Cut 25#",No,Foodservice,2/5 TUB,18,10,0.25
+"BEETS, CANDY STRIPE DICED (2X5#CASE)",,BET,"Beets, Candystripe 25#",No,Foodservice,2/5 TUB,18,10,0.25
+"BEETS, GOLD DICED (2X5#CASE)",,BET,"Beets, Gold 25#",No,Foodservice,2/5 TUB,18,10,0.25
+"BOK CHOY, CHOPPED (4 X 5# CASE)",,BC,Bok Choy,No,Foodservice,4/5 NEW KRAFT,30,20,0.25
+BROCCOLI FLORETS MCENTIRE (4# CASE),,BROF,Broccoli Crowns,No,Foodservice,1/5 TUB,15,4,0.25
+BROCCOLI FLORETS (4X3# CASE),,BROF,Broccoli Crowns,No,Foodservice,4/3 NEW KRAFT,14,12,0.25
+BROCCOLI FLORETS (6x3#CASE),,BROF63,Broccoli Crowns,No,Foodservice,4/5 NEW KRAFT,14,18,0.25
+BROCCOLI SLAW (4X3#CASE),,BRS,Broccoli Slaw,No,Foodservice,4/3 TUB,12,12,0.25
+"BRUSSEL SPROUTS, SHREDDED",,BRU,Brussel Sprouts,No,Foodservice,4/5 NEW KRAFT,20,20,0.35
+"BRUSSELS SPROUT, TRIMMED & HALVED (4 X 5# CASE)",,BRUH,Brussel Sprouts,No,Foodservice,4/5 NEW KRAFT,20,20,0.75
+BUTTERNUT SQUASH DICED (20# CASE),,BD,"Squash, Butternut",No,Foodservice,4/5 NEW KRAFT,26,20,0.27
+"CABBAGE, CHOPPED (20# CASE)",,CHCAB,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"CABBAGE, DICED ZESTO (20# CASE)",,ZES,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"CABBAGE, SHRED RED (20# CASE)",,SR,"Cabbage, Red",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"CHAYOTE, SQUASH 2"" MATCHSTICK (2X5# CASE)",,CSM,"Squash, Chayote ",No,Foodservice,2/5 ONION TRAY,10,10,0.27
+CANTALOUPE CUBED (5# CASE),,CANC,Canteloupes,No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
+"CANTALOUPE, HALVED (5#CASE)",,CANH,Canteloupes,No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
+"CANTALOUPE, SLICED (10# CASE)",,CANSL,Canteloupes,No,Foodservice,2/5 FRUIT TRAY,18,10,0.25
+CARROT STICKS MCENTIRE (4# CASE),,CARST10,"Carrots,50#",No,Foodservice,1/5 TUB,31,4,0.25
+CARROT STICKS (10# CASE),,CARST10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
+CARROT STICKS (20# CASE),,CARST,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
+"CARROT, STICKS (BWW)(4 X 5# CASE)",,CARSTBW,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
+"CARROTS, COINS  (2X5# CASE)",,CCCAR10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
+"CARROTS, COINS (4X5# CASE)",,CCCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
+"CARROTS, DICED (2X5# CASE)",,DCAR10,"Carrots,50#",No,Foodservice,2/5 TUB,33,10,0.25
+"CARROTS, DICED (4X5#  CASE)",,CARD,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,33,20,0.25
+"CARROTS, MATCHSTICK (4X5# CASE)",,SHCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"CARROTS, PEELED (4X5# CASE)",,PCAR,"Carrots,50#",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+CAULIFLOWER FLORETS MCENTIRE (4# CASE),,CFL,Cauliflower,No,Foodservice,1/5 TUB,16,4,0.25
+CAULIFLOWER FLORETS (4X3# CASE),,CFL,Cauliflower,No,Foodservice,4/3 TUB,16,12,0.25
+CAULIFLOWER FLORETS MULTICOLOR (4X3# CASE),,CFL,Cauliflower Tri Color,No,Foodservice,4/3 TUB,4,12,0.25
+CELERY STICKS MCENTIRE (4# CASE),,CELST,Celery 30 ct,No,Foodservice,1/5 TUB,32,4,0.25
+CELERY STICKS (4X5# CASE),,CELST,Celery 30 ct,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"CELERY, DICED (2X5# CASE)",,CELD10,Celery 30 ct,No,Foodservice,2/5 TUB,32,10,0.25
+"CELERY, DICED (4X5# CASE)",,CELD,Celery 30 ct,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"CELERY, SLICED  (2X5# CASE)",,CELD,Celery 30 ct,No,Foodservice,2/5 TUB,32,10,0.25
+"CELERY, ROOT DICED  (2X5# CASE)",,CELD,Celery Root,No,Foodservice,2/5 TUB,20,10,0.25
+"CILANTRO, CLEAN & TRIM (4X1# CASE)",,CIL,Cilantro 60ct,No,Foodservice,4/3 TUB,12,4,0.27
+"COLESLAW, DICED (4X5# CASE)",,SLAWD,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"COLESLAW, FINE SHREDDED, (4X5# CASE)",,SLAWF,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"COLESLAW, SAVOY BLEND (2X5# CASE)",,SLAW50/50,"Cabbage, Savoy",No,Foodservice,2/5 TUB,15,10,0.25
+"COLESLAW, SHREDDED MIX (4X5# CASE)",,SLAW,"Cabbage, Bag",No,Foodservice,4/5 NEW KRAFT,35,20,0.25
+"COLLARDS, CLEANED/CUT (6X2# CASE)",,COL,"Collards, Dozen",No,Foodservice,4/5 NEW KRAFT,16,12,0.27
+CORN SHUCKED & CUT (1 BUSH),,CORNHALF,"Corn, Yellow",No,Foodservice,4/5 NEW KRAFT,1,1,0.3
+"CORN, SHUCKED (4 X 12)",,CORN,"Corn, Yellow",No,Foodservice,4/5 NEW KRAFT,1,1,0.35
+"CRIMINI, SLICED (5# CASE)",,SC5,"Mushroom, Crimini",No,Foodservice,1/5 TUB,5,5,0.25
+"CUCUMBER, DICED (2 X 5# CASE)",,CUKD10,"Cucumber, Select",No,Foodservice,2/5 TUB,40,10,0.25
+"CUCUMBER, SLICED (2 X 5# CASE)",,CUKS10,"Cucumber, Select",No,Foodservice,2/5 TUB,40,10,0.25
+"CUCUMBER, WHOLE (5# CASE)",,CUW5,"Cucumber, Select",No,Foodservice,5# WHOLE PRODUCE,40,5,0.1
+"FAJITA MIX, PEPPER & ONION, JULIENNE (2 X 5) (10# CASE)",,FMJ,Pepper Mix ,No,Foodservice,2/5 TUB,10,10,0.25
+FRENCH FRIES (4X5# CASE),,FF,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,40,20,0.25
+FRUIT MIXED (5# CASE),,FM,Fruit Mix ,No,Foodservice,1/5 FRUIT TRAY,4,3,0.25
+FRUIT TRAY (5# CASE),,FTRAY,Fruit Mix ,No,Foodservice,2/5 FRUIT TRAY,4,3,0.25
+"FRUIT, MIXED (2X5# CASE)",,FM10,Fruit Mix ,No,Foodservice,2/5 FRUIT TRAY,4,10,0.25
+"GRAPES, RED  (5# CASE)",,GPL,"Grapes, Red SL",No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
+"GRAPES, RED  (1# CASE)",,GPL,"Grapes, Red SL",No,Foodservice,1LBS BAG,18,1,0.01
+"GREEN ONION, SLICED, (2X5#CASE)",,GRO10,"Onions, Green 4x2#",No,Foodservice,1/5 ONION TRAY,10,2,0.27
+"HONEYDEW, SLICED (2X5# CASE)",,HONS,Honeydews,No,Foodservice,2/5 FRUIT TRAY,16,10,0.3
+"HONEYDEW, CUBED (5# CASE)",,HON,Honeydews,No,Foodservice,1/5 FRUIT TRAY,16,5,0.25
+"HONEYDEW, HALVED (5# CASE)",,HH,Honeydews,No,Foodservice,1/5 FRUIT TRAY,16,5,0.25
+"JALAPENO, SLICED (2X5#CASE)",,JS,Jalapenos,No,Foodservice,2/5 FRUIT TRAY,18,10,0.3
+"JALAPENO, WHOLE, (5# CASE)",,JW5,Jalapenos,No,Foodservice,1/5 TUB,25,5,0.15
+"JICAMA, SHRED 1/8' (5# CASE)",,JSH2/5,Jicama,No,Foodservice,1/5 ONION TRAY,22,5,0.27
+"JICAMA, SHRED 1/8' (2X5# CASE)",,JSH2/5,Jicama,No,Foodservice,2/5 ONION TRAY,22,10,0.27
+"KALE, SHREDDED (4 X 1# CASE)",,KAL,Kale,No,Foodservice,4/5 NEW KRAFT,16,4,0.3
+"KIWI, PEELED & SLICED (5# CASE)",,KI5,"Kiwi, Bulk",No,Foodservice,1/5 FRUIT TRAY,15,5,0.3
+"LEMON WEDGES, (2 X 5# CASE)",,LEM2/5,"Lemons, 140",No,Foodservice,2/5 FRUIT TRAY,10,10,0.25
+"MANGO, CUBED (5# CASE)",,MANG,Mangoes,No,Foodservice,1/5 FRUIT TRAY,4,5,0.25
+"NAPA CABBAGE, SHREDDED (2 X 5)",,"NAPA, SHRED",Napa,No,Foodservice,2/5 TUB,35,10,0.25
+"NAPA CABBAGE, SHREDDED (4 X 5)",,"NAPA, SHRED",Napa,No,Foodservice,2/10 NEW KRAFT,35,20,0.25
+"ONIONS, RED DICED (20# CASE)",,ROND,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
+"ONIONS, RED DICED (5# BAG)",,RONDB,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,5,0.25
+"ONIONS, RED JULIENNE (10# CASE)",,RONJ10,"Onions, Red 25#",No,Foodservice,2/5 ONION TRAY,18,10,0.25
+"ONIONS, RED JULIENNE (20# CASE)",,RONJ,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
+"ONIONS, RED JULIENNE (5# BAG)",,RONJB,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,5,0.25
+"ONIONS, RED PEELED (20# CASE)",,RONP,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.25
+"ONIONS, RED RINGS (2# BAG)",,RONR5,"Onions, Red 25#",No,Foodservice,1/5 TUB,18,2,0.2
+"ONIONS, RED SLICED (10# CASE)",,RONSL10,"Onions, Red 25#",No,Foodservice,2/5 ONION TRAY,18,10,0.25
+"ONIONS, RED SLICED (20# CASE)",,RONSL,"Onions, Red 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.3
+"ONIONS, RED WHOLE (5# CASE)",,ROW5,"Onions, Red 25#",No,Foodservice,5# WHOLE PRODUCE,25,5,0.1
+"ONIONS, SLICED, (5# TUB)",,YONT,"Onions, Yellow 50#",No,Foodservice,1/5 TUB,32,5,0.25
+"ONIONS, YELLOW WHOLE (5# CASE)",,YOW5,"Onions, Yellow 50#",No,Foodservice,5# WHOLE PRODUCE,50,5,0.1
+"ONIONS, YELLOW DICED (10# CASE)",,YOND10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
+"ONIONS, YELLOW DICED (20# CASE)",,YOND,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"ONIONS, YELLOW JULIENNE (10# CASE)",,YONJ10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
+"ONIONS, YELLOW JULIENNE (20# CASE)",,YONJ,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"ONIONS, YELLOW PEELED (20# CASE)",,YONP,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"ONIONS, YELLOW THIN SLICED (5# CASE)",,LYONT,"Onions, Yellow 50#",No,Foodservice,1/5 ONION TRAY,32,5,0.12
+"ONIONS, YELLOW SLICED (10# CASE)",,YONSL10,"Onions, Yellow 50#",No,Foodservice,2/5 TUB,32,10,0.25
+"ONIONS, YELLOW SLICED (20# CASE)",,YONSL,"Onions, Yellow 50#",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"ONIONS, SWEET DICED (20# CASE)",,YOND,"Onions, Sweet",No,Foodservice,4/5 NEW KRAFT,29,20,0.25
+"ONIONS, RED SHALLOTS (10# CASE)",,RONSL10,SHALLOTS,No,Foodservice,2/5 ONION TRAY,5,10,0.25
+"ORANGE SLICES, (2 X 5# TRAY)",,OSL,"Oranges, 113 ct",No,Foodservice,2/5 FRUIT TRAY,29,5,0.25
+"ORANGE PEELED & SECTIONED , (5# TRAY)",,OSL,"Oranges, 113 ct",No,Foodservice,1/5 TUB,15,5,0.25
+"TANGERINES PEELED & SECTIONED , (5# TRAY)",,OSL,"Tangerine, 140ct",No,Foodservice,1/5 TUB,18,5,0.25
+"PARSNIP, COIN CUT, (2 X 5# CASE)",,PARS,"Parsnips, 25#",No,Foodservice,2/5 TUB,18,10,0.3
+"PARSNIP, PEEL & DICED (10# CASE)",,PARD,"Parsnips, 25#",No,Foodservice,2/5 TUB,18,10,0.25
+"PEPPER, DICED YELLOW(5# CASE)",,DYP,"Peppers, Yellow",No,Foodservice,1/5 TUB,15,5,0.25
+"PEPPER, GREEN DICED (5# TRAY)",,DP5,"Peppers, Green",No,Foodservice,1/5 FRUIT TRAY,15,5,0.25
+"PEPPER, GREEN JULIENNE, (10# TRAY)",,JP10,"Peppers, Green",No,Foodservice,2/5 FRUIT TRAY,15,10,0.27
+"PEPPER, GREEN, DICED, (10# CASE)",,DP10,"Peppers, Green",No,Foodservice,2/5 ONION TRAY,15,10,0.25
+"PEPPER, GREEN, JULIENNE (20# CASE)",,JP20,"Peppers, Green",No,Foodservice,4/5 NEW KRAFT,15,20,0.25
+"PEPPER, JUL GREEN (5# CASE)",,JP5,"Peppers, Green",No,Foodservice,1/5 ONION TRAY,15,5,0.25
+"PEPPER, GREEN WHOLE (5# CASE)",,GPW5,"Peppers, Green",No,Foodservice,5# WHOLE PRODUCE,20,5,0.1
+"PEPPER, RED WHOLE (5# CASE)",,RPW5,"Peppers, Red",No,Foodservice,5# WHOLE PRODUCE,20,5,0.1
+"PEPPER, RED JULIENNE (10# TRAY)",,JPR,"Peppers, Red",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
+"PEPPER, RED, DICED (10# TRAY)",,DRP,"Peppers, Red",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
+"PEPPER, YELLOW DICED (10# TRAY)",,DPY,"Peppers, Yellow",No,Foodservice,2/5 FRUIT TRAY,12,10,0.25
+"PEPPER, YELLOW JULIENNE (10# TRAY)",,JPY,"Peppers, Yellow",No,Foodservice,2/5 ONION TRAY,12,10,0.25
+"PEPPERS, DICED, TRI COLOR, (10# CASE)",,DP10M,Pepper Mix ,No,Foodservice,2/5 ONION TRAY,12,10,0.25
+"PEPPERS, JULIENNE, TRI COLOR, (10# CASE)",,JPM,Pepper Mix ,No,Foodservice,2/5 ONION TRAY,12,10,0.25
+"PEPPER, SUNTAN, DICED, (10# CASE)",,DP10,"Peppers, Sun Tan ",No,Foodservice,2/5 ONION TRAY,15,10,0.25
+PICO DE GALLO (2 x 1 GAL/CASE),,PDG2/1,Pico de Gallo ,No,Foodservice,Pico De Gallo,10,10,0.25
+PINEAPPLE CUT (5# CASE),,PINC,Pineapples,No,Foodservice,1/5 FRUIT TRAY,8.5,5,0.25
+"PINEAPPLE, HALVED (5# CASE)",,PH,Pineapples,No,Foodservice,1/5 FRUIT TRAY,8.5,5,0.25
+"PINEAPPLE, SLICED (10# CASE)",,PINSL,Pineapples,No,Foodservice,2/5 FRUIT TRAY,8.5,10,0.25
+"POTATO, DICED, SKIN ON (20# CASE)",,POTDSO,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,40,20,0.25
+"POTATO, QUARTERED RED (20# CASE)",,POTQR,"Potatoes, Red A",No,Foodservice,POTATOES 4/5,38,20,0.25
+"POTATO, WEDGES (20# CASE)",,POTWED,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,48,20,0.25
+"POTATOES, DICED (10# BAG)",,POTDB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,35,10,0.25
+"POTATOES, DICED (20# CASE)",,POTD,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,35,20,0.25
+"POTATOES, HASH BROWN (20# CASE)",,POTHB,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
+"POTATOES, QUARTERED (20# CASE)",,POTQ,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
+"POTATOES, RED QUARTERED (10# BAG)",,POTQRB,"Potatoes, Red A",No,Foodservice,POTATOES 2/5,38,10,0.25
+"POTATOES, SLICED (10# BAG)",,POTSLB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,38,10,0.25
+"POTATOES, SLICED (20# CASE)",,POTSL,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
+"POTATOES, WHOLE PEELED (10# BAG)",,POTWPB,"Potatoes, 90 ct",No,Foodservice,POTATOES 2/5,38,10,0.25
+"POTATOES, WHOLE PEELED (20# CASE)",,POTWP,"Potatoes, 90 ct",No,Foodservice,POTATOES 4/5,38,20,0.25
+RADISH SLICED (10# CASE),,RADS,"Radish, 14/1",No,Foodservice,4/5 NEW KRAFT,35,10,0.25
+"RADISH, SHREDDED (10# CASE)",,RADSH,"Radish, 14/1",No,Foodservice,4/5 NEW KRAFT,35,10,0.25
+RAW FRIES (10# BAG),,RFB,"Potatoes, Red A",No,Foodservice,POTATOES 2/5,40,10,0.25
+RAW FRIES (20# CASE),,RF,"Potatoes, Red A",No,Foodservice,POTATOES 4/5,40,20,0.25
+"ROOT VEGETABLES, MIXED (4 X 3# CS)",,RV,"Squash, Butternut",No,Foodservice,4/5 NEW KRAFT,30,12,0.25
+"RUTABAGAS, DICED (20# CASE)",,RUTD,Rutabags,No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"SQUASH, JULIENNE, (2 X 5# BAG)",,SQJ,"Squash, Yellow Full",No,Foodservice,2/5 TUB,32,10,0.25
+"SQUASH, SLICED (20# CASE)",,SQS,"Squash, Yellow Full",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"SQUASH, SLICED (5# BAG)",,SQSB,"Squash, Yellow Full",No,Foodservice,1/5 TUB,32,5,0.15
+"SQUASH, CHAYOTE, (2 X 5# CASE)",,SQJ,"Squash, Chayote ",No,Foodservice,2/5 TUB,10,10,0.25
+"STRAWBERRIES, SLICED (5# CASE)",,STRS,Strawberries ,No,Foodservice,1/5 FRUIT TRAY,8,5,0.25
+"STRAWBERRIES, TRIMMED, WASHED (5# TRAY)",,STR,Strawberries ,No,Foodservice,1/5 FRUIT TRAY,8,5,0.25
+"SWEET POTATO, PEELED & SHRED (20# CASE)",,SPSH,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
+"SWEET POTATO, PEELED STICKS (20# CASE)",,SPST,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
+"SWEET POTATO, PEELED, DICED (20# CASE)",,SPPD,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
+"SWEET POTATO, WEDGES (20# CASE)",,SPW,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,37,20,0.3
+"SWEET POTATOES, DICED (20# CASE)",,SPD,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.27
+"SWEET POTATOES, PEELED (20# CASE)",,SPP,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.25
+"SWEET POTATOES, PEELED, QUARTERED (20# CASE)",,SPPQ,"Potatoes, Sweet JBO",No,Foodservice,4/5 NEW KRAFT,32,20,0.3
+"TOMATOES, DICED (10# CASE)",,DT,"Tomatoes, Roma",No,Foodservice,2/5 FRUIT TRAY,20,10,0.25
+"TOMATOES, DICED (5# CASE)",,DT5,"Tomatoes, Roma",No,Foodservice,1/5 FRUIT TRAY,20,5,0.25
+"TOMATOES, DICED (20# CASE)",,DT,"Tomatoes, Roma",No,Foodservice,2/5 FRUIT TRAY,20,20,0.25
+"TOMATOES, SLICED (10# CASE)",,ST,"Tomatoes, 5x6",No,Foodservice,2/5 FRUIT TRAY,20,10,0.25
+"TOMATOES, GREEN DICED (10# CASE)",,DT,"Tomatoes, Green ",No,Foodservice,2/5 FRUIT TRAY,18,10,0.25
+"TURNIP GREENS, CHOPPED (6 X 2#)",,TC,Turnip Green ,No,Foodservice,2/10 NEW KRAFT,18,12,0.25
+"TURNIP, DICED, (10# CASE)",,TURND,"Turnips, Cut 25#",No,Foodservice,4/5 NEW KRAFT,18,10,0.27
+"TURNIP, DICED, (20# CASE)",,TURND,"Turnips, Cut 25#",No,Foodservice,4/5 NEW KRAFT,18,20,0.27
+"WATERMELON, CUT (5# CASE)",,WAC,"Watermelon, (IND)",No,Foodservice,1/5 FRUIT TRAY,7,5,0.25
+ZUCCHINI SLICED (20# CASE),,ZUS,"Squash, Zuke 1/2",No,Foodservice,4/5 NEW KRAFT,17,20,0.25
+"ZUCCHINI, DICED (2 X 5# TRAYS)",,ZUD10,"Squash, Zuke 1/2",No,Foodservice,2/5 FRUIT TRAY,17,10,0.25
+"ZUCCHINI, JULIENNE, (2 X 5# BAG)",,ZUJ,"Squash, Zuke 1/2",No,Foodservice,2/5 TUB,17,10,0.25
+"ZUCCHINI, SLICED (5# CASE)",,ZUS5,"Squash, Zuke 1/2",No,Foodservice,1/5 TUB,17,5,0.15
+"APPLE, GREEN WEDGES (100 X 2oz)",,APPG100,"Apples, Granny",No,Snakpak,APPLE SNACK PACK 100CT,30,12.5,0.25
+"APPLE, GREEN WEDGES (50 X 2oz)",,APPGR,"Apples, Granny",No,Snakpak,APPLE SNACK PACK 50CT,30,6.25,0.25
+"APPLE, RED WEDGES (100 X 2oz)",,APP100,"Apples, Gala",No,Snakpak,APPLE SNACK PACK 100CT,30,12.5,0.25
+"APPLE, RED WEDGES (50 X 2oz)",,APP50,"Apples, Gala",No,Snakpak,APPLE SNACK PACK 50CT,30,6.25,0.25
+ASPARAGUS STICKS (50 X 2oz),,AS50,"Asparagus, 11# standard",No,Snakpak,SNAKPAK 50CT,8.5,6.25,0.09
+BABY CARROTS (50/2oz) W/ LIGHT RANCH,,CB50W,"Carrots, Baby 30/1#",Yes,Snakpak,SNAKPAK 50CT,30,6.25,0.25
+BABY CARROTS  (100 X 2oz),,CB100,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 100CT,30,12.5,0.3
+BABY CARROTS  (50 X 2oz),,CB50,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 50CT,30,6.25,0.25
+"BEANS, VARIOUS (50 x 2oz)",,BEAN50,"Beans, Various, #10 can",No,Snakpak,SNAKPAK 50CT,4.25,12.5,0.25
+"BEETS, CANDYSTRIPE (50 X 2oz)",,BE50,"Beets, Candystripe 25#",No,Snakpak,SNAKPAK 50CT,18,6.25,0.3
+BLOOD ORANGE WEDGES (50 X 3.5oz),,BO,"Oranges, Blood 88ct 40#",No,Snakpak,SNAKPAK 50CT,38,11,0.25
+BLUEBERRIES  (50 X 2oz),,BB,Blueberries 1 Pint,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+BROCCOLI FLORET  (50 X 2oz) ,,BF,Broccoli Crowns,No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
+BROCCOLI FLORET  (50 X 4oz) ,,BF,Broccoli Crowns,No,Snakpak,SNAKPAK 50CT,18,12.5,0.25
+BROCCOLI FLORET  (50 X 2oz) W/  LIGHT RANCH,,BFW,Broccoli Crowns,Yes,Snakpak,SNAKPAK 50CT,18,6.25,0.27
+"CANTALOUPE, CUBED (50 X 2.7oz)",,CAN50,Canteloupes,No,Snakpak,SNAKPAK 50CT,17,8.44,0.25
+"CARROT, STICKS SNAKPAK (50X2oz)",,CAR50,"Carrots,50#",No,Snakpak,SNAKPAK 50CT,32,6.25,0.25
+"CARROTS, BABY, (50 X 2oz)",,CB50,"Carrots, Baby 30/1#",No,Snakpak,SNAKPAK 50CT,30,6.25,0.25
+"CARROTS, RAINBOW COINS  (50 X 2oz)",,CCARR50,"Carrots, Rainbow",No,Snakpak,SNAKPAK 50CT,20,6.25,0.25
+"CARROTS, RAINBOW COINS  (100 X 2oz)",,CCARR,"Carrots, Rainbow",No,Snakpak,SNAKPAK 100CT,20,12.5,0.25
+"CARROTS, RAINBOW COINS (50 X 2oz) W/ LIGHT RANCH",,CCARR50W,"Carrots, Rainbow",Yes,Snakpak,SNAKPAK 50CT,20,6.25,0.25
+"CARROTS, COINS  (50 X 2oz)",,CCAR50,"Carrots,50#",No,Snakpak,SNAKPAK 50CT,32,6.25,0.25
+"CARROTS, COINS  (50 X 2oz) W/ LIGHT RANCH",,CCAR50W,"Carrots,50#",Yes,Snakpak,SNAKPAK 50CT,32,6.25,0.25
+CAULIFLOWER FLORET  (50 X 2oz),,C,Cauliflower,No,Snakpak,SNAKPAK 50CT,15,6.25,0.25
+CAULIFLOWER FLORET  (50 X 2oz) W/ LIGHT RANCH,,CF50W,Cauliflower,Yes,Snakpak,SNAKPAK 50CT,15,6.25,0.28
+CAULIFLOWER FLORET  (50 X 4oz),,C,Cauliflower,No,Snakpak,SNAKPAK 50CT,15,12.5,0.25
+CELERY STICKS  (50 X 2oz),,CE5,Celery 30 ct,No,Snakpak,SNAKPAK 50CT,32,6.25,0.27
+CELERY STICKS  (50 X 2oz) W/ LIGHT RANCH,,CE5W,Celery 30 ct,Yes,Snakpak,SNAKPAK 50CT,32,6.25,0.3
+CELERY STICKS  (50 X 4oz),,CE5,Celery 30 ct,No,Snakpak,SNAKPAK 50CT,32,12.5,0.27
+CHERRY TOMATOES SNAKPAK (50 X 2oz),,CT,"Tomatoes, Cherry",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+CHERRY TOMATOES SNAKPAK (50 X 2oz) W/ LIGHT RANCH,,CTW,"Tomatoes, Cherry",Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.2
+"CUCUMBER, COINS (50 X 2oz)",,CU5,"Cucumber, Select",No,Snakpak,SNAKPAK 50CT,40,6.25,0.25
+"CUCUMBER, COINS (50 X 2oz) W/ LIGHT RANCH",,CU5W,"Cucumber, Select",Yes,Snakpak,SNAKPAK 50CT,40,6.25,0.25
+"CUCUMBER, COINS (50 X 4oz)",,CU5,"Cucumber, Select",No,Snakpak,SNAKPAK 50CT,40,12.5,0.27
+"DRAGON FRUIT, WEDGES (50 X 2oz)",,DF50,Dragon Fruit 10#,No,Snakpak,SNAKPAK 50CT,5,6.25,0.25
+"GRAPES, RED  (100 X 3oz)",,GP,"Grapes, Red SL",No,Snakpak,SNAKPAK 100CT,18,18.75,0.3
+"GRAPES, RED  (50 X 3oz)",,GP50,"Grapes, Red SL",No,Snakpak,SNAKPAK 50CT,18,9.38,0.25
+"GRAPES, COTTON CANDY  (50 X 3oz)",,GP50,"Grapes, Cotton Candy",No,Snakpak,SNAKPAK 50CT,18,9.38,0.25
+GRAPE TOMATO  (50 X 2oz) W/ LIGHT RANCH,,GTW,"Tomatoes, Grape",Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+GRAPE TOMATO  (50 X 2oz),,GT,"Tomatoes, Grape",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+GREEN BEANS  (50 X 2oz),,GB50,Green Beans 10#,No,Snakpak,SNAKPAK 50CT,9.5,6.25,0.25
+"GUAVA, WEDGES  (50 X 2oz)",,GAV,Guava,No,Snakpak,SNAKPAK 50CT,10,6.25,0.27
+"HONEYDEW, CUBED, (50 X 2.7oz)",,HO50,Honeydews,No,Snakpak,SNAKPAK 50CT,16,8.44,0.27
+"JICAMA, STICKS (50 X 2oz)",,JSP,Jicama,No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
+"JICAMA, STICKS (50 X 2oz) W/ LIGHT RANCH",,JSPW,Jicama,Yes,Snakpak,SNAKPAK 50CT,18,6.25,0.4
+"KIWI, WEDGED SNAKPAK (50 X 2oz)",,KI50,"Kiwi, Bulk",No,Snakpak,SNAKPAK 50CT,18.25,6.25,0.25
+"KIWI, GOLDEN WEDGED SNAKPAK (50 X 2oz)",,KI50,Golden Kiwi ,No,Snakpak,SNAKPAK 50CT,18.25,6.25,0.25
+"KUMQUAT WHOLE, (50 X 2oz)",,KUM,"Kumquat, Bulk 10#",No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+"MANGO, CHUNKS (50x2oz)",,MANG,Mangoes,No,Snakpak,SNAKPAK 50CT,4.5,6.25,0.25
+ORANGE WEDGE SNAKPAK (50 X 4.7oz.),,OW,"Oranges, 113 ct",No,Snakpak,SNAKPAK 50CT,33,14.7,0.25
+"PAPAYA, CHUNKS SNAKPAK (50/2oz)",,PAPSP,"Papaya, 9ct",No,Snakpak,SNAKPAK 50CT,20,6.25,0.25
+"PEARS, WEDGED (100 X 2oz)",,PE100,"Pears, Green",No,Snakpak,APPLE SNACK PACK 100CT,32,12.5,0.25
+"PEARS, WEDGED (50 X 2oz)",,PE50,"Pears, Green",No,Snakpak,APPLE SNACK PACK 50CT,32,6.25,0.27
+"PEPPER STICK, RED, YELLOW, (50 X 2oz)",,PSTK100,Pepper Red & Yellow ,No,Snakpak,SNAKPAK 50CT,15,6.25,0.3
+"PEPPER STICKS, SNAKPAK (50 X 2oz)",,PSTK,"Peppers, Green",No,Snakpak,SNAKPAK 50CT,18,12.5,0.35
+PINEAPPLE  (50 X 2.3oz),,PS,Pineapples,No,Snakpak,SNAKPAK 50CT,8.5,7.18,0.25
+PINEAPPLE PINK (50 X 2.3oz),,PS,Pink Pineapples,No,Snakpak,SNAKPAK 50CT,8.5,7.18,0.25
+"RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz)",,R,"Radishes, 40#",No,Snakpak,SNAKPAK 50CT,39,6.25,0.27
+"RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",,RAD5,"Radishes, 40#",Yes,Snakpak,SNAKPAK 50CT,39,6.25,0.25
+"SQUASH, HALFMOON (50 X 2 oz) W/ LIGHT RANCH",,SQ50W,"Squash, Yellow Full",Yes,Snakpak,SNAKPAK 50CT,35,6.25,0.3
+"SQUASH, HALF-MOON (50 X 2oz)",,SQ50,"Squash, Yellow Full",No,Snakpak,SNAKPAK 50CT,35,6.25,0.25
+"STRAWBERRIES, TRIMMED (50 X 2oz)",,STR50,Strawberries ,No,Snakpak,SNAKPAK 50CT,8,6.25,0.25
+"STRAWBERRIES, WHITE, TRIMMED (50 X 2oz)",,STRW50,"Strawberries, White",No,Snakpak,SNAKPAK 50CT,3.75,6.25,0.25
+"SUGAR SNAPS, SNAKPAK  (50 X 2oz)",,S5,Sugar Snaps,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+"SUGAR SNAPS, SNAKPAK  (50 X 4oz)",,S5,Sugar Snaps,No,Snakpak,SNAKPAK 50CT,9,12.5,0.25
+"SUGAR SNAPS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",,S5W,Sugar Snaps,Yes,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+"SWEET POTATO STICKS, SNAKPAK (100 X 2oz)",,SW100,"Potatoes, Sweet JBO",No,Snakpak,SNAKPAK 100CT,38,12.5,0.3
+"SWEET POTATO STICKS, SNAKPAK (50 X 2oz)",,SW50,"Potatoes, Sweet JBO",No,Snakpak,SNAKPAK 50CT,38,6.25,0.25
+"SWEET POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",,SW5W,"Potatoes, Sweet JBO",Yes,Snakpak,SNAKPAK 50CT,38,6.25,0.5
+"SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz)",,SWW50,"Potatoes, Sweet WHITE",No,Snakpak,SNAKPAK 50CT,38,6.25,0.25
+"SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH",,SWW5W,"Potatoes, Sweet WHITE",Yes,Snakpak,SNAKPAK 50CT,38,6.25,0.25
+TANGERINE WEDGE SNAKPAK (50 X 3.5oz),,TANG,"Tangerine, 140ct",No,Snakpak,SNAKPAK 50CT,38,10.94,0.25
+TURNIP STICKS (50 X 2oz),,TS,"Turnips, Cut 25#",No,Snakpak,SNAKPAK 50CT,20,6.25,0.27
+TURNIP STICKS SNAKPAK (50 X 2oz) W/ LIGHT RANCH,,TSW,"Turnips, Cut 25#",Yes,Snakpak,SNAKPAK 50CT,20,6.25,0.4
+UGLY FRUIT  WEDGE SNAKPAK (50 X 3.5oz),,UF,Ugly Fruit 30#,No,Snakpak,SNAKPAK 50CT,23,11,0.25
+WATERMELON RADISH STICKS (50 X 2oz),,WR,Watermelon Radish 20#,No,Snakpak,SNAKPAK 50CT,15,6.25,0.25
+"WATERMELON, SNAKPAK, (50 X 2oz)",,W50,"Watermelon, (IND)",No,Snakpak,SNAKPAK 50CT,7,6.25,0.25
+"ZUCHHINI, SLICED W/ RANCH (50 X 2oz)",,Z50W,"Squash, Zuke 1/2",Yes,Snakpak,SNAKPAK 50CT,17,6.25,0.3
+"ZUCHHINI, SLICED (50 X 2oz)",,Z50,"Squash, Zuke 1/2",No,Snakpak,SNAKPAK 50CT,17,6.25,0.3
+BUTTERNUT STICKS 50/2OZ,,TS,"Squash, Butternut",No,Snakpak,SNAKPAK 50CT,30,6.25,0.27
+DAIKON COIIN CUT 50/2OZ,,TS,Daikon Root ,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+MINI SWEET PEPPER,,PSTK,Mini Sweet Pepper,No,Snakpak,SNAKPAK 50CT,5,6.25,0.35
+HEIRLOOM GRAPE TOMATO ,,GT,Grape Tomato Multicolor,No,Snakpak,SNAKPAK 50CT,9,6.25,0.25
+"GRAPES, WHITE  (5# CASE)",,GPL,"Grapes, White SL",No,Foodservice,1/5 FRUIT TRAY,18,5,0.25
+GRAPE FRUIT 5#,,OSL,Grape Fruit ,No,Foodservice,1/5 FRUIT TRAY,20,5,0.25
+LEMONS WEDGES 50/2.3OZ,,LW50,"Lemons, 140",NO,Snakpak,SNAKPAK 50CT,38,7.1,0.25
+PARSNIP COIN CUT 50/2OZ,,PAS50,"Parsnips, 25#",No,Snakpak,SNAKPAK 50CT,18,6.25,0.25
+BROCCOLI FLORETS (4X3# CASE),,BROF,Broccoli Crowns,No,Foodservice,2/4 SMALL COLLARD,10,4,0.25
+CELERY STICKS (4X5# CASE),,CELST,Celery 30 ct,No,Foodservice,2/4 SMALL COLLARD,32,4,0.25
+CARROT STICKS (20# CASE),,CARST,"Carrots,50#",No,Foodservice,2/4 SMALL COLLARD,32,4,0.25
+CAULIFLOWER FLORETS (4X3# CASE),,CFL,Cauliflower,No,Foodservice,2/4 SMALL COLLARD,16,4,0.25
+APPLE RED CUP (4# CASE),,GW,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
+APPLE GREEN CUPS (4#CS),,GRW,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
+BLUEBERRIES CUPS  (4# CASE),,BB,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,4,0.2
+CANTALOUPE CUPS (4# CASE),,CANC,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,4,0.2
+RED GRAPES CUPS (4# CASE),,GPL,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,4,0.2
+WHITE GRAPES CUPS (4# CASE),,GPLW,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,4,0.2
+HONEYDEW CUPS (4# CASE),,HON,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,4,0.2
+KIWI CUPS (4# CASE),,KI,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,4,0.2
+MANGO CUPS (4# CASE),,MANG,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,4,0.2
+ORANGES CUPS (4# CASE),,OSL,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,4,0.2
+PEARS CUPS (4# CASE),,PE50,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,4,0.2
+PINEAPPLES CUPS (4# CASE),,PINC,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,4,0.2
+STRAWBERIES CUPS (4# CASE),,STR,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,4,0.2
+WATERMELON CUPS (4# CASE),,WAC,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,4,0.2
+FRUIT MIX (4# CASE),,FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,4,0.2
+TROPICAL MIX (4#CASE),,TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,4,0.2
+APPLE RED CUP (6# CASE),,FM,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
+APPLE GREEN CUPS (6#CS),,FM,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
+BLUEBERRIES CUPS  (6# CASE),,FM,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,6,0.2
+CANTALOUPE CUPS (6# CASE),,FM,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,6,0.2
+RED GRAPES CUPS (6# CASE),,FM,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,6,0.2
+WHITE GRAPES CUPS (6# CASE),,FM,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,6,0.2
+HONEYDEW CUPS (6# CASE),,FM,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,6,0.2
+KIWI CUPS (6# CASE),,FM,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,6,0.2
+MANGO CUPS (6# CASE),,FM,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,6,0.2
+ORANGES CUPS (6# CASE),,FM,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,6,0.2
+PEARS CUPS (6# CASE),,FM,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,6,0.2
+PINEAPPLES CUPS (6# CASE),,FM,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,6,0.2
+STRAWBERIES CUPS (6# CASE),,FM,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,6,0.2
+WATERMELON CUPS (6# CASE),,FM,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,6,0.2
+FRUIT MIX (6# CASE),,FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,6,0.2
+TROPICAL MIX (6#CASE),,TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,6,0.2
+APPLE RED CUP (3# CASE),,FM,"Apples, Gala",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
+APPLE GREEN CUPS (3#CS),,FM,"Apples, Granny",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
+BLUEBERRIES CUPS  (3# CASE),,FM,Blueberries 1 Pint,No,Foodservice,8ct FRUIT CUPS,9,3,0.2
+CANTALOUPE CUPS (3# CASE),,FM,Canteloupes,No,Foodservice,8ct FRUIT CUPS,18,3,0.2
+RED GRAPES CUPS (3# CASE),,FM,"Grapes, Red SL",No,Foodservice,8ct FRUIT CUPS,18,3,0.2
+WHITE GRAPES CUPS (3# CASE),,FM,"Grapes, White SL",No,Foodservice,8ct FRUIT CUPS,18,3,0.2
+HONEYDEW CUPS (3# CASE),,FM,Honeydews,No,Foodservice,8ct FRUIT CUPS,15,3,0.2
+KIWI CUPS (3# CASE),,FM,"Kiwi, Bulk",No,Foodservice,8ct FRUIT CUPS,19,3,0.2
+MANGO CUPS (3# CASE),,FM,Mangoes,No,Foodservice,8ct FRUIT CUPS,6,3,0.2
+ORANGES CUPS (3# CASE),,FM,"Oranges, 113 ct",No,Foodservice,8ct FRUIT CUPS,40,3,0.2
+PEARS CUPS (3# CASE),,FM,"Pears, Green",No,Foodservice,8ct FRUIT CUPS,29,3,0.2
+PINEAPPLES CUPS (3# CASE),,FM,Pineapples,No,Foodservice,8ct FRUIT CUPS,8.5,3,0.2
+STRAWBERIES CUPS (3# CASE),,FM,Strawberries ,No,Foodservice,8ct FRUIT CUPS,7.5,3,0.2
+WATERMELON CUPS (3# CASE),,FM,"Watermelon, (IND)",No,Foodservice,8ct FRUIT CUPS,8,3,0.2
+FRUIT MIX (3# CASE),,FM,Fruit Mix ,No,Foodservice,8ct FRUIT CUPS,4,3,0.2
+TROPICAL MIX (3#CASE),,TMS,Tropical Mix,No,Foodservice,8ct FRUIT CUPS,3,3,0.2

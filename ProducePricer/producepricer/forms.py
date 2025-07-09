@@ -184,3 +184,16 @@ class AddDesignationCost(FlaskForm):
         validators=[DataRequired()]
     )
     submit = SubmitField('Save')
+
+class PriceSheetForm(FlaskForm):
+    # items that are on the price sheet
+    items = SelectMultipleField('Items', coerce=int, validators=[DataRequired()])
+    date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
+    customer = SelectField('Customer', coerce=int, validators=[DataRequired()])
+    date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
+    name = StringField('Price Sheet Name', validators=[DataRequired()])
+    submit = SubmitField('Generate Price Sheet')
+
+    def validate_items(self, items):
+        if not items.data:
+            raise ValidationError('Please select at least one item.')

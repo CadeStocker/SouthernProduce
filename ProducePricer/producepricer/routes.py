@@ -11,7 +11,8 @@ from producepricer.models import (
     ItemInfo, 
     ItemTotalCost, 
     LaborCost, 
-    PackagingCost, 
+    PackagingCost,
+    PriceSheet, 
     RanchPrice, 
     RawProduct,
     UnitOfWeight, 
@@ -31,7 +32,8 @@ from producepricer.forms import(
     AddRawProductCost, 
     CreatePackage, 
     EditItem,
-    PriceQuoterForm, 
+    PriceQuoterForm,
+    PriceSheetForm, 
     ResetPasswordForm, 
     ResetPasswordRequestForm, 
     SignUp, 
@@ -1113,7 +1115,7 @@ def upload_item_csv():
                 return redirect(request.url)
 
             # Make sure the columns are all in the CSV
-            required_columns = ['name', 'item_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield', 'case_weight', 'labor']
+            required_columns = ['name', 'item_code', 'alternate_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield', 'case_weight', 'labor']
             missing_columns = [column for column in required_columns if column not in df.columns]
 
             if missing_columns:
@@ -1127,13 +1129,13 @@ def upload_item_csv():
             # Process the DataFrame and add items to the database
             for index, row in df.iterrows():
                 # Clean and convert values
-                name = row['name'].strip()
-                item_code = row['item_code'].strip()
-                raw_product = row['raw_product'].strip()
-                #ranch = row['ranch'].strip().lower() == 'true'
-                ranch = row['ranch'].strip()  # Expecting 'yes' or 'no'
-                item_designation = row['item_designation'].strip()
-                packaging_type = row['packaging_type'].strip()
+                name = safe_strip(row['name'])
+                item_code = safe_strip(row['item_code'])
+                alternate_code = safe_strip(row['alternate_code'])
+                raw_product = safe_strip(row['raw_product'])
+                ranch = safe_strip(row['ranch'])  # Expecting 'yes' or 'no'
+                item_designation = safe_strip(row['item_designation'])
+                packaging_type = safe_strip(row['packaging_type'])
                 case_weight = row.get('case_weight', 0.0)  # Default to 0.0 if not provided
                 #labor = row.get('labor', 0.0)  # Default to 0.0 if not provided
 
@@ -1145,7 +1147,7 @@ def upload_item_csv():
 
                 #yield_value = float(row['yield'].replace('%', '').strip())
                 raw_yield = row['yield']
-                yield_str = str(raw_yield).strip()
+                yield_str = safe_strip(str(raw_yield))
                 try:
                     yield_value = float(yield_str)
                 except ValueError:
@@ -1165,7 +1167,12 @@ def upload_item_csv():
                         date=pd.Timestamp.now().date(),
                         company_id=current_user.company_id
                     )
+                    # if there's an alternate code, update it
+                    if alternate_code:
+                        existing_item.alternate_code = safe_strip(alternate_code)
+                    db.session.commit()  # Save the updated alternate_code to the item
                     db.session.add(new_info)
+
                     db.session.commit()
                     flash(f'Item "{name}" already exists. Skipping item.', 'warning')
                     continue
@@ -1209,7 +1216,10 @@ def upload_item_csv():
                     ranch=ranch,
                     item_designation=item_designation
                 )
-
+                # If an alternate code is provided, set it
+                if alternate_code:
+                    item.alternate_code = safe_strip(alternate_code)
+                    
                 # Add the raw product to the item if it exists
                 raw_product_obj = RawProduct.query.filter_by(name=raw_product, company_id=current_user.company_id).first()
                 if raw_product_obj:
@@ -1245,6 +1255,14 @@ def upload_item_csv():
                 #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
     return redirect(url_for('items'))
+
+def safe_strip(x):
+    if x is None: return ''
+    try:
+        if math.isnan(x): return ''
+    except Exception:
+        pass
+    return str(x).strip()
 
 # view an individual item cost
 @app.route('/item_cost/<int:item_cost_id>')
@@ -2301,6 +2319,13 @@ def designation_costs():
             
         return redirect(url_for('designation_costs'))
 
+    # Print or flash errors after form is submitted and validation fails
+    if form.is_submitted() and not form.validate():
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
+                print(f"Error in {getattr(form, field).label.text}: {error}")
+
     # always render the page on GET or invalid POST
     return render_template(
         'designation_costs.html',
@@ -2308,6 +2333,141 @@ def designation_costs():
         form=form,
         current_costs=current_costs
     )
+
+@app.route('/price_sheet', methods=['GET', 'POST'])
+@login_required
+def price_sheet():
+    form = PriceSheetForm()
+
+    # 1) load existing sheets
+    price_sheets = (
+      PriceSheet.query
+         .filter_by(company_id=current_user.company_id)
+         .order_by(PriceSheet.date.desc())
+         .all()
+    )
+
+    # populate dropdowns
+    customers = Customer.query.filter_by(company_id=current_user.company_id).all()
+    form.customer.choices = [(c.id, c.name) for c in customers]
+
+    all_items = Item.query.filter_by(company_id=current_user.company_id).all()
+    form.items.choices = [(i.id, i.name) for i in all_items]
+
+    # get all the customer names for the existing sheets
+    customer_names = {c.id: c.name for c in customers}
+
+    if form.validate_on_submit():
+        # create new sheet
+        sheet = PriceSheet(
+            name        = form.name.data,
+            date        = form.date.data,
+            company_id  = current_user.company_id,
+            customer_id = form.customer.data
+        )
+        # link the selected items
+        selected = Item.query.filter(
+            Item.id.in_(form.items.data),
+            Item.company_id==current_user.company_id
+        ).all()
+        sheet.items = selected
+
+        db.session.add(sheet)
+        db.session.commit()
+
+        flash(f'Price Sheet "{sheet.name}" created!', 'success')
+        # 2) redirect so the modal closes and the list refreshes
+        return redirect(url_for('price_sheet'))
+
+    # on GET or invalid POST, re-render the page
+    return render_template(
+      'price_sheet.html',
+      title        = 'Price Sheets',
+      form         = form,
+      price_sheets = price_sheets,
+      customer_names = customer_names
+    )
+
+@app.route('/view_price_sheet/<int:sheet_id>')
+@login_required
+def view_price_sheet(sheet_id):
+    # get the sheet
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # if the sheet doesn't exist
+    if sheet is None:
+        flash('Price sheet not found.', 'danger')
+        return redirect(url_for('price_sheet'))
+    
+    # get the customer
+    customer = Customer.query.filter_by(
+        id=sheet.customer_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # if customer doesn't exist
+    if customer is None:
+        return render_template('price_sheet.html')
+
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # ensure each item has a .current_cost attribute
+    for item in sheet.items:
+        #update_item_total_cost(item.id)
+        # see if the item has a a most recent cost
+        # if not, calculate it
+        current_cost = (
+            ItemTotalCost.query
+            .filter_by(item_id=item.id, company_id=current_user.company_id)
+            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+            .first()
+        )
+        if not current_cost:
+            # if no cost found, attempt to calculate it
+            update_item_total_cost(item.id)
+            # re-query to get the most recent cost after calculation
+            current_cost = (
+                ItemTotalCost.query
+                .filter_by(item_id=item.id, company_id=current_user.company_id)
+                .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+                .first()
+            )
+
+        item.current_cost = ItemTotalCost.query.filter_by(
+            item_id=item.id,
+            company_id=current_user.company_id
+        ).order_by(
+            ItemTotalCost.date.desc(),
+            ItemTotalCost.id.desc()
+        ).first()
+
+    return render_template(
+        'view_price_sheet.html',
+        title='View Price Sheet',
+        sheet=sheet,
+        customer=customer,
+    )
+
+# delete a price sheet
+@app.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
+@login_required
+def delete_price_sheet(sheet_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    db.session.delete(sheet)
+    db.session.commit()
+
+    flash(f'Price Sheet "{sheet.name}" deleted!', 'success')
+    return redirect(url_for('price_sheet'))
 
 # only true if this file is run directly
 if __name__ == '__main__':
