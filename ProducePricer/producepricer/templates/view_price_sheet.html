@@ -23,7 +23,7 @@
         <thead>
           <tr>
             <th>Name</th><th>Code</th><th>Case Wt.</th>
-            <th>Price</th>
+            
           </tr>
         </thead>
         <tbody>
@@ -32,7 +32,7 @@
             <td>{{ item.name }}</td>
             <td>{{ item.code }}</td>
             <td>{{ "%.2f"|format(item.case_weight) }} lbs</td>
-            <td>${{ "%.2f"|format(item.price) }}</td>
+            
           </tr>
           {% endfor %}
         </tbody>

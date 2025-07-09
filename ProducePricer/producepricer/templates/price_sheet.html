@@ -1,9 +1,10 @@
-<!-- filepath: producepricer/templates/price_sheet.html -->
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/price_sheet.html -->
 {% extends "base.html" %}
 {% block title %}Price Sheets{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
+  <!-- Header with New-Sheet button -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Price Sheets</h1>
     <button class="btn btn-primary" data-toggle="modal" data-target="#newPriceSheetModal">
@@ -12,43 +13,49 @@
   </div>
 
   {% if price_sheets %}
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Date</th>
-        <th>Customer</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ps in price_sheets %}
-      <tr>
-        <td>{{ ps.name }}</td>
-        <td>{{ ps.date.strftime('%Y-%m-%d') }}</td>
-        <td>{{ customer_names[ps.customer_id] }}</td>
-        <td>
-          <a href="{{ url_for('view_price_sheet', sheet_id=ps.id) }}"
-             class="btn btn-sm btn-secondary">
-            View
-          </a>
-          <form method="POST" 
-                action="{{ url_for('delete_price_sheet', sheet_id=ps.id) }}" 
-                style="display:inline;">
-            {{ form.csrf_token() }}
-            <button type="submit" 
-                    class="btn btn-sm btn-danger"
-                    onclick="return confirm('Delete this price sheet?');">
-            Delete
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card mb-4">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ps in price_sheets %}
+            <tr>
+              <td>{{ ps.name }}</td>
+              <td>{{ ps.date.strftime('%Y-%m-%d') }}</td>
+              <td>{{ customer_names[ps.customer_id] }}</td>
+              <td>
+                <a href="{{ url_for('view_price_sheet', sheet_id=ps.id) }}"
+                   class="btn btn-sm btn-secondary mr-1">
+                  View
+                </a>
+                <form method="POST"
+                      action="{{ url_for('delete_price_sheet', sheet_id=ps.id) }}"
+                      style="display:inline;">
+                  {{ form.csrf_token() }}
+                  <button type="submit"
+                          class="btn btn-sm btn-danger"
+                          onclick="return confirm('Delete this price sheet?');">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   {% else %}
-    <p>No price sheets yet.</p>
+    <div class="alert alert-info">No price sheets yet.</div>
   {% endif %}
 </div>
 

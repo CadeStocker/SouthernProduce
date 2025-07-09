@@ -26,6 +26,13 @@
   color: #fff !important;
 }
 
+/* make btn-secondary green everywhere */
+.btn-secondary {
+  background-color: #28a745 !important;
+  border-color:     #28a745 !important;
+  color:            #fff    !important;
+}
+
 /* Mobile breakpoints */
 @media (max-width: 768px) {
   /* container padding */
