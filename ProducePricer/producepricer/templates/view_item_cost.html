@@ -5,11 +5,11 @@
 <div class="container mt-4">
     <h1 class="mb-4">Item Cost Details</h1>
     <a href="{{ url_for('delete_item_cost', item_cost_id=item_cost.id) }}" 
-        class="btn btn-danger btn-sm" 
+        class="btn btn-danger btn-sm mb-4" 
         onclick="return confirm('Are you sure you want to delete this item cost?');">
         Delete Item Cost
     </a>
-    <div class="card">
+    <div class="card mb-4">
         <div class="card-header">
             <h5>Item: {{ item.name }}</h5>
         </div>
