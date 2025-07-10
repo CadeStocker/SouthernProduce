@@ -5,6 +5,24 @@
 <div class="container mt-5">
   <a href="{{ url_for('price_sheet') }}" class="btn btn-secondary mb-4">← Back</a>
 
+  <!-- quick‐fill buttons -->
+  <div class="d-flex align-items-center mb-4">
+    <span class="me-3 text-secondary" style="font-size: 0.95rem;">
+      <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+      <strong>Quick Fill Prices By Percentage:</strong>
+    </span>
+    <div class="btn-group" role="group" aria-label="Quick Fill Percentages">
+      {% for pct in [25,30,35,40,45] %}
+      <button type="button"
+              class="btn btn-outline-primary fill-percent-btn"
+              style="min-width: 60px;"
+              data-pct="{{ pct }}">
+        {{ pct }}%
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
   <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card mb-4">
@@ -20,21 +38,23 @@
                   Or Enter
                   <br>
                   <small class="text-muted d-block" style="font-weight: normal;">
-                  <em>The default value is the most recent price for the item.</em>
+                    <em>The default is the most recent price.</em>
                   </small>
                 </th>
-                
               </tr>
             </thead>
             <tbody>
-            {% for item in sheet.items %}
+              {% for item in sheet.items %}
               <tr>
                 <td>{{ item.name }}</td>
                 <td>
-                  <select name="price_select_{{ item.id }}" class="form-control form-control-sm">
+                  <select name="price_select_{{ item.id }}"
+                          class="form-control form-control-sm">
                     <option value="">-- select --</option>
                     {% for pct, price in markup_opts[item.id] %}
-                    <option value="{{ '%.2f'|format(price) }}">{{ pct }}% – ${{ '%.2f'|format(price) }}</option>
+                    <option value="{{ '%.2f'|format(price) }}">
+                      {{ pct }}% – ${{ '%.2f'|format(price) }}
+                    </option>
                     {% endfor %}
                   </select>
                 </td>
@@ -46,7 +66,7 @@
                          value="{% if recent_prices[item.id] is not none %}{{ '%.2f'|format(recent_prices[item.id]) }}{% endif %}">
                 </td>
               </tr>
-            {% endfor %}
+              {% endfor %}
             </tbody>
           </table>
         </div>
@@ -55,4 +75,17 @@
     <button type="submit" class="btn btn-primary">Save Prices</button>
   </form>
 </div>
+
+<script>
+// fill all selects to a given percentage markup
+document.querySelectorAll('.fill-percent-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pctText = btn.dataset.pct + '%';
+    document.querySelectorAll('select[name^="price_select_"]').forEach(sel => {
+      let found = Array.from(sel.options).find(o => o.text.startsWith(pctText));
+      sel.value = found ? found.value : '';
+    });
+  });
+});
+</script>
 {% endblock %}
