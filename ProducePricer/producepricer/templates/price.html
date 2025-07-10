@@ -21,6 +21,10 @@
     </form>
 
     {% if items %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Item Pricing Details</h5>
+        </div>
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -67,6 +71,8 @@
     {% endfor %}
             </tbody>
         </table>
+    </div>
+    
     {% else %}
         <p>No items found for your company.</p>
     {% endif %}

@@ -33,11 +33,15 @@ login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
 
 # mail settings
-app.config['MAIL_SERVER']   = 'smtp.gmail.com'
-app.config['MAIL_PORT']     = 465
-app.config['MAIL_USE_SSL']  = True
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER')
-app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
+app.config.update(
+    MAIL_SERVER   = 'smtp.gmail.com',
+    MAIL_PORT     = 465,
+    MAIL_USE_SSL  = True,
+    MAIL_USERNAME = os.environ.get('EMAIL_USER'),
+    MAIL_PASSWORD = os.environ.get('EMAIL_PASS'),
+    MAIL_DEFAULT_SENDER = os.environ.get('EMAIL_USER'),
+)
+
 app.config['RESET_PASS_TOKEN_MAX_AGE'] = 3600  # 1 hour
 
 mail = Mail(app)

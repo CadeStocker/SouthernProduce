@@ -277,15 +277,6 @@ class PriceHistory(db.Model):
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     price = db.Column(db.Float, nullable=False)
-    #name = db.Column(db.String(100), nullable=False)
-    #item_code = db.Column(db.String(100), nullable=False)
-    # packaging_id is already in item table
-    #packaging_id = db.Column(db.Integer, db.ForeignKey('packaging.id'), nullable=False)
-    #packaging_cost = db.Column(db.Float, nullable=False) # just store the cost of the packaging
-    #item_designation = db.Column(db.Enum(ItemDesignation), nullable=False)
-    #raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
-    #ranch = db.Column(db.Boolean, nullable=False)
-    #case_weight = db.Column(db.Float, nullable=False)
     
     def __init__(self, item_id, date, company_id, customer_id, price):
         self.item_id = item_id
@@ -391,6 +382,8 @@ class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    # boolean of whether they are the master customer
+    is_master = db.Column(db.Boolean, default=False, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
     def __init__(self, name, email, company_id):

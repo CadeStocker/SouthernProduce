@@ -7,7 +7,7 @@
   <h1>Items List</h1>
 
   <!-- Add / Import Buttons -->
-  <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#createItemModal">
+  <button type="button" class="btn btn-secondary mb-3" data-toggle="modal" data-target="#createItemModal">
     Add New Item
   </button>
   <button
@@ -33,47 +33,43 @@
   </form>
 
   {% if items %}
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Item Code</th>
-          <th>Case Weight</th>
-          <th>Item Designation</th>
-          <th>Packaging Type</th>
-          <th>Raw Product(s)</th>
-          <th>Ranch</th>
-          <th>Product Yield</th>
-          <th>Labor Hours</th>
-          <th>Actions</th>
-          
-
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-          <tr>
-            <td>
-              <a href="{{ url_for('view_item', item_id=item.id) }}">
-                {{ item.name }}
-              </a>
-            </td>
-
-            <td>{{ item.code }}</td>
-
-            <td>
-              {% if item.case_weight %}
-                {{ item.case_weight }} lbs
-              {% else %}
-                No case weight
-              {% endif %}
-
-            <td>
-              {{ item.item_designation.value if item.item_designation else 'No designation' }}
-            </td>
-
-            <td>
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Items List</strong>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Item Code</th>
+              <th>Case Weight</th>
+              <th>Item Designation</th>
+              <th>Packaging Type</th>
+              <th>Raw Product(s)</th>
+              <th>Ranch</th>
+              <th>Product Yield</th>
+              <th>Labor Hours</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>
+                <a href="{{ url_for('view_item', item_id=item.id) }}">{{ item.name }}</a>
+              </td>
+              <td>{{ item.code }}</td>
+              <td>
+                {% if item.case_weight %}
+                  {{ item.case_weight }} lbs
+                {% else %}
+                  No case weight
+                {% endif %}
+              </td>
+              <td>{{ item.item_designation.value if item.item_designation else 'No designation' }}</td>
+              <td>
                 {% if item.packaging_id %}
                   <a href="{{ url_for('view_packaging', packaging_id=item.packaging_id) }}">
                     {{ packaging_lookup[item.packaging_id] }}
@@ -81,62 +77,26 @@
                 {% else %}
                   No packaging
                 {% endif %}
-            </td>
-
-            <td>
-              {% if item.raw_products %}
-                {% for raw_product in item.raw_products %}
-                  <a href="{{ url_for('view_raw_product', raw_product_id=raw_product.id) }}">
-                    {{ raw_product.name }}
-                  </a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
-              {% else %}
-                No raw products
-              {% endif %}
-            </td>
-
-            <td>
-                {% if item.ranch %}
-                <p> Yes </p>
+              </td>
+              <td>
+                {% if item.raw_products %}
+                  {% for rp in item.raw_products %}
+                    <a href="{{ url_for('view_raw_product', raw_product_id=rp.id) }}">{{ rp.name }}</a>{% if not loop.last %}, {% endif %}
+                  {% endfor %}
                 {% else %}
-                <p> No </p>
+                  No raw products
                 {% endif %}
-            </td>
-
-            <td>
-              {% if item_info_lookup.get(item.id) %}
-                {{ item_info_lookup[item.id].product_yield }}
-              {% else %}
-                No yield data
-              {% endif %}
-            </td>
-            <td>
-              {% if item_info_lookup.get(item.id) %}
-                {{ item_info_lookup[item.id].labor_hours }}
-              {% else %}
-                No labor hours data
-              {% endif %}
-            </td>
-
-        <td>
-          <div class="d-flex" style="gap: 5px;">
-          <button type="button" class="btn btn-sm btn-secondary"
-                  data-toggle="modal"
-                  data-target="#updateItemInfoModal-{{ item.id }}">
-            Update
-          </button>
-          <button type="button" class="btn btn-sm btn-danger"
-                  data-toggle="modal"
-                  data-target="#deleteItemModal-{{ item.id }}">
-            Delete
-          </button>
-        </div>
-        </td>
-
-            
-
-            
-          </tr>
+              </td>
+              <td>{{ 'Yes' if item.ranch else 'No' }}</td>
+              <td>{{ item_info_lookup[item.id].product_yield if item_info_lookup.get(item.id) else 'No yield data' }}</td>
+              <td>{{ item_info_lookup[item.id].labor_hours if item_info_lookup.get(item.id) else 'No labor hours data' }}</td>
+              <td>
+                <div class="d-flex" style="gap:5px;">
+                  <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#updateItemInfoModal-{{ item.id }}">Update</button>
+                  <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteItemModal-{{ item.id }}">Delete</button>
+                </div>
+              </td>
+            </tr>
 
           <!-- Update ItemInfo Modal -->
       <div class="modal fade" id="updateItemInfoModal-{{ item.id }}" tabindex="-1" role="dialog"
@@ -200,14 +160,15 @@
       </div>
           
 
-        {% endfor %}
-      </tbody>
-    </table>
+  {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  {% else %}
-    <p>No items available for your company.</p>
-  {% endif %}
-</div>
+{% else %}
+  <p>No items available for your company.</p>
+{% endif %}
 
 <!-- Create Item Modal -->
 <div class="modal fade" id="createItemModal" tabindex="-1" role="dialog"

@@ -12,6 +12,7 @@ from producepricer.models import (
     ItemTotalCost, 
     LaborCost, 
     PackagingCost,
+    PriceHistory,
     PriceSheet, 
     RanchPrice, 
     RawProduct,
@@ -134,9 +135,11 @@ def send_admin_approval_email(token, company_id):
 
     msg = EmailMessage(
       subject='Approve new user request',
+      from_email=app.config['MAIL_DEFAULT_SENDER'],
       to=[admin_email],
       body=f'Click to approve new user:\n\n{link}\n\n'
            'This link will expire in 1 hour.'
+
     )
     msg.send()
 
@@ -313,7 +316,12 @@ def create_company():
         # redirect to the home page
         return redirect(url_for('home'))
     # if the form is not submitted or is invalid, render the create company page
-    flash('Invalid Information.', 'danger')
+    else:
+        # print errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'Error in {field}: {error}', 'danger')
+                
     return render_template('create_company.html', title='Create Company', form=form)
 
 # packaging page
@@ -543,49 +551,6 @@ def upload_packaging_csv():
                 for item in items_using_packaging:
                     # update the total cost for the item
                     update_item_total_cost(item.id)
-
-            # BELOW IS COMMENTED OUT BECAUSE THE UPDATE_ITEM_TOTAL_COST DOES ALL OF THIS ALREADY
-                    #calculate_item_cost(item.id)
-                    # # see if the item has ranch
-                    # if item.ranch:
-                    #     ranch_cost = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.desc()).first()
-                    # else:
-                    #     ranch_cost = 0
-
-                #     # raw product cost for the item
-                #     raw_product_costs = 0
-                #     for raw_product in item.raw_products:
-                #         most_recent_cost = (
-                #             CostHistory.query
-                #             .filter_by(raw_product_id=raw_product.id)
-                #             .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-                #             .first()
-                #         )
-                #         if most_recent_cost:
-                #             raw_product_costs += most_recent_cost.cost
-                    
-                #     # designation cost of the item
-                #     if item.item_designation == 'SNAKPAK':
-
-                #     """item_cost = ItemTotalCost(
-                #         item_id=item.id,
-                #         total_cost=total_cost,
-                #         date=pd.Timestamp.now().date(),
-                #         company_id=current_user.company_id
-                #     )"""
-                #     item_cost = ItemTotalCost(
-                #         item_id=item.id,
-                #         total_cost=total_cost,
-                #         date=pd.Timestamp.now().date(),
-                #         company_id=current_user.company_id,
-                #         packaging_cost=total_packaging_cost,
-                #         ranch_cost=ranch_cost.cost,
-                #         raw_product_cost=raw_product_costs,
-                #         labor_cost=LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).first(),
-
-                #     )
-                #     db.session.add(item_cost)
-                # db.session.commit()
 
             flash('Packaging costs added successfully!', 'success')
             return redirect(url_for('packaging'))
@@ -2388,70 +2353,103 @@ def price_sheet():
       customer_names = customer_names
     )
 
-@app.route('/view_price_sheet/<int:sheet_id>')
+@app.route('/view_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
 @login_required
 def view_price_sheet(sheet_id):
-    # get the sheet
     sheet = PriceSheet.query.filter_by(
         id=sheet_id,
         company_id=current_user.company_id
     ).first_or_404()
 
-    # if the sheet doesn't exist
-    if sheet is None:
-        flash('Price sheet not found.', 'danger')
-        return redirect(url_for('price_sheet'))
-    
-    # get the customer
-    customer = Customer.query.filter_by(
-        id=sheet.customer_id,
-        company_id=current_user.company_id
-    ).first_or_404()
+    # on save…
+    if request.method=='POST':
+        for item in sheet.items:
+            sel = request.form.get(f'price_select_{item.id}')
+            inp = request.form.get(f'price_input_{item.id}')
+            raw = (inp or sel or '').strip()
+            try:
+                price = float(raw)
+            except ValueError:
+                continue
+            ph = PriceHistory(
+                date=datetime.datetime.utcnow().date(),
+                company_id=current_user.company_id,
+                customer_id=sheet.customer_id,
+                item_id=item.id,
+                price=price
+            )
+            db.session.add(ph)
+        db.session.commit()
+        flash('Prices saved!', 'success')
+        return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
 
-    # if customer doesn't exist
-    if customer is None:
-        return render_template('price_sheet.html')
-
-    sheet = PriceSheet.query.filter_by(
-        id=sheet_id,
-        company_id=current_user.company_id
-    ).first_or_404()
-
-    # ensure each item has a .current_cost attribute
+    # build “recent cost” choices (last 5) for each item
+    history_opts = {}
     for item in sheet.items:
-        #update_item_total_cost(item.id)
-        # see if the item has a a most recent cost
-        # if not, calculate it
-        current_cost = (
-            ItemTotalCost.query
+        history_opts[item.id] = (
+          ItemTotalCost.query
             .filter_by(item_id=item.id, company_id=current_user.company_id)
             .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
-            .first()
+            .limit(5)
+            .all()
         )
-        if not current_cost:
-            # if no cost found, attempt to calculate it
+
+        # if no history, calculate the cost
+        if not history_opts[item.id]:
             update_item_total_cost(item.id)
-            # re-query to get the most recent cost after calculation
-            current_cost = (
-                ItemTotalCost.query
+            history_opts[item.id] = (
+              ItemTotalCost.query
                 .filter_by(item_id=item.id, company_id=current_user.company_id)
                 .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
-                .first()
+                .limit(5)
+                .all()
             )
 
-        item.current_cost = ItemTotalCost.query.filter_by(
-            item_id=item.id,
-            company_id=current_user.company_id
-        ).order_by(
-            ItemTotalCost.date.desc(),
-            ItemTotalCost.id.desc()
-        ).first()
+    # build markup options at 25%,30%,35%,40%,45% 
+    percents = [25, 30, 35, 40, 45]
+    markup_opts = {}
+
+    # get the most recent price for each item in the sheet
+    recent_prices = {}
+
+    for item in sheet.items:
+        # find master customer for the current company
+        master_customer = Customer.query.filter_by(company_id=current_user.company_id, is_master=True).first()
+
+        # latest PriceHistory entry for this sheet-item
+        if master_customer:
+            last_ph = PriceHistory.query \
+                .filter_by(item_id=item.id, company_id=current_user.company_id, customer_id=master_customer.id) \
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
+                .first()
+            recent_prices[item.id] = last_ph.price if last_ph else None
+
+        else:
+            # if no master customer, just use the latest price for the item
+            last_ph = PriceHistory.query \
+                .filter_by(item_id=item.id, company_id=current_user.company_id) \
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
+                .first()
+            recent_prices[item.id] = last_ph.price if last_ph else None
+            
+        # most recent cost
+        itc = ItemTotalCost.query.filter_by(
+            item_id=item.id, company_id=current_user.company_id
+        ).order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc()).first()
+        base = itc.total_cost if itc else 0
+        opts = []
+        for pct in percents:
+            raw = base * (1 + pct/100)
+            price = math.ceil(raw * 4) / 4  # round up to nearest quarter
+            opts.append((pct, price))
+        markup_opts[item.id] = opts
 
     return render_template(
-        'view_price_sheet.html',
-        title='View Price Sheet',
-        sheet=sheet,
-        customer=customer,
+      'view_price_sheet.html',
+      sheet=sheet,
+      history_opts=history_opts,
+      markup_opts=markup_opts,
+      recent_prices=recent_prices
     )
 
 # delete a price sheet

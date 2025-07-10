@@ -26,8 +26,9 @@
   color: #fff !important;
 }
 
-/* make btn-secondary green everywhere */
-.btn-secondary {
+/* make btn-secondary and primary green everywhere */
+.btn-secondary,
+.btn-primary {
   background-color: #28a745 !important;
   border-color:     #28a745 !important;
   color:            #fff    !important;
