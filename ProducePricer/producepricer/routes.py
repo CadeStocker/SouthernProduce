@@ -2353,13 +2353,18 @@ def price_sheet():
       customer_names = customer_names
     )
 
-@app.route('/view_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
+@app.route('/edit_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
 @login_required
-def view_price_sheet(sheet_id):
+def edit_price_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
         id=sheet_id,
         company_id=current_user.company_id
     ).first_or_404()
+
+    # find all items that aren't already in the sheet
+    all_items = Item.query.filter_by(company_id=current_user.company_id).all()
+    existing_item_ids = {item.id for item in sheet.items}
+    available_items = [item for item in all_items if item.id not in existing_item_ids]
 
     # on save…
     if request.method=='POST':
@@ -2381,7 +2386,7 @@ def view_price_sheet(sheet_id):
             db.session.add(ph)
         db.session.commit()
         flash('Prices saved!', 'success')
-        return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
+        return redirect(url_for('edit_price_sheet', sheet_id=sheet.id))
 
     # build “recent cost” choices (last 5) for each item
     history_opts = {}
@@ -2431,7 +2436,7 @@ def view_price_sheet(sheet_id):
                 .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
                 .first()
             recent_prices[item.id] = last_ph.price if last_ph else None
-            
+
         # most recent cost
         itc = ItemTotalCost.query.filter_by(
             item_id=item.id, company_id=current_user.company_id
@@ -2445,12 +2450,31 @@ def view_price_sheet(sheet_id):
         markup_opts[item.id] = opts
 
     return render_template(
-      'view_price_sheet.html',
+      'edit_price_sheet.html',
       sheet=sheet,
       history_opts=history_opts,
       markup_opts=markup_opts,
-      recent_prices=recent_prices
+      recent_prices=recent_prices,
+      available_items=available_items
     )
+
+@app.route('/edit_price_sheet/<int:sheet_id>/add_items', methods=['POST'])
+@login_required
+def add_items_to_sheet(sheet_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id, company_id=current_user.company_id
+    ).first_or_404()
+    ids = request.form.getlist('new_items')
+    new_items = Item.query.filter(
+        Item.id.in_(ids),
+        Item.company_id==current_user.company_id
+    ).all()
+    for itm in new_items:
+        if itm not in sheet.items:
+            sheet.items.append(itm)
+    db.session.commit()
+    flash(f'Added {len(new_items)} item(s) to sheet.', 'success')
+    return redirect(url_for('edit_price_sheet', sheet_id=sheet.id))
 
 # delete a price sheet
 @app.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
