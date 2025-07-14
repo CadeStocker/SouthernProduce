@@ -1,0 +1,37 @@
+<!-- filepath: producepricer/templates/view_price_sheet_pdf.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Price Sheet – {{ sheet.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+  <style>
+    /* force page margins */
+    @page { margin: 1cm; }
+    body { padding: 0; margin: 0; }
+    .btn { display: none; }  /* hide buttons */
+  </style>
+</head>
+<body>
+  <h2>{{ sheet.name }} <small style="float:right">{{ now.strftime('%Y-%m-%d') }}</small></h2>
+  <table class="table table-bordered">
+    <thead>
+      <tr><th>Product</th><th>Price</th></tr>
+    </thead>
+    <tbody>
+      {% for item in sheet.items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>
+          {% if recent_prices[item.id] is not none %}
+            ${{ '%.2f'|format(recent_prices[item.id]) }}
+          {% else %}
+            — 
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

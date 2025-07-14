@@ -46,6 +46,10 @@
                     Delete
                   </button>
                 </form>
+                <a href="{{ url_for('view_price_sheet', sheet_id=ps.id) }}"
+                   class="btn btn-sm btn-info">
+                  View
+                </a>
               </td>
             </tr>
             {% endfor %}

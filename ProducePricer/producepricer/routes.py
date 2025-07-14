@@ -1,6 +1,10 @@
 import datetime
+from io import BytesIO
 import math
-from flask import redirect, render_template, render_template_string, request, url_for, flash
+import matplotlib
+matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
+import matplotlib.pyplot as plt
+from flask import redirect, render_template, render_template_string, request, url_for, flash, make_response
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     CostHistory, 
@@ -1841,13 +1845,133 @@ def edit_customer(customer_id):
         flash('Customer not found or you do not have permission to edit it.', 'danger')
         return redirect(url_for('customer'))
 
-    # Update the customer's details
+    # Update the customer's basic info
     customer.name = request.form['name']
     customer.email = request.form['email']
-    db.session.commit()
 
+    # handle master customer checkbox
+    is_master = request.form.get('is_master') == 'on'
+
+    if is_master:
+        # unmark any other master
+        existing_master = Customer.query.filter_by(
+            company_id=current_user.company_id,
+            is_master=True
+        ).first()
+        if existing_master and existing_master.id != customer.id:
+            existing_master.is_master = False
+            flash(
+              f'Customer "{existing_master.name}" has been un-marked as master.', 
+              'info'
+            )
+        customer.is_master = True
+    else:
+        customer.is_master = False
+
+    db.session.commit()
     flash(f'Customer "{customer.name}" has been updated successfully!', 'success')
     return redirect(url_for('customer'))
+
+@app.route('/view_price_sheet/<int:sheet_id>')
+@login_required
+def view_price_sheet(sheet_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # for each item, pull the most recent PriceHistory for this sheet
+    recent = {}
+
+    # get the master customer
+    master_customer = Customer.query.filter_by(
+        company_id=current_user.company_id,
+        is_master=True
+    ).first()
+
+    if master_customer:
+        for item in sheet.items:
+            ph = (PriceHistory.query
+                .filter_by(company_id=current_user.company_id, customer_id=master_customer.id, item_id=item.id)
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+                .first())
+            recent[item.id] = ph
+
+    else:
+        for item in sheet.items:
+            ph = (PriceHistory.query
+                .filter_by(company_id=current_user.company_id, item_id=item.id)
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+                .first())
+            recent[item.id] = ph
+
+    return render_template(
+        'view_price_sheet.html',
+        sheet=sheet,
+        recent_prices=recent,
+        now=datetime.datetime.utcnow()
+    )
+
+@app.route('/view_price_sheet/<int:sheet_id>/export_pdf')
+@login_required
+def export_price_sheet_pdf(sheet_id):
+    # load the sheet and recent prices as in your view
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # fetch most recent price per item
+    recent = {}
+    master = Customer.query.filter_by(
+        company_id=current_user.company_id,
+        is_master=True
+    ).first()
+    for item in sheet.items:
+        q = PriceHistory.query.filter_by(
+            company_id=current_user.company_id,
+            item_id=item.id,
+            **({'customer_id': master.id} if master else {})
+        ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+        ph = q.first()
+        recent[item.name] = ph.price if ph else None
+
+    # prepare table data
+    table_data = []
+    for name, price in recent.items():
+        table_data.append([name, f"${price:.2f}" if price is not None else "—"])
+
+    # create a matplotlib figure
+    fig, ax = plt.subplots(figsize=(8.5, 11))
+    ax.axis('off')
+    ax.set_title(f"Price Sheet: {sheet.name}   {sheet.date.strftime('%Y-%m-%d')}", fontsize=14, pad=20)
+
+    # add the table
+    tbl = ax.table(
+        cellText=table_data,
+        colLabels=["Item", "Selected Price"],
+        cellLoc='left',
+        colColours=['#eeeeee', '#eeeeee'],
+        loc='center'
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(10)
+    tbl.scale(1, 1.5)
+
+    # render to PDF in-memory
+    buf = BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format='pdf')
+    plt.close(fig)
+    buf.seek(0)
+
+    # build response
+    resp = make_response(buf.read())
+    resp.headers['Content-Type'] = 'application/pdf'
+    resp.headers['Content-Disposition'] = (
+        f'attachment; filename=price_sheet_{sheet.name}.pdf'
+    )
+    return resp
 
 # add new customer
 @app.route('/add_customer', methods=['POST'])

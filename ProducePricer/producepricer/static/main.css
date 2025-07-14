@@ -4,6 +4,11 @@
   -webkit-overflow-scrolling: touch;
 }
 
+body {
+  padding: 20px;
+  background-color: #f8f9fa; /* light background for contrast */
+}
+
 /* make the existing light navbar green */
 .navbar.bg-light {
   background-color: #28a745 !important;

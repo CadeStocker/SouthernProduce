@@ -36,6 +36,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Is Master Customer?</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -44,6 +45,12 @@
                             <tr>
                                 <td>{{ customer.name }}</td>
                                 <td>{{ customer.email }}</td>
+                                <td>
+                                    {% if customer.is_master %}
+                                        <span class="badge badge-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">No</span>
+                                    {% endif %}
                                 <td>
                                     <div class="d-flex align-items-center">
                                     <!-- Edit Button -->
@@ -76,6 +83,10 @@
                                                         <div class="form-group">
                                                             <label for="email">Email</label>
                                                             <input type="email" name="email" class="form-control" id="email" value="{{ customer.email }}" required>
+                                                        </div>
+                                                        <div class="form-group form-check">
+                                                            <input type="checkbox" class="form-check-input" name="is_master" id="is_master{{ customer.id }}" {% if customer.is_master %}checked{% endif %}>
+                                                            <label class="form-check-label" for="is_master{{ customer.id }}">Is Master Customer?</label>
                                                         </div>
                                                         <button type="submit" class="btn btn-primary">Save Changes</button>
                                                     </form>
