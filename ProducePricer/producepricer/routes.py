@@ -1003,7 +1003,15 @@ def view_item(item_id):
 
     # history of total costs for this item
     item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
-    
+
+    # get most recent prices assigned to item
+    price_history = (
+        PriceHistory.query
+        .filter_by(item_id=item_id, company_id=current_user.company_id)
+        .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+        .all()
+    )
+
     # if there's no item costs, calculate the current cost
     if not item_costs:
         update_item_total_cost(item_id)
@@ -1029,7 +1037,21 @@ def view_item(item_id):
     form.packaging.data = item.packaging_id
     form.raw_products.data = [rp.id for rp in item.raw_products]
 
-    return render_template('view_item.html', form=form, current_cost=current_cost, item_costs=item_costs, most_recent_labor_cost=most_recent_labor_cost, update_item_info_form=update_item_info_form, title='View Item', item=item, item_info=item_info, packaging=packaging, raw_products=raw_products)
+    # map customer id's to customer name to send to the page
+    customer_map = {customer.id: customer.name for customer in Customer.query.filter_by(company_id=current_user.company_id).all()}
+
+    return render_template('view_item.html', form=form,
+                           current_cost=current_cost,
+                           item_costs=item_costs,
+                           most_recent_labor_cost=most_recent_labor_cost,
+                           update_item_info_form=update_item_info_form,
+                           title='View Item',
+                           item=item,
+                           item_info=item_info,
+                           packaging=packaging,
+                           raw_products=raw_products,
+                           price_history=price_history,
+                           customer_map=customer_map)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
@@ -2454,6 +2476,7 @@ def price_sheet():
             company_id  = current_user.company_id,
             customer_id = form.customer.data
         )
+
         # link the selected items
         selected = Item.query.filter(
             Item.id.in_(form.items.data),

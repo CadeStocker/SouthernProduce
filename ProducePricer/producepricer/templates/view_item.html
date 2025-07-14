@@ -63,6 +63,39 @@
         </div>
     </div>
 
+    <!-- Item Price History -->
+    <div class="card mb-4">
+  <div class="card-header">
+    <h5>Item Price History</h5>
+  </div>
+  <div class="card-body">
+    {% if price_history %}
+      <table class="table table-striped">
+        <thead>
+          <tr><th>Date</th><th>Price</th><th>Customer</th></tr>
+        </thead>
+        <tbody>
+          {% for entry in price_history %}
+            <tr>
+              <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
+              <td>${{ "%.2f"|format(entry.price) }}</td>
+                <td>
+                    {% if entry.customer_id %}
+                        {{ customer_map[entry.customer_id] }}
+                    {% else %}
+                        No Customer
+                    {% endif %}
+                </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No price history available.</p>
+    {% endif %}
+  </div>
+</div>
+
     <!-- Item Costs -->
     <div class="card mb-4">
         <div class="card-header">
