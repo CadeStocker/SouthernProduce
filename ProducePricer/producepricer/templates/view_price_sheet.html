@@ -28,8 +28,8 @@
             <tr>
               <td>{{ item.name }}</td>
               <td>
-                {% if recent_prices[item.id] is not none %}
-                  ${{ '%.2f'|format(recent_prices[item.id].price) }}
+                {% if recent[item.id] is not none %}
+                  ${{ '%.2f'|format(recent[item.id].price) }}
                 {% else %}
                   <span class="text-muted">— no price set —</span>
                 {% endif %}

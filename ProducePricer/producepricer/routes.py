@@ -1916,6 +1916,12 @@ def view_price_sheet(sheet_id):
         company_id=current_user.company_id
     ).first_or_404()
 
+    # get the customer associated with this price sheet
+    customer = Customer.query.filter_by(
+        id=sheet.customer_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
     # for each item, pull the most recent PriceHistory for this sheet
     recent = {}
 
@@ -1925,27 +1931,35 @@ def view_price_sheet(sheet_id):
         is_master=True
     ).first()
 
-    if master_customer:
-        for item in sheet.items:
-            ph = (PriceHistory.query
-                .filter_by(company_id=current_user.company_id, customer_id=master_customer.id, item_id=item.id)
-                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
-                .first())
-            recent[item.id] = ph
+    for item in sheet.items:
+        q = PriceHistory.query.filter_by(
+            company_id=current_user.company_id,
+            item_id=item.id,
+            customer_id=customer.id if customer else None,
+        ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+        ph = q.first()
 
-    else:
-        for item in sheet.items:
-            ph = (PriceHistory.query
-                .filter_by(company_id=current_user.company_id, item_id=item.id)
-                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
-                .first())
-            recent[item.id] = ph
+        if ph:
+            # find customer name from customer id
+            customer = Customer.query.filter_by(
+                id=ph.customer_id,
+                company_id=current_user.company_id
+            ).first()
+
+            recent[item.id] = {
+                'price': ph.price,
+                'date': ph.date.strftime('%Y-%m-%d %H:%M:%S'),
+                'customer': customer.name if customer else 'Unknown'
+            }
 
     return render_template(
         'view_price_sheet.html',
         sheet=sheet,
         recent_prices=recent,
-        now=datetime.datetime.utcnow()
+        now=datetime.datetime.utcnow(),
+        customer=customer,
+        master_customer=master_customer,
+        recent=recent
     )
 
 @app.route('/view_price_sheet/<int:sheet_id>/export_pdf')

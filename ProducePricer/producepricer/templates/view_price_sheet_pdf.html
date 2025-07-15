@@ -23,8 +23,12 @@
       <tr>
         <td>{{ item.name }}</td>
         <td>
-          {% if recent_prices[item.id] is not none %}
-            ${{ '%.2f'|format(recent_prices[item.id]) }}
+          {% if recent[item.id] is not none %}
+            ${{ '%.2f'|format(recent[item.id].price) }}
+            {{ recent[item.id].date.strftime('%Y-%m-%d') }}
+            {% if recent[item.id].customer %}
+              ({{ recent[item.id].customer }})
+            {% endif %}
           {% else %}
             — 
           {% endif %}
