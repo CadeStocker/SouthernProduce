@@ -1946,9 +1946,11 @@ def view_price_sheet(sheet_id):
                 company_id=current_user.company_id
             ).first()
 
+            ph.formatted_date = ph.date.strftime('%Y-%m-%d')
+
             recent[item.id] = {
                 'price': ph.price,
-                'date': ph.date.strftime('%Y-%m-%d %H:%M:%S'),
+                'date': ph.formatted_date,
                 'customer': customer.name if customer else 'Unknown'
             }
 

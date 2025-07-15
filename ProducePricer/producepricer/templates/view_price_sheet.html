@@ -21,6 +21,7 @@
             <tr>
               <th>Product</th>
               <th>Price</th>
+              <th>Last Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -34,6 +35,15 @@
                   <span class="text-muted">— no price set —</span>
                 {% endif %}
               </td>
+                <td>
+  {% if recent[item.id] is not none %}
+    {{ recent[item.id].date }}
+    {% if recent[item.id].customer %}
+    {% endif %}
+  {% else %}
+    <span class="text-muted">— no price history —</span>
+  {% endif %}
+</td>
             </tr>
             {% endfor %}
           </tbody>
