@@ -1,38 +1,57 @@
-<!-- filepath: producepricer/templates/view_price_sheet_pdf.html -->
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_price_sheet_pdf.html -->
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Price Sheet – {{ sheet.name }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
   <style>
-    /* force page margins */
     @page { margin: 1cm; }
-    body { padding: 0; margin: 0; }
-    .btn { display: none; }  /* hide buttons */
+    body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; }
+    h2 { margin-bottom: 0.5em; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { border: 1px solid #333; padding: 4px 6px; text-align: left; }
+    th { background: #e9ecef; }
+    .right { float: right; font-size: 12px; font-weight: normal; }
+    tr { page-break-inside: avoid; }
+    thead { display: table-header-group; }
   </style>
 </head>
 <body>
-  <h2>{{ sheet.name }} <small style="float:right">{{ now.strftime('%Y-%m-%d') }}</small></h2>
-  <table class="table table-bordered">
+  <h2>
+    {{ sheet.name }}
+    <span class="right">{{ now.strftime('%Y-%m-%d') }}</span>
+  </h2>
+  <table>
     <thead>
-      <tr><th>Product</th><th>Price</th></tr>
+      <tr>
+        <th>Product</th>
+        <th>Price</th>
+        <th>Changed?</th>
+      </tr>
     </thead>
     <tbody>
       {% for item in sheet.items %}
       <tr>
         <td>{{ item.name }}</td>
         <td>
-          {% if recent[item.id] is not none %}
-            ${{ '%.2f'|format(recent[item.id].price) }}
-            {{ recent[item.id].date.strftime('%Y-%m-%d') }}
-            {% if recent[item.id].customer %}
-              ({{ recent[item.id].customer }})
-            {% endif %}
+          {% if recent[item.id]['price'] is not none %}
+            ${{ '%.2f'|format(recent[item.id]['price']) }}
           {% else %}
-            — 
+            —
           {% endif %}
         </td>
+        <td>
+          {% if recent[item.id]['date'] %}
+            {{ recent[item.id]['date'] }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        {% if recent[item.id]['date'] and recent[item.id]['date'] >= seven_days_ago %}
+            <td style="color: red; text-align: center;">*</td>
+        {% else %}
+            <td></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>

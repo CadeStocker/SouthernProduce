@@ -13,6 +13,9 @@ app = Flask(__name__)
 # Configuration
 app.config['SECRET_KEY'] = '33d151aee312625a351143d17aeb358f'
 
+# Enable CSRF protection
+app.config['WTF_CSRF_ENABLED'] = True
+
 # define the upload folder
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
 

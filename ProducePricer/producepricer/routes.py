@@ -1,6 +1,8 @@
 import datetime
 from io import BytesIO
+from flask_mailman import EmailMessage
 import math
+from fpdf import FPDF
 import matplotlib
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
@@ -1964,66 +1966,72 @@ def view_price_sheet(sheet_id):
         recent=recent
     )
 
-@app.route('/view_price_sheet/<int:sheet_id>/export_pdf')
-@login_required
-def export_price_sheet_pdf(sheet_id):
-    # load the sheet and recent prices as in your view
-    sheet = PriceSheet.query.filter_by(
-        id=sheet_id,
-        company_id=current_user.company_id
-    ).first_or_404()
-
-    # fetch most recent price per item
+def _generate_price_sheet_pdf_bytes(sheet):
+    """Helper function to generate the price sheet PDF bytes."""
+    # Build recent dict for each item
     recent = {}
     master = Customer.query.filter_by(
         company_id=current_user.company_id,
         is_master=True
     ).first()
     for item in sheet.items:
-        q = PriceHistory.query.filter_by(
-            company_id=current_user.company_id,
-            item_id=item.id,
-            **({'customer_id': master.id} if master else {})
-        ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
-        ph = q.first()
-        recent[item.name] = ph.price if ph else None
+        # Try to get price for master customer first
+        ph = None
+        if master:
+            ph = PriceHistory.query.filter_by(
+                company_id=current_user.company_id,
+                item_id=item.id,
+                customer_id=master.id
+            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+        # Fallback: any customer
+        if not ph:
+            ph = PriceHistory.query.filter_by(
+                company_id=current_user.company_id,
+                item_id=item.id
+            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+        
+        recent[item.id] = {
+            'price': float(ph.price) if ph and ph.price is not None else None,
+            'date': ph.date if ph and ph.date else None,
+        }
 
-    # prepare table data
-    table_data = []
-    for name, price in recent.items():
-        table_data.append([name, f"${price:.2f}" if price is not None else "—"])
+    # Create PDF
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, f"Price Sheet: {sheet.name}", ln=1)
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, f"Date: {sheet.date.strftime('%Y-%m-%d')}", ln=1)
+    pdf.ln(4)
 
-    # create a matplotlib figure
-    fig, ax = plt.subplots(figsize=(8.5, 11))
-    ax.axis('off')
-    ax.set_title(f"Price Sheet: {sheet.name}   {sheet.date.strftime('%Y-%m-%d')}", fontsize=14, pad=20)
+    # Table header
+    pdf.set_font("Arial", "B", 11)
+    col_widths = [120, 35, 35]
+    headers = ["Product", "Price", "Changed"]
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 8, header, border=1, align="C")
+    pdf.ln()
 
-    # add the table
-    tbl = ax.table(
-        cellText=table_data,
-        colLabels=["Item", "Selected Price"],
-        cellLoc='left',
-        colColours=['#eeeeee', '#eeeeee'],
-        loc='center'
-    )
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(10)
-    tbl.scale(1, 1.5)
+    # Table rows
+    pdf.set_font("Arial", "", 10)
+    seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
 
-    # render to PDF in-memory
-    buf = BytesIO()
-    fig.tight_layout()
-    fig.savefig(buf, format='pdf')
-    plt.close(fig)
-    buf.seek(0)
+    for item in sheet.items:
+        info = recent.get(item.id, {})
+        price = f"${info.get('price'):.2f}" if info.get('price') is not None else "—"
+        
+        changed_char = ""
+        item_date = info.get('date')
+        if item_date and item_date >= seven_days_ago.date():
+            changed_char = "*"
 
-    # build response
-    resp = make_response(buf.read())
-    resp.headers['Content-Type'] = 'application/pdf'
-    resp.headers['Content-Disposition'] = (
-        f'attachment; filename=price_sheet_{sheet.name}.pdf'
-    )
-    return resp
+        pdf.cell(col_widths[0], 8, item.name, border=1)
+        pdf.cell(col_widths[1], 8, price, border=1, align="C")
+        pdf.cell(col_widths[2], 8, changed_char, border=1, align="C")
+        pdf.ln()
+
+    return bytes(pdf.output(dest='S'))
 
 # add new customer
 @app.route('/add_customer', methods=['POST'])
@@ -2643,6 +2651,50 @@ def edit_price_sheet(sheet_id):
       recent_prices=recent_prices,
       available_items=available_items
     )
+
+@app.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
+@login_required
+def email_price_sheet(sheet_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    # Generate PDF bytes using the helper function
+    pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
+
+    # Get recipient email from form
+    recipient = request.form.get('recipient')
+    if not recipient:
+        flash('Recipient email required.', 'danger')
+        return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
+
+    # Send email
+    msg = EmailMessage(
+        subject=f'Price Sheet: {sheet.name}',
+        body='Attached is your requested price sheet PDF.',
+        to=[recipient]
+    )
+    msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
+    msg.send()
+
+    flash(f'Price sheet emailed to {recipient}.', 'success')
+    return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
+
+@app.route('/view_price_sheet/<int:sheet_id>/export_pdf')
+@login_required
+def export_price_sheet_pdf(sheet_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
+
+    resp = make_response(pdf_bytes)
+    resp.headers['Content-Type'] = 'application/pdf'
+    resp.headers['Content-Disposition'] = f'attachment; filename=price_sheet_{sheet.name}.pdf'
+    return resp
 
 @app.route('/edit_price_sheet/<int:sheet_id>/add_items', methods=['POST'])
 @login_required
