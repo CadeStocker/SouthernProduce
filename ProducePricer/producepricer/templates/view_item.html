@@ -96,6 +96,60 @@
   </div>
 </div>
 
+<!-- Price History Chart -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Price History Chart</h5>
+  </div>
+  <div class="card-body">
+    <canvas id="itemPriceChart" width="400" height="200"></canvas>
+  </div>
+</div>
+
+<script>
+// build labels and data arrays from price_history
+const priceHistoryLabels = [
+  {% for entry in price_history %}
+    "{{ entry.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
+  {% endfor %}
+];
+const priceHistoryData = [
+  {% for entry in price_history %}
+    {{ "%.2f"|format(entry.price) }}{% if not loop.last %}, {% endif %}
+  {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('itemPriceChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: priceHistoryLabels,
+      datasets: [{
+        label: 'Price ($)',
+        data: priceHistoryData,
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderWidth: 2,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          title: { display: true, text: 'Date' }
+        },
+        y: {
+          title: { display: true, text: 'Price ($)' },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+});
+</script>
+
     <!-- Item Costs -->
     <div class="card mb-4">
         <div class="card-header">
@@ -133,22 +187,34 @@
 
     <!-- current cost breakdown -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h5>Current Cost Breakdown</h5>
-        </div>
-        <div class="card-body">
-            {% if current_cost %}
-                <p><strong>Total Cost:</strong> ${{ "%.2f"|format(current_cost.total_cost) }}</p>
-                <p><strong>Raw Product Costs:</strong></p>
-                <ul>
-                    {% for raw_product_cost in current_cost.raw_product_costs %}
-                        <li>{{ raw_product_cost.raw_product.name }}: ${{ "%.2f"|format(raw_product_cost.cost) }}</li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>No current cost breakdown available.</p>
-            {% endif %}
-        </div>
+      <div class="card-header">
+        <h5>Current Cost Breakdown</h5>
+      </div>
+      <div class="card-body">
+        {% if current_cost %}
+          <p><strong>Total Cost:</strong> ${{ "%.2f"|format(current_cost.total_cost) }}</p>
+          <p><strong>Raw Product Costs:</strong></p>
+          {% if raw_products %}
+            <ul>
+              {% for rp in raw_products %}
+                {% set cost = raw_product_latest_costs[rp.id] %}
+                <li>
+                  {{ rp.name }}:
+                  {% if cost is not none %}
+                    ${{ "%.2f"|format(cost) }}
+                  {% else %}
+                    <span class="text-muted">— no cost recorded —</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted">No raw products.</p>
+          {% endif %}
+        {% else %}
+          <p>No current cost breakdown available.</p>
+        {% endif %}
+      </div>
     </div>
 
     <!-- Item Info History -->

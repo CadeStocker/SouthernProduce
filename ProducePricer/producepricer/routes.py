@@ -1021,6 +1021,19 @@ def view_item(item_id):
     current_cost = item_costs[0] if item_costs else None
     #print(current_cost.total_cost)
 
+    raw_product_latest_costs = {}
+
+    for rp in raw_products:
+        # get the most recent cost for each raw product
+        most_recent_cost = (
+            CostHistory.query
+            .filter_by(raw_product_id=rp.id)
+            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+            .first()
+        )
+        if most_recent_cost:
+            raw_product_latest_costs[rp.id] = most_recent_cost.cost
+
     # form
     update_item_info_form = UpdateItemInfo()
     form = EditItem()
@@ -1051,7 +1064,8 @@ def view_item(item_id):
                            packaging=packaging,
                            raw_products=raw_products,
                            price_history=price_history,
-                           customer_map=customer_map)
+                           customer_map=customer_map,
+                           raw_product_latest_costs=raw_product_latest_costs)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
