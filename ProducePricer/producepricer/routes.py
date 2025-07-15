@@ -2576,6 +2576,15 @@ def edit_price_sheet(sheet_id):
                 .first()
             recent_prices[item.id] = last_ph.price if last_ph else None
 
+            # if there is a master customer, but they don't have a price for this item,
+            # just use the latest price for the item
+            if not last_ph:
+                last_ph = PriceHistory.query \
+                    .filter_by(item_id=item.id, company_id=current_user.company_id) \
+                    .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
+                    .first()
+                recent_prices[item.id] = last_ph.price if last_ph else None
+
         else:
             # if no master customer, just use the latest price for the item
             last_ph = PriceHistory.query \
