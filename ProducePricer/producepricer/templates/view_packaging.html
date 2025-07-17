@@ -5,6 +5,10 @@
 <div class="container mt-4">
     <h1 class="mb-4">Packaging Details: {{ packaging.packaging_type }}</h1>
 
+    <!-- Back Button -->
+    <div class="mt-4 mb-4">
+        <a href="{{ url_for('packaging') }}" class="btn btn-secondary">Back to Packaging List</a>
+    </div>
     <!-- Packaging Details -->
     <div class="card mb-4">
         <div class="card-header">
@@ -82,10 +86,6 @@
         </div>
     </div>
 
-    <!-- Back Button -->
-    <div class="mt-4">
-        <a href="{{ url_for('packaging') }}" class="btn btn-secondary">Back to Packaging List</a>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
