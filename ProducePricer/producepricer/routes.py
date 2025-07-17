@@ -799,46 +799,52 @@ def delete_raw_product(raw_product_id):
     flash(f'Raw product "{raw_product.name}" and its associated costs have been deleted.', 'success')
     return redirect(url_for('raw_product'))
 
-# route for items page
 @app.route('/items')
 @login_required
 def items():
-    # get the current user's company
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Items per page
+    
+    # Get search parameter
+    q = request.args.get('q', '').strip()
+    
+    # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
-
-    # forms
+    
+    # Forms
     form = AddItem()
     update_item_form = UpdateItemInfo()
     form.packaging.choices = [(pack.id, pack.packaging_type) for pack in company.packaging] if company else []
     form.raw_products.choices = [(raw.id, raw.name) for raw in company.raw_products] if company else []
     upload_item_csv = UploadItemCSV()
     
-    # search feature
-    q = request.args.get('q', '').strip()
+    # Base query - filtered by company
+    query = Item.query.filter_by(company_id=current_user.company_id)
+    
+    # Apply search filter if provided
     if q:
-        # filter the items by the search query
-        items = Item.query.filter(
-            Item.company_id == current_user.company_id,
-            Item.name.ilike(f'%{q}%')
-        ).all()
-    else:
-        # get the items from the current user's company
-        items = company.items if company else []
-    #packaging = Packaging.query.filter_by(company_id=current_user.company_id).all()
-
-    # get the packaging types for the current user's company
+        query = query.filter(
+            (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
+        )
+    
+    # Apply pagination
+    pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
+    items = pagination.items
+    
+    # Get packaging lookup
     packaging_lookup = {
         p.id: p.packaging_type
         for p in Packaging.query.filter_by(company_id=current_user.company_id).all()
     }
-
-    # get the raw products for the current user's company
+    
+    # Get raw product lookup
     raw_product_lookup = {
         rp.id: rp.name
         for rp in RawProduct.query.filter_by(company_id=current_user.company_id).all()
     }
-
-    # get the most recent item info for each item
+    
+    # Get item info lookup
     item_info_lookup = {}
     for item in items:
         most_recent_info = (
@@ -849,23 +855,20 @@ def items():
         )
         if most_recent_info:
             item_info_lookup[item.id] = most_recent_info
-
-
     
-    # render the page
+    # Render the page
     return render_template(
         'items.html',
         title='Items',
         items=items,
+        pagination=pagination,  # Pass pagination object to template
         packaging_lookup=packaging_lookup,
         raw_product_lookup=raw_product_lookup,
-        #packaging=packaging,
-        #item_costs=item_costs,
         form=form,
         update_item_info_form=update_item_form,
         item_info_lookup=item_info_lookup,
         upload_item_csv=upload_item_csv,
-        q=q
+        q=q  # Pass search query for maintaining state
     )
     
 @app.route('/add_item', methods=['POST'])
