@@ -1685,39 +1685,33 @@ def update_item_total_cost(item_id):
 @app.route('/price')
 @login_required
 def price():
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Items per page
+    
+    # Get search parameter
+    q = request.args.get('q', '').strip()
+    
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
         return redirect(url_for('index'))
     
-    # search feature
-    q = request.args.get('q', '').strip()
+    # Base query - filtered by company
+    query = Item.query.filter_by(company_id=current_user.company_id)
+    
+    # Apply search filter if provided
     if q:
-        # filter the items by the search query
-        items = Item.query.filter(
-            Item.company_id == current_user.company_id,
-            Item.name.ilike(f'%{q}%')
-        ).all()
-    else:
-        # Get all items for the current user's company
-        items = Item.query.filter_by(company_id=current_user.company_id).all()
-
-    # Get the most recent total cost for each item
-    item_costs = {}
-    for item in items:
-        most_recent_cost = (
-            ItemTotalCost.query
-            .filter_by(item_id=item.id)
-            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
-            .first()
+        query = query.filter(
+            (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
         )
-        if most_recent_cost:
-            item_costs[item.id] = most_recent_cost
-        else:
-            # if no cost found, attempt to calculate it
-            update_item_total_cost(item.id)
-
+    
+    # Apply pagination
+    pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
+    items = pagination.items
+    
+    # Process items for display
     item_data = []
     for item in items:
         # Get the most recent total cost for the item
@@ -1744,7 +1738,6 @@ def price():
         packaging_cost = most_recent_cost.packaging_cost
         unit_cost = most_recent_cost.total_cost
         
-
         # Rounded costs (rounded up to the nearest .25)
         def round_up_to_nearest_quarter(value):
             return math.ceil(value * 4) / 4
@@ -1779,8 +1772,8 @@ def price():
     # render the price page with the item data
     return render_template('price.html',
                            title='Price',
-                           items=item_data,
-                           item_costs=item_costs,
+                           items=items,
+                           pagination=pagination,  # Pass pagination object to template 
                            item_data=item_data,
                            company=company,
                            q=q)
