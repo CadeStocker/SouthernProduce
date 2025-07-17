@@ -1,9 +1,140 @@
+<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/home.html -->
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Home - Produce Pricer{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>Welcome to Produce Pricer</h1>
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="jumbotron bg-light rounded-lg shadow-sm mb-5">
+        <h1 class="display-4">Welcome to Produce Pricer</h1>
+        <p class="lead">Streamline your produce pricing, costing, and quotation process with Produce Pricer.</p>
+        <hr class="my-4">
+        <p>Track costs, calculate pricing, generate quotes, and maintain price sheets - all in one place.</p>
+        {% if current_user.is_authenticated %}
+            <p>Welcome back, {{ current_user.first_name }}!</p>
+        {% else %}
+            <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Get Started</a>
+        {% endif %}
+    </div>
+    
+    <!-- Quick Navigation Cards -->
+    <h2 class="mb-4">Quick Navigation</h2>
+    
+    <div class="row">
+        <!-- Item & Costs Section -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Items & Costs</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Manage your product inventory, packaging, and cost components.</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('items') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Items
+                            <span class="badge badge-primary badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('packaging') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Packaging
+                            <span class="badge badge-primary badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('raw_product') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Raw Products
+                            <span class="badge badge-primary badge-pill">→</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('items') }}" class="btn btn-outline-primary btn-sm">View All Items</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pricing Section -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Pricing</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Calculate and manage your product pricing and costs.</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('price') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Price Calculator
+                            <span class="badge badge-success badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('price_quoter') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Price Quoter
+                            <span class="badge badge-success badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('price_sheet') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Price Sheets
+                            <span class="badge badge-success badge-pill">→</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('price') }}" class="btn btn-outline-success btn-sm">Go to Pricing</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cost Components Section -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Cost Components</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Manage and track individual cost elements for accurate pricing.</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('ranch') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Ranch Costs
+                            <span class="badge badge-info badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('add_labor_cost') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Labor Costs
+                            <span class="badge badge-info badge-pill">→</span>
+                        </a>
+                        <a href="{{ url_for('designation_costs') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Designation Costs
+                            <span class="badge badge-info badge-pill">→</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('add_labor_cost') }}" class="btn btn-outline-info btn-sm">Manage Costs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity (if available) -->
+    {% if current_user.is_authenticated %}
+    <div class="mt-5">
+        <h2 class="mb-4">Quick Actions</h2>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Add New Item</h5>
+                        <p class="card-text">Create a new product item with associated costs.</p>
+                        <a href="{{ url_for('items') }}" class="btn btn-primary">Add Item</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Generate Price Quote</h5>
+                        <p class="card-text">Create a customized price quote for a customer.</p>
+                        <a href="{{ url_for('price_quoter') }}" class="btn btn-success">New Quote</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
