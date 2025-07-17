@@ -1,6 +1,7 @@
 import datetime
 from io import BytesIO
 from flask_mailman import EmailMessage
+import json
 import math
 from fpdf import FPDF
 import matplotlib
@@ -1006,13 +1007,37 @@ def view_item(item_id):
     # history of total costs for this item
     item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
 
-    # get most recent prices assigned to item
+    # get most recent prices assigned to item (for the table)
     price_history = (
         PriceHistory.query
         .filter_by(item_id=item_id, company_id=current_user.company_id)
         .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
         .all()
     )
+
+    # map customer id's to customer name to send to the page
+    customer_map = {customer.id: customer.name for customer in Customer.query.filter_by(company_id=current_user.company_id).all()}
+
+    # Group price history by customer for the chart, ordered ASCENDING for a proper timeline
+    price_history_for_chart = (
+        PriceHistory.query
+        .filter_by(item_id=item_id, company_id=current_user.company_id)
+        .order_by(PriceHistory.date.asc())
+        .all()
+    )
+    price_chart_data = {}
+    for entry in price_history_for_chart:
+        customer_name = customer_map.get(entry.customer_id, "General Price")
+
+        # Initialize the array for this customer if it doesn't exist
+        if customer_name not in price_chart_data:
+            price_chart_data[customer_name] = []
+        
+        # Append the date and price to the customer's data
+        price_chart_data[customer_name].append({
+            'x': entry.date.strftime('%Y-%m-%d'),
+            'y': float(entry.price)
+        })
 
     # if there's no item costs, calculate the current cost
     if not item_costs:
@@ -1052,9 +1077,6 @@ def view_item(item_id):
     form.packaging.data = item.packaging_id
     form.raw_products.data = [rp.id for rp in item.raw_products]
 
-    # map customer id's to customer name to send to the page
-    customer_map = {customer.id: customer.name for customer in Customer.query.filter_by(company_id=current_user.company_id).all()}
-
     return render_template('view_item.html', form=form,
                            current_cost=current_cost,
                            item_costs=item_costs,
@@ -1067,6 +1089,7 @@ def view_item(item_id):
                            raw_products=raw_products,
                            price_history=price_history,
                            customer_map=customer_map,
+                           price_chart_data=price_chart_data,
                            raw_product_latest_costs=raw_product_latest_costs)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
@@ -1558,6 +1581,7 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
             flash('No ranch cost found.', 'warning')
 
     # get the (raw price/yield) for each raw product
+    raw_costs = []
     for raw_product in raw_products:
         most_recent_cost = (
             CostHistory.query
@@ -1568,8 +1592,13 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
         if most_recent_cost:
             # calculate the cost per unit of yield
             cost_per_unit_yield = most_recent_cost.cost / (product_yield or 1)  # Avoid division by zero
-            total_cost += (cost_per_unit_yield * case_weight)
-            raw_product_cost += (cost_per_unit_yield * case_weight)
+            cost = cost_per_unit_yield * case_weight
+            total_cost += cost
+            raw_costs.append(cost)
+    # If there are raw costs, average them for raw_product_cost
+    raw_product_cost = sum(raw_costs) / len(raw_costs) if raw_costs else 0.0
+
+
 
     # get the packaging cost for the item
     packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
