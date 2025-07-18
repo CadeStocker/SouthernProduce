@@ -145,7 +145,7 @@ def send_admin_approval_email(token, company_id):
       from_email=app.config['MAIL_DEFAULT_SENDER'],
       to=[admin_email],
       body=f'Click to approve new user:\n\n{link}\n\n'
-           'This link will expire in 1 hour.'
+           'This link will expire in 1 hour.\n(If the link takes you to the login page, please log in and then click the link again.)'
 
     )
     msg.send()
