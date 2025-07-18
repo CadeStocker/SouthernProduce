@@ -267,7 +267,7 @@ if (priceCanvas) {
   //
   const costCanvas = document.getElementById('itemCostChart');
   if (costCanvas) {
-    const labels = [{% for c in all_item_costs %}"{{ c.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const labels = [{% for c in all_item_costs %}"{{ c.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}];
     const data   = [{% for c in all_item_costs %}{{ "%.2f"|format(c.total_cost) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
     new Chart(costCanvas.getContext('2d'), {
       type: 'line',
@@ -375,6 +375,41 @@ if (priceCanvas) {
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Info Modal -->
+<div class="modal fade" id="addItemInfoModal-{{ item.id }}" tabindex="-1" role="dialog" aria-labelledby="addItemInfoModalLabel-{{ item.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemInfoModalLabel-{{ item.id }}">Add Item Info for {{ item.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('update_item', item_id=item.id) }}">
+                {{ update_item_info_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ update_item_info_form.product_yield.label(class="form-control-label") }}
+                        {{ update_item_info_form.product_yield(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ update_item_info_form.labor_hours.label(class="form-control-label") }}
+                        {{ update_item_info_form.labor_hours(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ update_item_info_form.date.label(class="form-control-label") }}
+                        {{ update_item_info_form.date(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Info</button>
                 </div>
             </form>
         </div>

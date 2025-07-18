@@ -984,7 +984,7 @@ def update_item(item_id):
         db.session.add(item_info)
         db.session.commit()
         flash(f'Item info for "{item.name}" has been updated successfully!', 'success')
-        return redirect(url_for('items'))
+        return redirect(url_for('view_item', item_id=item.id))
     # if the form is not submitted or is invalid, render the update item page
     flash('Invalid data submitted.', 'danger')
     return render_template('update_item.html', title='Update Item', form=form, item=item)
