@@ -959,6 +959,29 @@ def delete_item(item_id):
     flash(f'Item "{item.name}" and its associated information have been deleted.', 'success')
     return redirect(url_for('items'))
 
+@app.route('/delete_price_history/<int:price_history_id>', methods=['POST'])
+@login_required
+def delete_price_history(price_history_id):
+    # Find the price history entry
+    price_history = PriceHistory.query.filter_by(
+        id=price_history_id, 
+        company_id=current_user.company_id
+    ).first()
+    
+    if not price_history:
+        flash('Price history entry not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('items'))
+    
+    # Store the item_id before deleting the entry
+    item_id = price_history.item_id
+    
+    # Delete the price history entry
+    db.session.delete(price_history)
+    db.session.commit()
+    
+    flash('Price history entry has been deleted successfully.', 'success')
+    return redirect(url_for('view_item', item_id=item_id))
+
 # update info for an item
 @app.route('/update_item/<int:item_id>', methods=['GET', 'POST'])
 @login_required
