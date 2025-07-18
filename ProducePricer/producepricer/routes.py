@@ -993,50 +993,87 @@ def update_item(item_id):
 @app.route('/item/<int:item_id>')
 @login_required
 def view_item(item_id):
-    # find the item in the database
+    # Get pagination parameters
+    price_page = request.args.get('price_page', 1, type=int)
+    cost_page = request.args.get('cost_page', 1, type=int)
+    info_page = request.args.get('info_page', 1, type=int)
+    per_page = 10  # Number of items per page
+    
+    # Find the item in the database
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
     if item is None:
         flash('Item not found.', 'danger')
         return redirect(url_for('items'))
     
-    # get all the item info for this item
-    item_info = ItemInfo.query.filter_by(item_id=item_id).order_by(ItemInfo.date.desc()).all()
+    # Get packaging and raw products
     packaging = Packaging.query.filter_by(id=item.packaging_id, company_id=current_user.company_id).first()
     raw_products = [rp for rp in item.raw_products]
-
-    # most recent labor cost
+    
+    # Most recent labor cost
     most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
 
-    # history of total costs for this item
-    item_costs = ItemTotalCost.query.filter_by(item_id=item_id).order_by(ItemTotalCost.date.desc()).all()
-
-    # get most recent prices assigned to item (for the table)
-    price_history = (
+    # PAGINATED TABLES:
+    
+    # 1. Price history with pagination (for table)
+    price_pagination = (
         PriceHistory.query
         .filter_by(item_id=item_id, company_id=current_user.company_id)
         .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
-        .all()
+        .paginate(page=price_page, per_page=per_page, error_out=False)
     )
-
-    # map customer id's to customer name to send to the page
-    customer_map = {customer.id: customer.name for customer in Customer.query.filter_by(company_id=current_user.company_id).all()}
-
-    # Group price history by customer for the chart, ordered ASCENDING for a proper timeline
-    price_history_for_chart = (
+    price_history = price_pagination.items
+    
+    # 2. Cost history with pagination (for table)
+    cost_pagination = (
+        ItemTotalCost.query
+        .filter_by(item_id=item_id)
+        .order_by(ItemTotalCost.date.desc())
+        .paginate(page=cost_page, per_page=per_page, error_out=False)
+    )
+    item_costs = cost_pagination.items
+    
+    # 3. Item info history with pagination (for table)
+    info_pagination = (
+        ItemInfo.query
+        .filter_by(item_id=item_id)
+        .order_by(ItemInfo.date.desc())
+        .paginate(page=info_page, per_page=per_page, error_out=False)
+    )
+    item_info = info_pagination.items
+    
+    # DATA FOR CHARTS (needs all records, not just current page)
+    
+    # Get ALL records for charts
+    all_price_history = (
         PriceHistory.query
         .filter_by(item_id=item_id, company_id=current_user.company_id)
         .order_by(PriceHistory.date.asc())
         .all()
     )
-    price_chart_data = {}
-    for entry in price_history_for_chart:
-        customer_name = customer_map.get(entry.customer_id, "General Price")
+    
+    all_item_costs = (
+        ItemTotalCost.query
+        .filter_by(item_id=item_id)
+        .order_by(ItemTotalCost.date.asc())
+        .all()
+    )
+    
+    all_item_info = (
+        ItemInfo.query
+        .filter_by(item_id=item_id)
+        .order_by(ItemInfo.date.asc())
+        .all()
+    )
+    
+    # Map customer IDs to names
+    customer_map = {customer.id: customer.name for customer in Customer.query.filter_by(company_id=current_user.company_id).all()}
 
-        # Initialize the array for this customer if it doesn't exist
+    # Price chart data preparation (using ALL records)
+    price_chart_data = {}
+    for entry in all_price_history:
+        customer_name = customer_map.get(entry.customer_id, "General Price")
         if customer_name not in price_chart_data:
             price_chart_data[customer_name] = []
-        
-        # Append the date and price to the customer's data
         price_chart_data[customer_name].append({
             'x': entry.date.strftime('%Y-%m-%d'),
             'y': float(entry.price)
@@ -1080,20 +1117,28 @@ def view_item(item_id):
     form.packaging.data = item.packaging_id
     form.raw_products.data = [rp.id for rp in item.raw_products]
 
-    return render_template('view_item.html', form=form,
-                           current_cost=current_cost,
-                           item_costs=item_costs,
-                           most_recent_labor_cost=most_recent_labor_cost,
-                           update_item_info_form=update_item_info_form,
-                           title='View Item',
-                           item=item,
-                           item_info=item_info,
-                           packaging=packaging,
-                           raw_products=raw_products,
-                           price_history=price_history,
-                           customer_map=customer_map,
-                           price_chart_data=price_chart_data,
-                           raw_product_latest_costs=raw_product_latest_costs)
+    return render_template('view_item.html', 
+                          form=form,
+                          current_cost=current_cost,
+                          item_costs=item_costs,
+                          most_recent_labor_cost=most_recent_labor_cost,
+                          update_item_info_form=update_item_info_form,
+                          title='View Item',
+                          item=item,
+                          item_info=item_info,
+                          packaging=packaging,
+                          raw_products=raw_products,
+                          price_history=price_history,
+                          customer_map=customer_map,
+                          price_chart_data=price_chart_data,
+                          raw_product_latest_costs=raw_product_latest_costs,
+                          # Add pagination objects
+                          price_pagination=price_pagination,
+                          cost_pagination=cost_pagination,
+                          info_pagination=info_pagination,
+                          # For charts
+                          all_item_costs=all_item_costs,
+                          all_item_info=all_item_info)
 
 @app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required

@@ -32,93 +32,176 @@
         </div>
     </div>
 
-    <!-- Price History (Table & Chart) -->
-    <div class="card mb-4">
-        <div class="card-header"><h5>Price History</h5></div>
-        <div class="card-body">
-            {% if price_history %}
-                <table class="table table-striped table-sm">
-                    <thead><tr><th>Date</th><th>Price</th><th>Customer</th></tr></thead>
-                    <tbody>
-                        {% for entry in price_history %}
-                        <tr>
-                            <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
-                            <td>${{ "%.2f"|format(entry.price) }}</td>
-                            <td>{{ customer_map.get(entry.customer_id, "General Price") }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <hr>
-                <canvas id="itemPriceChart" width="400" height="180"></canvas>
-            {% else %}
-                <p class="text-muted">No price history available for this item.</p>
+    <!-- Price History Table with Pagination -->
+<div class="card mb-4">
+    <div class="card-header"><h5>Price History</h5></div>
+    <div class="card-body">
+        {% if price_history %}
+            <table class="table table-striped table-sm">
+                <thead><tr><th>Date</th><th>Price</th><th>Customer</th></tr></thead>
+                <tbody>
+                    {% for entry in price_history %}
+                    <tr>
+                        <td>{{ entry.date.strftime('%Y-%m-%d') }}</td>
+                        <td>${{ "%.2f"|format(entry.price) }}</td>
+                        <td>{{ customer_map.get(entry.customer_id, "General Price") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Pagination Controls for Price History -->
+            {% if price_pagination.pages > 1 %}
+            <nav aria-label="Price History Pagination" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <!-- Previous button -->
+                    <li class="page-item {% if price_pagination.page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.prev_num, cost_page=cost_pagination.page, info_page=info_pagination.page) if price_pagination.has_prev else '#' }}">&laquo;</a>
+                    </li>
+                    
+                    <!-- Page numbers -->
+                    {% for page_num in price_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == price_pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=page_num, cost_page=cost_pagination.page, info_page=info_pagination.page) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- Next button -->
+                    <li class="page-item {% if price_pagination.page == price_pagination.pages %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.next_num, cost_page=cost_pagination.page, info_page=info_pagination.page) if price_pagination.has_next else '#' }}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
             {% endif %}
-        </div>
+            
+            <hr>
+            <canvas id="itemPriceChart" width="400" height="180"></canvas>
+        {% else %}
+            <p class="text-muted">No price history available for this item.</p>
+        {% endif %}
     </div>
+</div>
 
-    <!-- Cost History (Table & Chart) -->
-    <div class="card mb-4">
-        <div class="card-header"><h5>Cost History</h5></div>
-        <div class="card-body">
-            {% if item_costs %}
-                <table class="table table-striped table-sm">
-                    <thead><tr><th>Date</th><th>Total Cost</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        {% for cost in item_costs %}
-                        <tr>
-                            <td><a href="{{ url_for('view_item_cost', item_cost_id=cost.id) }}">{{ cost.date.strftime('%Y-%m-%d') }}</a></td>
-                            <td>${{ "%.2f"|format(cost.total_cost) }}</td>
-                            <td><a href="{{ url_for('delete_item_cost', item_cost_id=cost.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <hr>
-                <canvas id="itemCostChart" width="400" height="180"></canvas>
-            {% else %}
-                <p class="text-muted">No cost history available for this item.</p>
+    <!-- Cost History Table with Pagination -->
+<div class="card mb-4">
+    <div class="card-header"><h5>Cost History</h5></div>
+    <div class="card-body">
+        {% if item_costs %}
+            <table class="table table-striped table-sm">
+                <thead><tr><th>Date</th><th>Total Cost</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for cost in item_costs %}
+                    <tr>
+                        <td><a href="{{ url_for('view_item_cost', item_cost_id=cost.id) }}">{{ cost.date.strftime('%Y-%m-%d') }}</a></td>
+                        <td>${{ "%.2f"|format(cost.total_cost) }}</td>
+                        <td><a href="{{ url_for('delete_item_cost', item_cost_id=cost.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Pagination Controls for Cost History -->
+            {% if cost_pagination.pages > 1 %}
+            <nav aria-label="Cost History Pagination" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if cost_pagination.page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=cost_pagination.prev_num, info_page=info_pagination.page) if cost_pagination.has_prev else '#' }}">&laquo;</a>
+                    </li>
+                    
+                    {% for page_num in cost_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == cost_pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=page_num, info_page=info_pagination.page) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if cost_pagination.page == cost_pagination.pages %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=cost_pagination.next_num, info_page=info_pagination.page) if cost_pagination.has_next else '#' }}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
             {% endif %}
-        </div>
+            
+            <hr>
+            <canvas id="itemCostChart" width="400" height="180"></canvas>
+        {% else %}
+            <p class="text-muted">No cost history available for this item.</p>
+        {% endif %}
     </div>
+</div>
 
-    <!-- Yield & Labor History (Table & Chart) -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Yield & Labor History</h5>
-            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addItemInfoModal-{{ item.id }}">Add Info</button>
-        </div>
-        <div class="card-body">
-            {% if item_info %}
-                <table class="table table-striped table-sm">
-                    <thead><tr><th>Date</th><th>Product Yield</th><th>Labor Hours</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        {% for info in item_info %}
-                        <tr>
-                            <td>{{ info.date.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ "%.2f"|format(info.product_yield) }}</td>
-                            <td>{{ "%.2f"|format(info.labor_hours) }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('delete_item_info', item_info_id=info.id) }}" style="display:inline;">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <hr>
-                <canvas id="itemInfoChart" width="400" height="180"></canvas>
-            {% else %}
-                <p class="text-muted">No yield or labor history available for this item.</p>
+<!-- Yield & Labor History Table with Pagination -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Yield & Labor History</h5>
+        <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addItemInfoModal-{{ item.id }}">Add Info</button>
+    </div>
+    <div class="card-body">
+        {% if item_info %}
+            <table class="table table-striped table-sm">
+                <thead><tr><th>Date</th><th>Product Yield</th><th>Labor Hours</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for info in item_info %}
+                    <tr>
+                        <td>{{ info.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ "%.2f"|format(info.product_yield) }}</td>
+                        <td>{{ "%.2f"|format(info.labor_hours) }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('delete_item_info', item_info_id=info.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Pagination Controls for Yield & Labor -->
+            {% if info_pagination.pages > 1 %}
+            <nav aria-label="Info History Pagination" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if info_pagination.page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=cost_pagination.page, info_page=info_pagination.prev_num) if info_pagination.has_prev else '#' }}">&laquo;</a>
+                    </li>
+                    
+                    {% for page_num in info_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == info_pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=cost_pagination.page, info_page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if info_pagination.page == info_pagination.pages %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('view_item', item_id=item.id, price_page=price_pagination.page, cost_page=cost_pagination.page, info_page=info_pagination.next_num) if info_pagination.has_next else '#' }}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
             {% endif %}
-        </div>
+            
+            <hr>
+            <canvas id="itemInfoChart" width="400" height="180"></canvas>
+        {% else %}
+            <p class="text-muted">No yield or labor history available for this item.</p>
+        {% endif %}
     </div>
-
-    <!-- (Your Modals: Edit Item, Add Item Info, etc. go here) -->
-
-</div> <!-- End of container -->
+</div>
 
 
 <script>
@@ -184,8 +267,8 @@ if (priceCanvas) {
   //
   const costCanvas = document.getElementById('itemCostChart');
   if (costCanvas) {
-    const labels = [{% for c in item_costs %}"{{ c.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
-    const data   = [{% for c in item_costs %}{{ "%.2f"|format(c.total_cost) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const labels = [{% for c in all_item_costs %}"{{ c.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const data   = [{% for c in all_item_costs %}{{ "%.2f"|format(c.total_cost) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
     new Chart(costCanvas.getContext('2d'), {
       type: 'line',
       data: {
@@ -214,9 +297,9 @@ if (priceCanvas) {
   //
   const infoCanvas = document.getElementById('itemInfoChart');
   if (infoCanvas) {
-    const labels = [{% for i in item_info %}"{{ i.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
-    const yieldD = [{% for i in item_info %}{{ "%.2f"|format(i.product_yield) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
-    const laborD = [{% for i in item_info %}{{ "%.2f"|format(i.labor_hours or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const labels = [{% for i in all_item_info %}"{{ i.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const yieldD = [{% for i in all_item_info %}{{ "%.2f"|format(i.product_yield) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const laborD = [{% for i in all_item_info %}{{ "%.2f"|format(i.labor_hours or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
     new Chart(infoCanvas.getContext('2d'), {
       type: 'line',
       data: {
