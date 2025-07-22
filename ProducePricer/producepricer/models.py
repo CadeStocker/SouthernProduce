@@ -4,12 +4,6 @@ from producepricer import db, login_manager
 from flask_login import UserMixin
 from enum import Enum
 
-@login_manager.user_loader
-def load_user(user_id):
-    if user_id is None:
-        return None
-    return User.query.get(user_id)
-
 # might remove this
 class UnitOfWeight(Enum):
     GRAM = 'gram'
@@ -130,6 +124,12 @@ item_raw = db.Table('item_raw',
 #     db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True),
 #     db.Column('date', db.Date, primary_key=True)
 # )
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id is None:
+        return None
+    return User.query.get(user_id)
 
 # table to store total costs of items on a given date
 class ItemTotalCost(db.Model):

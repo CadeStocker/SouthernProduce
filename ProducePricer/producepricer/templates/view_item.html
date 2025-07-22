@@ -19,6 +19,7 @@
         <div class="card-body">
             <p><strong>Item Name:</strong> {{ item.name }}</p>
             <p><strong>Item Code:</strong> {{ item.code }}</p>
+            <p><strong>Alternate Code:</strong> {{ item.alternate_code if item.alternate_code else 'N/A' }}</p>
             <p><strong>Case Weight:</strong> {{ "%.2f"|format(item.case_weight) }} lbs</p>
             <p><strong>Item Designation:</strong> {{ item.item_designation.value if item.item_designation else 'N/A' }}</p>
             <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'N/A' }}</p>
@@ -274,7 +275,7 @@ if (priceCanvas) {
   const costCanvas = document.getElementById('itemCostChart');
   if (costCanvas) {
     const labels = [{% for c in all_item_costs %}"{{ c.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-    const data   = [{% for c in all_item_costs %}{{ "%.2f"|format(c.total_cost) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const data   = [{% for c in all_item_costs %}{{ "%.2f"|format(c.total_cost) }}{% if not loop.last %}, {% endif %}{% endfor %}];
     new Chart(costCanvas.getContext('2d'), {
       type: 'line',
       data: {
@@ -304,8 +305,8 @@ if (priceCanvas) {
   const infoCanvas = document.getElementById('itemInfoChart');
   if (infoCanvas) {
     const labels = [{% for i in all_item_info %}"{{ i.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-    const yieldD = [{% for i in all_item_info %}{{ "%.2f"|format(i.product_yield) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
-    const laborD = [{% for i in all_item_info %}{{ "%.2f"|format(i.labor_hours or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}].reverse();
+    const yieldD = [{% for i in all_item_info %}{{ "%.2f"|format(i.product_yield) }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    const laborD = [{% for i in all_item_info %}{{ "%.2f"|format(i.labor_hours or 0) }}{% if not loop.last %}, {% endif %}{% endfor %}];
     new Chart(infoCanvas.getContext('2d'), {
       type: 'line',
       data: {
@@ -353,6 +354,10 @@ if (priceCanvas) {
             <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
                 {{ form.hidden_tag() }}
                 <div class="modal-body">
+                    <div class="form-group">
+                        <label for="alternate_code">Alternate Code</label>
+                        {{ form.alternate_code(class="form-control", id="alternate_code") }}
+                    </div>
                     <div class="form-group">
                         <label for="case_weight">Case Weight</label>
                         {{ form.case_weight(class="form-control", id="case_weight") }}

@@ -120,6 +120,7 @@ class EditItem(FlaskForm):
     raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
     ranch = BooleanField('Ranch', default=False)
     case_weight = FloatField('Case Weight', default=0.0)
+    alternate_code = StringField('Customer\'s Code For Item')
     item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service')], validators=[DataRequired()])
     submit = SubmitField('Update Item')
 

@@ -61,9 +61,9 @@ from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
 
 # route for the root URL
-@login_required
 @app.route('/')
 @app.route('/home')
+@login_required
 def home():
     return render_template('home.html')
 
@@ -1134,6 +1134,7 @@ def view_item(item_id):
     #form.name.data = item.name
     #form.item_code.data = item.code
     form.unit_of_weight.data = item.unit_of_weight
+    form.alternate_code.data = item.alternate_code if item.alternate_code else ''
     form.case_weight.data = item.case_weight if item.case_weight else 0.0
     form.ranch.data = item.ranch
     form.item_designation.data = item.item_designation
@@ -1433,6 +1434,7 @@ def edit_item(item_id):
         item.ranch = form.ranch.data
         item.packaging_id = form.packaging.data
         item.unit_of_weight = form.unit_of_weight.data
+        item.alternate_code = form.alternate_code.data if form.alternate_code.data else None
 
         # Update the raw products
         item.raw_products = []
