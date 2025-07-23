@@ -7,7 +7,7 @@ from fpdf import FPDF
 import matplotlib
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
-from flask import redirect, render_template, render_template_string, request, url_for, flash, make_response
+from flask import redirect, render_template, render_template_string, request, url_for, flash, make_response, Blueprint
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     CostHistory, 
@@ -54,30 +54,34 @@ from producepricer.forms import(
     UploadRawProductCSV
 )
 from flask_login import login_user, login_required, current_user, logout_user
-from producepricer import app, db, bcrypt
+from producepricer import db, bcrypt
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
 
+
+
+main = Blueprint('main', __name__)
+
 # route for the root URL
-@app.route('/')
-@app.route('/home')
+@main.route('/')
+@main.route('/home')
 @login_required
 def home():
     return render_template('home.html')
 
 # about page
-@app.route('/about')
+@main.route('/about')
 def about():
     return render_template('about.html')
 
 # signup page
-@app.route('/signup', methods=['GET', 'POST'])
+@main.route('/signup', methods=['GET', 'POST'])
 def signup():
     # if the user is already logged in, redirect to home
     if current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     
     # signup form
     form = SignUp()
@@ -90,7 +94,7 @@ def signup():
         existing = User.query.filter_by(email=form.email.data).first()
         if existing or existing_pending:
             flash('Email already registered.', 'warning')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
 
         # grab the company
         company = Company.query.get(form.company.data)
@@ -108,7 +112,7 @@ def signup():
             # log them in
             login_user(user)
             flash('Welcome, you’re now the admin!', 'success')
-            return redirect(url_for('home'))
+            return redirect(url_for('main.home'))
 
         # store pending user data
         pending = PendingUser(
@@ -130,7 +134,7 @@ def signup():
         send_admin_approval_email(token, company.id)
         flash('Account request submitted. Admin will review and approve.', 'info')
 
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     return render_template('signup.html', title='Sign Up', form=form)
 
@@ -138,7 +142,7 @@ def send_admin_approval_email(token, company_id):
     # lookup admin email
     company = Company.query.get(company_id)
     admin_email = company.admin_email
-    link = url_for('approve_user', token=token, _external=True)
+    link = url_for('main.approve_user', token=token, _external=True)
 
     msg = EmailMessage(
       subject='Approve new user request',
@@ -151,14 +155,14 @@ def send_admin_approval_email(token, company_id):
     msg.send()
 
 # route to approve a user
-@app.route('/approve_user/<token>')
+@main.route('/approve_user/<token>')
 @login_required
 def approve_user(token):
     # only company-admin may approve
     company = Company.query.get(current_user.company_id)
     if not company or current_user.email != company.admin_email:
         flash('Not authorized.', 'danger')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
 
     # deserialize the token
     s = Serializer(app.config['SECRET_KEY'], salt='user-approval')
@@ -166,20 +170,20 @@ def approve_user(token):
         data = s.loads(token, max_age=3600)
     except (BadSignature, SignatureExpired):
         flash('Invalid or expired token.', 'danger')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
 
     # get the pending user
     pending = PendingUser.query.get(data.get('pending_user_id'))
     if not pending:
         flash('No pending request found or already processed.', 'warning')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # check duplicate
     if User.query.filter_by(email=pending.email).first():
         flash('User already exists.', 'warning')
         db.session.delete(pending)
         db.session.commit()
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # create real user
     user = User(
@@ -195,17 +199,17 @@ def approve_user(token):
     db.session.commit()
 
     flash(f'User {user.email} approved and created.', 'success')
-    return redirect(url_for('company'))
+    return redirect(url_for('main.company'))
 
 # company page
-@app.route('/company')
+@main.route('/company')
 @login_required
 def company():
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
     
     # get all users in the company
     users = User.query.filter_by(company_id=current_user.company_id).all()
@@ -218,7 +222,7 @@ def company():
     admin = User.query.filter_by(email=admin_email).first() if admin_email else None
     if not admin:
         flash('Admin user not found for this company.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     return render_template('company.html',
                            title='Company',
@@ -229,19 +233,19 @@ def company():
 
 
 # approve a user from the company page
-@app.route('/approve_pending/<int:pending_id>', methods=['POST'])
+@main.route('/approve_pending/<int:pending_id>', methods=['POST'])
 @login_required
 def approve_pending(pending_id):
     company = Company.query.get(current_user.company_id)
     if not company or current_user.email != company.admin_email:
         flash('Not authorized.', 'danger')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # get the pending user
     pending = PendingUser.query.get(pending_id)
     if not pending:
         flash('Pending user not found.', 'warning')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # create real user
     user = User(
@@ -257,17 +261,17 @@ def approve_pending(pending_id):
     db.session.commit()
 
     flash(f'User {user.email} approved and created.', 'success')
-    return redirect(url_for('company'))
+    return redirect(url_for('main.company'))
 
 # deny a pending user from the company page
-@app.route('/deny_pending/<int:pending_id>', methods=['POST'])
+@main.route('/deny_pending/<int:pending_id>', methods=['POST'])
 @login_required
 def deny_pending(pending_id):
     # only company-admin may deny
     company = Company.query.get(current_user.company_id)
     if not company or current_user.email != company.admin_email:
         flash('Not authorized.', 'danger')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # get the pending user
     pending = PendingUser.query.get(pending_id)
@@ -278,13 +282,13 @@ def deny_pending(pending_id):
         db.session.commit()
         flash(f'Request from {pending.email} denied.', 'info')
 
-    return redirect(url_for('company'))
+    return redirect(url_for('main.company'))
 
 # login page
-@app.route('/login', methods=['GET', 'POST'])
+@main.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     
     form = Login()
     if form.validate_on_submit():
@@ -298,18 +302,18 @@ def login():
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
         # process the form data, then redirect to the home page
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     return render_template('login.html', title='Login', form=form)
 
 # logout page
-@app.route('/logout')
+@main.route('/logout')
 def logout():
     logout_user()
     flash('You have been logged out!', 'success')
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))
 
 # create company page
-@app.route('/create_company', methods=['GET', 'POST'])
+@main.route('/create_company', methods=['GET', 'POST'])
 def create_company():
     form = CreateCompany()
     if form.validate_on_submit():
@@ -321,7 +325,7 @@ def create_company():
         db.session.add(company)
         db.session.commit()
         # redirect to the home page
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     # if the form is not submitted or is invalid, render the create company page
     else:
         # print errors
@@ -332,7 +336,7 @@ def create_company():
     return render_template('create_company.html', title='Create Company', form=form)
 
 # packaging page
-@app.route('/packaging')
+@main.route('/packaging')
 @login_required
 def packaging():
     # search feature
@@ -372,14 +376,14 @@ def packaging():
         )
 
 # view an individual package
-@app.route('/packaging/<int:packaging_id>')
+@main.route('/packaging/<int:packaging_id>')
 @login_required
 def view_packaging(packaging_id):
     # find the packaging in the database
     packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first()
     if packaging is None:
         flash('Packaging not found.', 'danger')
-        return redirect(url_for('packaging'))
+        return redirect(url_for('main.packaging'))
     
     # get all the packaging costs for this packaging
     packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
@@ -389,7 +393,7 @@ def view_packaging(packaging_id):
     return render_template('view_packaging.html', title='View Packaging', packaging=packaging, packaging_costs=packaging_costs, form=form)
 
 
-@app.route('/add_package', methods=['POST'])
+@main.route('/add_package', methods=['POST'])
 @login_required
 def add_package():
     form = CreatePackage()
@@ -402,12 +406,12 @@ def add_package():
         db.session.add(package)
         db.session.commit()
         # redirect to the packaging page
-        return redirect(url_for('packaging'))
+        return redirect(url_for('main.packaging'))
     # if the form is not submitted or is invalid, render the packaging page
     flash('Invalid Information.', 'danger')
     return render_template('packaging.html', title='Packaging', form=form)
 
-@app.route('/add_packaging_cost/<int:packaging_id>', methods=['GET', 'POST'])
+@main.route('/add_packaging_cost/<int:packaging_id>', methods=['GET', 'POST'])
 @login_required
 def add_packaging_cost(packaging_id):
     # form for the page
@@ -416,7 +420,7 @@ def add_packaging_cost(packaging_id):
     packaging = Packaging.query.filter_by(id=packaging_id).first()
     if packaging is None:
         flash('Packaging not found.', 'danger')
-        return redirect(url_for('packaging'))
+        return redirect(url_for('main.packaging'))
     if form.validate_on_submit():
         # flash a message to the user
         flash(f'Packaging cost added for {packaging.packaging_type}!', 'success')
@@ -439,7 +443,7 @@ def add_packaging_cost(packaging_id):
                 update_item_total_cost(item.id)
 
         # redirect to the packaging page
-        return redirect(url_for('view_packaging', packaging_id=packaging_id))
+        return redirect(url_for('main.view_packaging', packaging_id=packaging_id))
     # if the form is not submitted or is invalid, render the add packaging cost page
     #flash('Invalid Information.', 'danger')
     else:
@@ -450,14 +454,14 @@ def add_packaging_cost(packaging_id):
     return render_template('add_packaging_cost.html', title='Add Packaging Cost', form=form, packaging=packaging)
 
 # delete a package
-@app.route('/delete_packaging/<int:packaging_id>', methods=['POST'])
+@main.route('/delete_packaging/<int:packaging_id>', methods=['POST'])
 @login_required
 def delete_packaging(packaging_id):
     # Find the packaging in the database
     packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first()
     if not packaging:
         flash('Packaging not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('packaging'))
+        return redirect(url_for('main.packaging'))
 
     # Delete all associated PackagingCost entries
     PackagingCost.query.filter_by(packaging_id=packaging_id).delete()
@@ -467,9 +471,9 @@ def delete_packaging(packaging_id):
     db.session.commit()
 
     flash(f'Packaging "{packaging.packaging_type}" and its associated costs have been deleted.', 'success')
-    return redirect(url_for('packaging'))
+    return redirect(url_for('main.packaging'))
 
-@app.route('/delete_packaging_cost/<int:cost_id>', methods=['POST'])
+@main.route('/delete_packaging_cost/<int:cost_id>', methods=['POST'])
 @login_required
 def delete_packaging_cost(cost_id):
     cost = PackagingCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
@@ -477,15 +481,15 @@ def delete_packaging_cost(cost_id):
     
     if not cost:
         flash('Packaging cost not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('packaging'))
+        return redirect(url_for('main.packaging'))
 
     db.session.delete(cost)
     db.session.commit()
 
     flash('Packaging cost has been deleted.', 'success')
-    return redirect(url_for('view_packaging', packaging_id=packaging.id))
+    return redirect(url_for('main.view_packaging', packaging_id=packaging.id))
 
-@app.route('/upload_packaging_csv', methods=['GET', 'POST'])
+@main.route('/upload_packaging_csv', methods=['GET', 'POST'])
 @login_required
 def upload_packaging_csv():
     form = UploadPackagingCSV()
@@ -560,10 +564,10 @@ def upload_packaging_csv():
                     update_item_total_cost(item.id)
 
             flash('Packaging costs added successfully!', 'success')
-            return redirect(url_for('packaging'))
+            return redirect(url_for('main.packaging'))
     return render_template('upload_packaging_csv.html', title='Upload Packaging CSV', form=form)
 
-@app.route('/raw_product')
+@main.route('/raw_product')
 @login_required
 def raw_product():
     # search feature
@@ -616,14 +620,14 @@ def raw_product():
     )
 
 # view an individual raw product
-@app.route('/raw_product/<int:raw_product_id>')
+@main.route('/raw_product/<int:raw_product_id>')
 @login_required
 def view_raw_product(raw_product_id):
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if raw_product is None:
         flash('Raw product not found.', 'danger')
-        return redirect(url_for('raw_product'))
+        return redirect(url_for('main.raw_product'))
     
     # Get all the cost history for this raw product
     cost_history = CostHistory.query.filter_by(raw_product_id=raw_product_id).order_by(CostHistory.date.desc()).all()
@@ -636,14 +640,14 @@ def view_raw_product(raw_product_id):
     return render_template('view_raw_product.html', items_using_raw_product=items_using_raw_product, title='View Raw Product', cost_form=cost_form, raw_product=raw_product, cost_history=cost_history)
 
 # delete a raw product cost
-@app.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
+@main.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
 @login_required
 def delete_raw_product_cost(cost_id):
     # Find the cost in the database
     cost = CostHistory.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
     if not cost:
         flash('Cost not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('raw_product'))
+        return redirect(url_for('main.raw_product'))
 
     # Delete the cost
     db.session.delete(cost)
@@ -656,10 +660,10 @@ def delete_raw_product_cost(cost_id):
         update_item_total_cost(item.id)
 
     flash('Raw product cost has been deleted successfully.', 'success')
-    return redirect(url_for('view_raw_product', raw_product_id=cost.raw_product_id))
+    return redirect(url_for('main.view_raw_product', raw_product_id=cost.raw_product_id))
 
 # Add a new raw product
-@app.route('/add_raw_product', methods=['POST'])
+@main.route('/add_raw_product', methods=['POST'])
 @login_required
 def add_raw_product():
     form = AddRawProduct()
@@ -669,7 +673,7 @@ def add_raw_product():
         existing_raw_product = RawProduct.query.filter_by(name=form.name.data, company_id=current_user.company_id).first()
         if existing_raw_product:
             flash(f'Raw product "{form.name.data}" already exists.', 'warning')
-            return redirect(url_for('raw_product'))
+            return redirect(url_for('main.raw_product'))
         
         # Create a new raw product object
         raw_product = RawProduct(
@@ -683,12 +687,12 @@ def add_raw_product():
 
         # tell the user the raw product was added
         flash(f'Raw product "{form.name.data}" has been added successfully!', 'success')
-        return redirect(url_for('raw_product'))
+        return redirect(url_for('main.raw_product'))
     flash('Invalid data submitted.', 'danger')
-    return redirect(url_for('raw_product'))
+    return redirect(url_for('main.raw_product'))
 
 # Add a new raw product cost
-@app.route('/add_raw_product_cost/<int:raw_product_id>', methods=['POST'])
+@main.route('/add_raw_product_cost/<int:raw_product_id>', methods=['POST'])
 @login_required
 def add_raw_product_cost(raw_product_id):
     form = AddRawProductCost()
@@ -712,11 +716,11 @@ def add_raw_product_cost(raw_product_id):
         flash(f'Cost added for raw product!', 'success')
     else:
         flash('Invalid data submitted.', 'danger')
-    return redirect(url_for('view_raw_product', raw_product_id=raw_product_id))
+    return redirect(url_for('main.view_raw_product', raw_product_id=raw_product_id))
 
 
 # raw product import
-@app.route('/upload_raw_product_csv', methods=['GET', 'POST'])
+@main.route('/upload_raw_product_csv', methods=['GET', 'POST'])
 @login_required
 def upload_raw_product_csv():
     form = UploadRawProductCSV()
@@ -777,17 +781,17 @@ def upload_raw_product_csv():
                 db.session.commit()
 
             flash('Raw products imported successfully!', 'success')
-            return redirect(url_for('raw_product'))
+            return redirect(url_for('main.raw_product'))
     return render_template('upload_raw_product_csv.html', title='Upload Raw Product CSV', form=form)
 
-@app.route('/delete_raw_product/<int:raw_product_id>', methods=['POST'])
+@main.route('/delete_raw_product/<int:raw_product_id>', methods=['POST'])
 @login_required
 def delete_raw_product(raw_product_id):
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if not raw_product:
         flash('Raw product not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('raw_product'))
+        return redirect(url_for('main.raw_product'))
 
     # Delete all associated CostHistory entries
     CostHistory.query.filter_by(raw_product_id=raw_product_id).delete()
@@ -797,9 +801,9 @@ def delete_raw_product(raw_product_id):
     db.session.commit()
 
     flash(f'Raw product "{raw_product.name}" and its associated costs have been deleted.', 'success')
-    return redirect(url_for('raw_product'))
+    return redirect(url_for('main.raw_product'))
 
-@app.route('/items')
+@main.route('/items')
 @login_required
 def items():
     # Get pagination parameters
@@ -871,14 +875,14 @@ def items():
         q=q  # Pass search query for maintaining state
     )
     
-@app.route('/add_item', methods=['POST'])
+@main.route('/add_item', methods=['POST'])
 @login_required
 def add_item():
     # make sure a labor cost exists for the current user
     most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
     if not most_recent_labor_cost:
         flash('Please add a labor cost before adding items.', 'warning')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
 
     # add item form
     form = AddItem()
@@ -893,7 +897,7 @@ def add_item():
         existing_item = Item.query.filter_by(name=form.name.data, company_id=current_user.company_id).first()
         if existing_item:
             flash(f'Item "{form.name.data}" already exists.', 'warning')
-            return redirect(url_for('items'))
+            return redirect(url_for('main.items'))
         
         # create a new item object
         item = Item(
@@ -933,23 +937,23 @@ def add_item():
         # flash a message to the user
         flash(f'Item "{form.name.data}" has been added successfully!', 'success')
         # redirect to the items page
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     # if the form is not submitted or is invalid, render the items page
     for field, errs in form.errors.items():
         for e in errs:
             flash(f"{getattr(form, field).label.text}: {e}", 'danger')
     flash('Invalid data submitted.', 'danger')
-    return redirect(url_for('items'))
+    return redirect(url_for('main.items'))
 
 # delete an item
-@app.route('/delete_item/<int:item_id>', methods=['POST'])
+@main.route('/delete_item/<int:item_id>', methods=['POST'])
 @login_required
 def delete_item(item_id):
     # find the item in the database
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
     if not item:
         flash('Item not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     
     # delete all associated ItemInfo entries
     ItemInfo.query.filter_by(item_id=item_id).delete()
@@ -957,9 +961,9 @@ def delete_item(item_id):
     db.session.delete(item)
     db.session.commit()
     flash(f'Item "{item.name}" and its associated information have been deleted.', 'success')
-    return redirect(url_for('items'))
+    return redirect(url_for('main.items'))
 
-@app.route('/delete_price_history/<int:price_history_id>', methods=['POST'])
+@main.route('/delete_price_history/<int:price_history_id>', methods=['POST'])
 @login_required
 def delete_price_history(price_history_id):
     # Find the price history entry
@@ -970,7 +974,7 @@ def delete_price_history(price_history_id):
     
     if not price_history:
         flash('Price history entry not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     
     # Store the item_id before deleting the entry
     item_id = price_history.item_id
@@ -980,17 +984,17 @@ def delete_price_history(price_history_id):
     db.session.commit()
     
     flash('Price history entry has been deleted successfully.', 'success')
-    return redirect(url_for('view_item', item_id=item_id))
+    return redirect(url_for('main.view_item', item_id=item_id))
 
 # update info for an item
-@app.route('/update_item/<int:item_id>', methods=['GET', 'POST'])
+@main.route('/update_item/<int:item_id>', methods=['GET', 'POST'])
 @login_required
 def update_item(item_id):
     # find the item in db
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
     if not item:
         flash('Item not found or you do not have permission to update it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     
     # form for updating item info
     form = UpdateItemInfo()
@@ -1007,13 +1011,13 @@ def update_item(item_id):
         db.session.add(item_info)
         db.session.commit()
         flash(f'Item info for "{item.name}" has been updated successfully!', 'success')
-        return redirect(url_for('view_item', item_id=item.id))
+        return redirect(url_for('main.view_item', item_id=item.id))
     # if the form is not submitted or is invalid, render the update item page
     flash('Invalid data submitted.', 'danger')
     return render_template('update_item.html', title='Update Item', form=form, item=item)
 
 # view an individual item
-@app.route('/item/<int:item_id>')
+@main.route('/item/<int:item_id>')
 @login_required
 def view_item(item_id):
     # Get pagination parameters
@@ -1026,7 +1030,7 @@ def view_item(item_id):
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
     if item is None:
         flash('Item not found.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     
     # Get packaging and raw products
     packaging = Packaging.query.filter_by(id=item.packaging_id, company_id=current_user.company_id).first()
@@ -1164,29 +1168,29 @@ def view_item(item_id):
                           all_item_costs=all_item_costs,
                           all_item_info=all_item_info)
 
-@app.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
+@main.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
 def delete_item_info(item_info_id):
     item_info = ItemInfo.query.filter_by(id=item_info_id, company_id=current_user.company_id).first()
     if not item_info:
         flash('Item info not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
     
     item_id = item_info.item_id
     db.session.delete(item_info)
     db.session.commit()
     flash('Item info deleted successfully!', 'success')
-    return redirect(url_for('view_item', item_id=item_id))
+    return redirect(url_for('main.view_item', item_id=item_id))
 
 # item import
-@app.route('/upload_item_csv', methods=['GET', 'POST'])
+@main.route('/upload_item_csv', methods=['GET', 'POST'])
 @login_required
 def upload_item_csv():
     # make sure a labor cost exists for the current user
     most_recent_labor_cost = LaborCost.query.order_by(LaborCost.date.desc(), LaborCost.id.desc()).filter_by(company_id=current_user.company_id).first()
     if not most_recent_labor_cost:
         flash('Please add a labor cost before uploading items.', 'warning')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
 
     form = UploadItemCSV()
     if form.validate_on_submit():
@@ -1356,7 +1360,7 @@ def upload_item_csv():
                 
                 #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
-    return redirect(url_for('items'))
+    return redirect(url_for('main.items'))
 
 def safe_strip(x):
     if x is None: return ''
@@ -1367,20 +1371,20 @@ def safe_strip(x):
     return str(x).strip()
 
 # view an individual item cost
-@app.route('/item_cost/<int:item_cost_id>')
+@main.route('/item_cost/<int:item_cost_id>')
 @login_required
 def view_item_cost(item_cost_id):
     # Find the item cost in the database
     item_cost = ItemTotalCost.query.filter_by(id=item_cost_id, company_id=current_user.company_id).first()
     if not item_cost:
         flash('Item cost not found or you do not have permission to view it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
 
     # Get the item associated with this cost
     item = Item.query.filter_by(id=item_cost.item_id, company_id=current_user.company_id).first()
     if not item:
         flash('Item not found or you do not have permission to view it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
 
     # Get the most recent item info for this item
     most_recent_info = (
@@ -1393,7 +1397,7 @@ def view_item_cost(item_cost_id):
     return render_template('view_item_cost.html', title='View Item Cost', item_cost=item_cost, item=item, most_recent_info=most_recent_info)
 
 # delete an item cost
-@app.route('/delete_item_cost/<int:item_cost_id>', methods=['GET','POST'])
+@main.route('/delete_item_cost/<int:item_cost_id>', methods=['GET','POST'])
 @login_required
 def delete_item_cost(item_cost_id):
     # find the item in the database
@@ -1403,24 +1407,24 @@ def delete_item_cost(item_cost_id):
     if not item_cost:
         flash('Item cost not found or you do not have permission to delete it.', 'danger')
         if item:
-            return redirect(url_for('view_item', item_id=item.id))
-        return redirect(url_for('items'))
+            return redirect(url_for('main.view_item', item_id=item.id))
+        return redirect(url_for('main.items'))
 
     # Delete the item cost
     db.session.delete(item_cost)
     db.session.commit()
 
     flash('Item cost has been deleted successfully.', 'success')
-    return redirect(url_for('items'))
+    return redirect(url_for('main.items'))
 
-@app.route('/edit_item/<int:item_id>', methods=['POST'])
+@main.route('/edit_item/<int:item_id>', methods=['POST'])
 @login_required
 def edit_item(item_id):
     # Find the item in the database
     item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
     if not item:
         flash('Item not found or you do not have permission to edit it.', 'danger')
-        return redirect(url_for('items'))
+        return redirect(url_for('main.items'))
 
     # Initialize the form
     form = EditItem()
@@ -1449,7 +1453,7 @@ def edit_item(item_id):
         update_item_total_cost(item.id)
         # Flash a success message
         flash(f'Item "{item.name}" has been updated successfully!', 'success')
-        return redirect(url_for('view_item', item_id=item.id))
+        return redirect(url_for('main.view_item', item_id=item.id))
 
     flash('Invalid data submitted.', 'danger')
     # print the form errors
@@ -1457,7 +1461,7 @@ def edit_item(item_id):
         for e in errs:
             flash(f"{getattr(form, field).label.text}: {e}", 'danger')
 
-    return redirect(url_for('view_item', item_id=item.id))
+    return redirect(url_for('main.view_item', item_id=item.id))
 
 def calculate_item_cost(item_id):
     # Get the item from the database
@@ -1752,7 +1756,7 @@ def update_item_total_cost(item_id):
     #flash(f'Total cost for item: {item_id} has been updated to ${cost:.2f}.', 'success')
 
 # price page for showing cost of each item and different prices (along with associated profit and margins)
-@app.route('/price')
+@main.route('/price')
 @login_required
 def price():
     # Get pagination parameters
@@ -1766,7 +1770,7 @@ def price():
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
     
     # Base query - filtered by company
     query = Item.query.filter_by(company_id=current_user.company_id)
@@ -1849,7 +1853,7 @@ def price():
                            q=q)
 
 # page to add labor cost
-@app.route('/add_labor_cost', methods=['GET', 'POST'])
+@main.route('/add_labor_cost', methods=['GET', 'POST'])
 @login_required
 def add_labor_cost():
     form = AddLaborCost()
@@ -1885,7 +1889,7 @@ def add_labor_cost():
     return render_template('add_labor_cost.html', title='Add Labor Cost', form=form, past_labor_costs=past_labor_costs)
 
 # delete a labor cost
-@app.route('/delete_labor_cost/<int:cost_id>', methods=['POST'])
+@main.route('/delete_labor_cost/<int:cost_id>', methods=['POST'])
 @login_required
 def delete_labor_cost(cost_id):
     # see if you're deleting the most recent labor cost
@@ -1896,7 +1900,7 @@ def delete_labor_cost(cost_id):
         labor_cost = LaborCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
         if not labor_cost:
             flash('Labor cost not found or you do not have permission to delete it.', 'danger')
-            return redirect(url_for('add_labor_cost'))
+            return redirect(url_for('main.add_labor_cost'))
 
         # Delete the labor cost
         db.session.delete(labor_cost)
@@ -1909,14 +1913,14 @@ def delete_labor_cost(cost_id):
         labor_cost = LaborCost.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
         if not labor_cost:
             flash('Labor cost not found or you do not have permission to delete it.', 'danger')
-            return redirect(url_for('add_labor_cost'))
+            return redirect(url_for('main.add_labor_cost'))
 
         # Delete the labor cost
         db.session.delete(labor_cost)
         db.session.commit()
 
     flash('Labor cost has been deleted successfully.', 'success')
-    return redirect(url_for('add_labor_cost'))
+    return redirect(url_for('main.add_labor_cost'))
 
 # update all item costs when a labor cost is added or deleted
 def update_item_costs_on_labor_change():
@@ -1930,36 +1934,36 @@ def update_item_costs_on_labor_change():
     flash('All item costs have been updated based on the latest labor costs.', 'success')
 
 # ability for business owner to delete users
-@app.route('/delete_user/<int:user_id>', methods=['POST'])
+@main.route('/delete_user/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
     # Check if the current user is the admin of the company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company or current_user.email != company.admin_email:
         flash('You do not have permission to delete users.', 'danger')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # Find the user in the database
     user = User.query.filter_by(id=user_id, company_id=current_user.company_id).first()
     if not user:
         flash('User not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('company'))
+        return redirect(url_for('main.company'))
 
     # Delete the user
     db.session.delete(user)
     db.session.commit()
     flash(f'User "{user.email}" has been deleted successfully.', 'success')
-    return redirect(url_for('company'))
+    return redirect(url_for('main.company'))
 
 # customer page
-@app.route('/customer')
+@main.route('/customer')
 @login_required
 def customer():
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     # Get all customers for the current user's company
     customers = Customer.query.filter_by(company_id=current_user.company_id).all()
@@ -1969,14 +1973,14 @@ def customer():
 
     return render_template('customer.html', form=form, import_form=import_form, title='Customer', customers=customers, company=company)
 
-@app.route('/edit_customer/<int:customer_id>', methods=['POST'])
+@main.route('/edit_customer/<int:customer_id>', methods=['POST'])
 @login_required
 def edit_customer(customer_id):
     # Find the customer in the database
     customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
     if not customer:
         flash('Customer not found or you do not have permission to edit it.', 'danger')
-        return redirect(url_for('customer'))
+        return redirect(url_for('main.customer'))
 
     # Update the customer's basic info
     customer.name = request.form['name']
@@ -2003,9 +2007,9 @@ def edit_customer(customer_id):
 
     db.session.commit()
     flash(f'Customer "{customer.name}" has been updated successfully!', 'success')
-    return redirect(url_for('customer'))
+    return redirect(url_for('main.customer'))
 
-@app.route('/view_price_sheet/<int:sheet_id>')
+@main.route('/view_price_sheet/<int:sheet_id>')
 @login_required
 def view_price_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2129,7 +2133,7 @@ def _generate_price_sheet_pdf_bytes(sheet):
     return bytes(pdf.output(dest='S'))
 
 # add new customer
-@app.route('/add_customer', methods=['POST'])
+@main.route('/add_customer', methods=['POST'])
 @login_required
 def add_customer():
     form = AddCustomer()
@@ -2142,28 +2146,28 @@ def add_customer():
         db.session.add(customer)
         db.session.commit()
         flash('Customer added successfully!', 'success')
-        return redirect(url_for('customer'))
+        return redirect(url_for('main.customer'))
 
     return render_template('add_customer.html', title='Add Customer', form=form)
 
 # delete a customer
-@app.route('/delete_customer/<int:customer_id>', methods=['POST'])
+@main.route('/delete_customer/<int:customer_id>', methods=['POST'])
 @login_required
 def delete_customer(customer_id):
     # Find the customer in the database
     customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
     if not customer:
         flash('Customer not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('customer'))
+        return redirect(url_for('main.customer'))
 
     # Delete the customer
     db.session.delete(customer)
     db.session.commit()
     flash(f'Customer "{customer.name}" has been deleted successfully.', 'success')
-    return redirect(url_for('customer'))
+    return redirect(url_for('main.customer'))
 
 # upload customer CSV
-@app.route('/upload_customer_csv', methods=['GET', 'POST'])
+@main.route('/upload_customer_csv', methods=['GET', 'POST'])
 @login_required
 def upload_customer_csv():
     form = UploadCustomerCSV()
@@ -2225,16 +2229,16 @@ def upload_customer_csv():
                 db.session.commit()
 
             flash('Customers imported successfully!', 'success')
-    return redirect(url_for('customer'))
+    return redirect(url_for('main.customer'))
 
-@app.route('/ranch', methods=['GET', 'POST'])
+@main.route('/ranch', methods=['GET', 'POST'])
 @login_required
 def ranch():
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     # Get all previous ranch prices and costs for the current user's company
     ranch_prices = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.desc()).all()
@@ -2260,14 +2264,14 @@ def ranch():
 
         # Flash a success message
         flash('Ranch price and cost updated successfully!', 'success')
-        return redirect(url_for('ranch'))
+        return redirect(url_for('main.ranch'))
 
     return render_template('ranch.html', title='Ranch', ranch_prices=ranch_prices, form=form)
 
-@app.route("/reset/_password", methods=["GET", "POST"])
+@main.route("/reset/_password", methods=["GET", "POST"])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -2276,7 +2280,7 @@ def reset_password_request():
             flash('An email has been sent with instructions to reset your password.', 'info')
         else:
             flash('No account found with that email address.', 'danger')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     return render_template('reset_password_request.html', title='Reset Password', form=form)
 
 # get content for the actual email body
@@ -2311,26 +2315,26 @@ def send_reset_password_email(user):
     except Exception as e:
         flash(f'An error occurred while sending the email: {e}', 'danger')
 
-@app.route('/reset_password/<token>/<int:user_id>', methods=['GET', 'POST'])
+@main.route('/reset_password/<token>/<int:user_id>', methods=['GET', 'POST'])
 def reset_password(token, user_id):
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
     
     user = User.query.get(user_id)
     if not user or not user.verify_reset_password_token(token, user_id):
         flash('Invalid or expired token.', 'danger')
-        return redirect(url_for('reset_password_request'))
+        return redirect(url_for('main.reset_password_request'))
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
         user.set_password(form.password.data)
         db.session.commit()
         flash('Your password has been reset successfully!', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     return render_template('reset_password.html', title='Reset Password', form=form, user=user)
 
-@app.route('/price_quoter', methods=['GET','POST'])
+@main.route('/price_quoter', methods=['GET','POST'])
 @login_required
 def price_quoter():
     form = PriceQuoterForm()
@@ -2493,7 +2497,7 @@ def price_quoter():
             # update the total cost for the item
             update_item_total_cost(item.id)
 
-            return redirect(url_for('items'))
+            return redirect(url_for('main.items'))
         
     # print the errors in the form if there are any
     if form.errors:
@@ -2522,7 +2526,7 @@ def find_designation_cost(item_designation):
         return 1.00  # Default cost if not found
 
 # page to add designation costs
-@app.route('/designation_costs', methods=['GET','POST'])
+@main.route('/designation_costs', methods=['GET','POST'])
 @login_required
 def designation_costs():
     form = AddDesignationCost()
@@ -2561,7 +2565,7 @@ def designation_costs():
         for item in items:
             update_item_total_cost(item.id)
             
-        return redirect(url_for('designation_costs'))
+        return redirect(url_for('main.designation_costs'))
 
     # Print or flash errors after form is submitted and validation fails
     if form.is_submitted() and not form.validate():
@@ -2578,7 +2582,7 @@ def designation_costs():
         current_costs=current_costs
     )
 
-@app.route('/price_sheet', methods=['GET', 'POST'])
+@main.route('/price_sheet', methods=['GET', 'POST'])
 @login_required
 def price_sheet():
     form = PriceSheetForm()
@@ -2622,7 +2626,7 @@ def price_sheet():
 
         flash(f'Price Sheet "{sheet.name}" created!', 'success')
         # 2) redirect so the modal closes and the list refreshes
-        return redirect(url_for('price_sheet'))
+        return redirect(url_for('main.price_sheet'))
 
     # on GET or invalid POST, re-render the page
     return render_template(
@@ -2633,7 +2637,7 @@ def price_sheet():
       customer_names = customer_names
     )
 
-@app.route('/edit_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
+@main.route('/edit_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
 @login_required
 def edit_price_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2666,7 +2670,7 @@ def edit_price_sheet(sheet_id):
             db.session.add(ph)
         db.session.commit()
         flash('Prices saved!', 'success')
-        return redirect(url_for('edit_price_sheet', sheet_id=sheet.id))
+        return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
 
     # build “recent cost” choices (last 5) for each item
     history_opts = {}
@@ -2747,7 +2751,7 @@ def edit_price_sheet(sheet_id):
       available_items=available_items
     )
 
-@app.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
+@main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
 @login_required
 def email_price_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2762,7 +2766,7 @@ def email_price_sheet(sheet_id):
     recipient = request.form.get('recipient')
     if not recipient:
         flash('Recipient email required.', 'danger')
-        return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
+        return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
     # Send email
     msg = EmailMessage(
@@ -2774,9 +2778,9 @@ def email_price_sheet(sheet_id):
     msg.send()
 
     flash(f'Price sheet emailed to {recipient}.', 'success')
-    return redirect(url_for('view_price_sheet', sheet_id=sheet.id))
+    return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
-@app.route('/view_price_sheet/<int:sheet_id>/export_pdf')
+@main.route('/view_price_sheet/<int:sheet_id>/export_pdf')
 @login_required
 def export_price_sheet_pdf(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2791,7 +2795,7 @@ def export_price_sheet_pdf(sheet_id):
     resp.headers['Content-Disposition'] = f'attachment; filename=price_sheet_{sheet.name}.pdf'
     return resp
 
-@app.route('/edit_price_sheet/<int:sheet_id>/add_items', methods=['POST'])
+@main.route('/edit_price_sheet/<int:sheet_id>/add_items', methods=['POST'])
 @login_required
 def add_items_to_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2807,10 +2811,10 @@ def add_items_to_sheet(sheet_id):
             sheet.items.append(itm)
     db.session.commit()
     flash(f'Added {len(new_items)} item(s) to sheet.', 'success')
-    return redirect(url_for('edit_price_sheet', sheet_id=sheet.id))
+    return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
 
 # delete a price sheet
-@app.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
+@main.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
 @login_required
 def delete_price_sheet(sheet_id):
     sheet = PriceSheet.query.filter_by(
@@ -2822,7 +2826,7 @@ def delete_price_sheet(sheet_id):
     db.session.commit()
 
     flash(f'Price Sheet "{sheet.name}" deleted!', 'success')
-    return redirect(url_for('price_sheet'))
+    return redirect(url_for('main.price_sheet'))
 
 # only true if this file is run directly
 if __name__ == '__main__':

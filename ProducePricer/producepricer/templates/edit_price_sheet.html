@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-5">
-  <a href="{{ url_for('price_sheet') }}" class="btn btn-secondary mb-4">← Back</a>
+  <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary mb-4">← Back</a>
 
   <!-- Button to open “Add Items” modal -->
   <button type="button"
@@ -90,7 +90,7 @@
      aria-labelledby="addItemsModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <form method="POST"
-          action="{{ url_for('add_items_to_sheet', sheet_id=sheet.id) }}">
+          action="{{ url_for('main.add_items_to_sheet', sheet_id=sheet.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="modal-content">
         <div class="modal-header">

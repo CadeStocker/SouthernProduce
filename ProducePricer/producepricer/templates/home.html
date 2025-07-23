@@ -14,7 +14,7 @@
         {% if current_user.is_authenticated %}
             <p>Welcome back, {{ current_user.first_name }}!</p>
         {% else %}
-            <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Get Started</a>
+            <a class="btn btn-primary btn-lg" href="{{ url_for('main.login') }}" role="button">Get Started</a>
         {% endif %}
     </div>
     
@@ -31,22 +31,22 @@
                 <div class="card-body">
                     <p class="card-text">Manage your product inventory, packaging, and cost components.</p>
                     <div class="list-group list-group-flush">
-                        <a href="{{ url_for('items') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.items') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Items
                             <span class="badge badge-primary badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('packaging') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.packaging') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Packaging
                             <span class="badge badge-primary badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('raw_product') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.raw_product') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Raw Products
                             <span class="badge badge-primary badge-pill">→</span>
                         </a>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <a href="{{ url_for('items') }}" class="btn btn-outline-primary btn-sm">View All Items</a>
+                    <a href="{{ url_for('main.items') }}" class="btn btn-outline-primary btn-sm">View All Items</a>
                 </div>
             </div>
         </div>
@@ -60,22 +60,22 @@
                 <div class="card-body">
                     <p class="card-text">Calculate and manage your product pricing and costs.</p>
                     <div class="list-group list-group-flush">
-                        <a href="{{ url_for('price') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.price') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Price Calculator
                             <span class="badge badge-success badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('price_quoter') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.price_quoter') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Price Quoter
                             <span class="badge badge-success badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('price_sheet') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.price_sheet') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Price Sheets
                             <span class="badge badge-success badge-pill">→</span>
                         </a>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <a href="{{ url_for('price') }}" class="btn btn-outline-success btn-sm">Go to Pricing</a>
+                    <a href="{{ url_for('main.price') }}" class="btn btn-outline-success btn-sm">Go to Pricing</a>
                 </div>
             </div>
         </div>
@@ -89,22 +89,22 @@
                 <div class="card-body">
                     <p class="card-text">Manage and track individual cost elements for accurate pricing.</p>
                     <div class="list-group list-group-flush">
-                        <a href="{{ url_for('ranch') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.ranch') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Ranch Costs
                             <span class="badge badge-info badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('add_labor_cost') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.add_labor_cost') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Labor Costs
                             <span class="badge badge-info badge-pill">→</span>
                         </a>
-                        <a href="{{ url_for('designation_costs') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('main.designation_costs') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Designation Costs
                             <span class="badge badge-info badge-pill">→</span>
                         </a>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <a href="{{ url_for('add_labor_cost') }}" class="btn btn-outline-info btn-sm">Manage Costs</a>
+                    <a href="{{ url_for('main.add_labor_cost') }}" class="btn btn-outline-info btn-sm">Manage Costs</a>
                 </div>
             </div>
         </div>
@@ -120,7 +120,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Add New Item</h5>
                         <p class="card-text">Create a new product item with associated costs.</p>
-                        <a href="{{ url_for('items') }}" class="btn btn-primary">Add Item</a>
+                        <a href="{{ url_for('main.items') }}" class="btn btn-primary">Add Item</a>
                     </div>
                 </div>
             </div>
@@ -129,7 +129,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Generate Price Quote</h5>
                         <p class="card-text">Create a customized price quote for a customer.</p>
-                        <a href="{{ url_for('price_quoter') }}" class="btn btn-success">New Quote</a>
+                        <a href="{{ url_for('main.price_quoter') }}" class="btn btn-success">New Quote</a>
                     </div>
                 </div>
             </div>

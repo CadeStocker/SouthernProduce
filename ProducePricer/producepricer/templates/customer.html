@@ -61,7 +61,7 @@
                                     <button type="button" class="btn btn-warning btn-sm mr-2" data-toggle="modal" data-target="#editCustomerModal{{ customer.id }}">
                                         Edit
                                     </button>
-                                    <form method="POST" action="{{ url_for('delete_customer', customer_id=customer.id) }}">
+                                    <form method="POST" action="{{ url_for('main.delete_customer', customer_id=customer.id) }}">
                                         {{ form.hidden_tag() }}
                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                     </form>
@@ -78,7 +78,7 @@
                                                     </button>
                                                 </div>
                                                 <div class="modal-body">
-                                                    <form method="POST" action="{{ url_for('edit_customer', customer_id=customer.id) }}">
+                                                    <form method="POST" action="{{ url_for('main.edit_customer', customer_id=customer.id) }}">
                                                         {{ form.hidden_tag() }}
                                                         <div class="form-group">
                                                             <label for="name">Name</label>
@@ -122,7 +122,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="{{ url_for('add_customer') }}">
+                <form method="POST" action="{{ url_for('main.add_customer') }}">
                     {{ form.hidden_tag() }}
                     
                     <div class="form-group">
@@ -152,7 +152,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="{{ url_for('upload_customer_csv') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ url_for('main.upload_customer_csv') }}" enctype="multipart/form-data">
                     {{ import_form.hidden_tag() }}
                     <div class="form-group">
                         <label for="file">Upload CSV File</label>

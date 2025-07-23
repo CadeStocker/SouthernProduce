@@ -13,7 +13,7 @@
     </button>
 
     <!-- Search form -->
-  <form method="GET" action="{{ url_for('packaging') }}" class="form-inline mb-3">
+  <form method="GET" action="{{ url_for('main.packaging') }}" class="form-inline mb-3">
         <input
         type="text"
         name="q"
@@ -23,7 +23,7 @@
         >
         <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
         {% if q %}
-        <a href="{{ url_for('packaging') }}" class="btn btn-link">Clear</a>
+        <a href="{{ url_for('main.packaging') }}" class="btn btn-link">Clear</a>
         {% endif %}
     </form>
 
@@ -50,7 +50,7 @@
                         {% for item in packaging %}
                             <tr>
                                 <td>
-                                    <a href="{{ url_for('view_packaging', packaging_id=item.id) }}">
+                                    <a href="{{ url_for('main.view_packaging', packaging_id=item.id) }}">
                                         {{ item.packaging_type }}
                                     </a>
                                 </td>
@@ -64,8 +64,8 @@
                                     <td colspan="5">No cost data available</td>
                                 {% endif %}
                                 <td>
-                                    <a href="{{ url_for('add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
-                                    <form method="POST" action="{{ url_for('delete_packaging', packaging_id=item.id) }}" style="display:inline;">
+                                    <a href="{{ url_for('main.add_packaging_cost', packaging_id=item.id) }}" class="btn btn-sm btn-secondary">Add/Update Cost</a>
+                                    <form method="POST" action="{{ url_for('main.delete_packaging', packaging_id=item.id) }}" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this packaging and all its associated cost history? This action cannot be undone.');">Delete</button>
                                     </form>
@@ -91,7 +91,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form method="POST" action="{{ url_for('add_package') }}">
+                <form method="POST" action="{{ url_for('main.add_package') }}">
                     {{ create_package_form.hidden_tag() }}
                     <div class="modal-body">
                         <div class="form-group">
@@ -118,7 +118,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form method="POST" action="{{ url_for('upload_packaging_csv') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ url_for('main.upload_packaging_csv') }}" enctype="multipart/form-data">
                     {{ upload_csv_form.hidden_tag() }}
                     <div class="modal-body">
                         <div class="form-group">

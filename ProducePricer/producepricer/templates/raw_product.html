@@ -16,7 +16,7 @@
   </div>
 
   <!-- Search Form -->
-  <form method="GET" action="{{ url_for('raw_product') }}" class="form-inline mb-4">
+  <form method="GET" action="{{ url_for('main.raw_product') }}" class="form-inline mb-4">
     <input type="text"
            name="q"
            class="form-control mr-2"
@@ -24,7 +24,7 @@
            value="{{ q }}">
     <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
     {% if q %}
-      <a href="{{ url_for('raw_product') }}" class="btn btn-link">Clear</a>
+      <a href="{{ url_for('main.raw_product') }}" class="btn btn-link">Clear</a>
     {% endif %}
   </form>
 
@@ -48,7 +48,7 @@
               {% for rp in raw_products %}
               <tr>
                 <td>
-                  <a href="{{ url_for('view_raw_product', raw_product_id=rp.id) }}">
+                  <a href="{{ url_for('main.view_raw_product', raw_product_id=rp.id) }}">
                     {{ rp.name }}
                   </a>
                 </td>
@@ -86,7 +86,7 @@
     <div class="modal fade" id="addCostModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="addCostModalLabel-{{ rp.id }}" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <form method="POST" action="{{ url_for('add_raw_product_cost', raw_product_id=rp.id) }}">
+          <form method="POST" action="{{ url_for('main.add_raw_product_cost', raw_product_id=rp.id) }}">
             {{ cost_form.hidden_tag() }}
             <div class="modal-header">
               <h5 class="modal-title" id="addCostModalLabel-{{ rp.id }}">Add Cost for {{ rp.name }}</h5>
@@ -117,7 +117,7 @@
     <div class="modal fade" id="deleteRawProductModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRawProductModalLabel-{{ rp.id }}" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <form method="POST" action="{{ url_for('delete_raw_product', raw_product_id=rp.id) }}">
+          <form method="POST" action="{{ url_for('main.delete_raw_product', raw_product_id=rp.id) }}">
             {{ csrf_token() }}
             <div class="modal-header">
               <h5 class="modal-title" id="deleteRawProductModalLabel-{{ rp.id }}">Delete {{ rp.name }}</h5>
@@ -145,7 +145,7 @@
   <div class="modal fade" id="addRawProductModal" tabindex="-1" role="dialog" aria-labelledby="addRawProductModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
-        <form method="POST" action="{{ url_for('add_raw_product') }}">
+        <form method="POST" action="{{ url_for('main.add_raw_product') }}">
           {{ form.hidden_tag() }}
           <div class="modal-header">
             <h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5>
@@ -172,7 +172,7 @@
   <div class="modal fade" id="importRawProductsModal" tabindex="-1" role="dialog" aria-labelledby="importRawProductsModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
-        <form method="POST" action="{{ url_for('upload_raw_product_csv') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('main.upload_raw_product_csv') }}" enctype="multipart/form-data">
           {{ upload_csv_form.hidden_tag() }}
           <div class="modal-header">
             <h5 class="modal-title" id="importRawProductsModalLabel">Import Raw Products</h5>

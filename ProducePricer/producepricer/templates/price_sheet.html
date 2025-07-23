@@ -32,12 +32,12 @@
               <td>{{ ps.date.strftime('%Y-%m-%d') }}</td>
               <td>{{ customer_names[ps.customer_id] }}</td>
               <td>
-                <a href="{{ url_for('edit_price_sheet', sheet_id=ps.id) }}"
+                <a href="{{ url_for('main.edit_price_sheet', sheet_id=ps.id) }}"
                    class="btn btn-sm btn-secondary mr-1">
                   Edit
                 </a>
                 <form method="POST"
-                      action="{{ url_for('delete_price_sheet', sheet_id=ps.id) }}"
+                      action="{{ url_for('main.delete_price_sheet', sheet_id=ps.id) }}"
                       style="display:inline;">
                   {{ form.csrf_token() }}
                   <button type="submit"
@@ -46,7 +46,7 @@
                     Delete
                   </button>
                 </form>
-                <a href="{{ url_for('view_price_sheet', sheet_id=ps.id) }}"
+                <a href="{{ url_for('main.view_price_sheet', sheet_id=ps.id) }}"
                    class="btn btn-sm btn-info">
                   View
                 </a>
@@ -68,7 +68,7 @@
      aria-labelledby="newPriceSheetModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <form method="POST" action="{{ url_for('price_sheet') }}">
+      <form method="POST" action="{{ url_for('main.price_sheet') }}">
         {{ form.hidden_tag() }}
         <div class="modal-header">
           <h5 class="modal-title" id="newPriceSheetModalLabel">New Price Sheet</h5>

@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="container mt-5 d-flex align-items-center">
-    <a href="{{ url_for('price_sheet') }}" class="btn btn-secondary mb-4 mr-2">← Back to Sheets</a>
-    <a href="{{ url_for('export_price_sheet_pdf', sheet_id=sheet.id) }}" class="btn btn-secondary mb-4 mr-3">
+    <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary mb-4 mr-2">← Back to Sheets</a>
+    <a href="{{ url_for('main.export_price_sheet_pdf', sheet_id=sheet.id) }}" class="btn btn-secondary mb-4 mr-3">
         Export PDF
     </a>
     <!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_price_sheet.html -->
-<form method="POST" action="{{ url_for('email_price_sheet', sheet_id=sheet.id) }}" class="form-inline mb-4">
+<form method="POST" action="{{ url_for('main.email_price_sheet', sheet_id=sheet.id) }}" class="form-inline mb-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="recipient" value="{{ customer.email }}">
     <button type="submit" class="btn btn-success">Email PDF to {{ customer.email }}</button>
