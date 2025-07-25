@@ -27,3 +27,9 @@ def app():
     # Teardown - close and remove the temporary database
     os.close(db_fd)
     os.unlink(db_path)
+
+@pytest.fixture
+def bcrypt():
+    """Provide the bcrypt password hashing utility for tests."""
+    from producepricer import bcrypt
+    return bcrypt

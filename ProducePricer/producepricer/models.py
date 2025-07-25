@@ -178,7 +178,7 @@ class Item(db.Model):
     #raw_product_ids = db.Column(db.ARRAY(db.Integer), nullable=True)  # Array of raw product IDs
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, name, code, unit_of_weight, packaging_id, company_id, case_weight=0.0, ranch=False, item_designation=ItemDesignation.FOODSERVICE, raw_product_ids=None):
+    def __init__(self, name, code, unit_of_weight, packaging_id, company_id, case_weight=0.0, ranch=False, item_designation=ItemDesignation.FOODSERVICE, raw_product_ids=None, alternate_code=None):
         #self.raw_product_ids = db.cast(raw_product_ids, db.ARRAY(db.Integer)) if raw_product_ids is not None else db.cast([], db.ARRAY(db.Integer))
         self.name = name
         #self.alternate_code = alternate_code
@@ -190,6 +190,7 @@ class Item(db.Model):
         self.case_weight = case_weight
         self.ranch = ranch
         self.company_id = company_id
+        self.alternate_code = alternate_code  # added to store alternate codes for items
 
     def __repr__(self):
         return f"Item('{self.name}', '{self.alternate_code}', '{self.code}', '{self.unit_of_weight}', '{self.case_weight}', '{self.packaging_id}', '{self.item_designation}')"
