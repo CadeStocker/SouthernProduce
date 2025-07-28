@@ -1,0 +1,653 @@
+Starting file analysis at 2025-07-25 11:53:26.211003
+File: import_items.csv
+
+Reading CSV file...
+Successfully read CSV file. Found 304 rows.
+Columns: name, item_code, alternate_code, raw_product, ranch, item_designation, packaging_type, yield, case_weight, labor
+
+Collecting items from CSV...
+Added name: ACORN SQUASH, DICED  (4X5#CASE)
+Added code: AC
+Added name: APPLE, RED WEDGES (4X3#CASE)
+Added code: GW
+Added name: APPLE, RED DICED (4X5# CASE)
+Added code: DRA
+Added name: APPLE, GREEN DICED (4X5# CASE)
+Added code: APD
+Added name: APPLE, GREEN WEDGES (4 X 3)
+Added code: GRW
+Added name: BEETS, DICED (2X5#CASE)
+Added code: BET
+Added name: BEETS, CANDY STRIPE DICED (2X5#CASE)
+Added code: BET
+Added name: BEETS, GOLD DICED (2X5#CASE)
+Added code: BET
+Added name: BOK CHOY, CHOPPED (4 X 5# CASE)
+Added code: BC
+Added name: BROCCOLI FLORETS MCENTIRE (4# CASE)
+Added code: BROF
+Added name: BROCCOLI FLORETS (4X3# CASE)
+Added code: BROF
+Added name: BROCCOLI FLORETS (6x3#CASE)
+Added code: BROF63
+Added name: BROCCOLI SLAW (4X3#CASE)
+Added code: BRS
+Added name: BRUSSEL SPROUTS, SHREDDED
+Added code: BRU
+Added name: BRUSSELS SPROUT, TRIMMED & HALVED (4 X 5# CASE)
+Added code: BRUH
+Added name: BUTTERNUT SQUASH DICED (20# CASE)
+Added code: BD
+Added name: CABBAGE, CHOPPED (20# CASE)
+Added code: CHCAB
+Added name: CABBAGE, DICED ZESTO (20# CASE)
+Added code: ZES
+Added name: CABBAGE, SHRED RED (20# CASE)
+Added code: SR
+Added name: CHAYOTE, SQUASH 2" MATCHSTICK (2X5# CASE)
+Added code: CSM
+Added name: CANTALOUPE CUBED (5# CASE)
+Added code: CANC
+Added name: CANTALOUPE, HALVED (5#CASE)
+Added code: CANH
+Added name: CANTALOUPE, SLICED (10# CASE)
+Added code: CANSL
+Added name: CARROT STICKS MCENTIRE (4# CASE)
+Added code: CARST10
+Added name: CARROT STICKS (10# CASE)
+Added code: CARST10
+Added name: CARROT STICKS (20# CASE)
+Added code: CARST
+Added name: CARROT, STICKS (BWW)(4 X 5# CASE)
+Added code: CARSTBW
+Added name: CARROTS, COINS  (2X5# CASE)
+Added code: CCCAR10
+Added name: CARROTS, COINS (4X5# CASE)
+Added code: CCCAR
+Added name: CARROTS, DICED (2X5# CASE)
+Added code: DCAR10
+Added name: CARROTS, DICED (4X5#  CASE)
+Added code: CARD
+Added name: CARROTS, MATCHSTICK (4X5# CASE)
+Added code: SHCAR
+Added name: CARROTS, PEELED (4X5# CASE)
+Added code: PCAR
+Added name: CAULIFLOWER FLORETS MCENTIRE (4# CASE)
+Added code: CFL
+Added name: CAULIFLOWER FLORETS (4X3# CASE)
+Added code: CFL
+Added name: CAULIFLOWER FLORETS MULTICOLOR (4X3# CASE)
+Added code: CFL
+Added name: CELERY STICKS MCENTIRE (4# CASE)
+Added code: CELST
+Added name: CELERY STICKS (4X5# CASE)
+Added code: CELST
+Added name: CELERY, DICED (2X5# CASE)
+Added code: CELD10
+Added name: CELERY, DICED (4X5# CASE)
+Added code: CELD
+Added name: CELERY, SLICED  (2X5# CASE)
+Added code: CELD
+Added name: CELERY, ROOT DICED  (2X5# CASE)
+Added code: CELD
+Added name: CILANTRO, CLEAN & TRIM (4X1# CASE)
+Added code: CIL
+Added name: COLESLAW, DICED (4X5# CASE)
+Added code: SLAWD
+Added name: COLESLAW, FINE SHREDDED, (4X5# CASE)
+Added code: SLAWF
+Added name: COLESLAW, SAVOY BLEND (2X5# CASE)
+Added code: SLAW50/50
+Added name: COLESLAW, SHREDDED MIX (4X5# CASE)
+Added code: SLAW
+Added name: COLLARDS, CLEANED/CUT (6X2# CASE)
+Added code: COL
+Added name: CORN SHUCKED & CUT (1 BUSH)
+Added code: CORNHALF
+Added name: CORN, SHUCKED (4 X 12)
+Added code: CORN
+Added name: CRIMINI, SLICED (5# CASE)
+Added code: SC5
+Added name: CUCUMBER, DICED (2 X 5# CASE)
+Added code: CUKD10
+Added name: CUCUMBER, SLICED (2 X 5# CASE)
+Added code: CUKS10
+Added name: CUCUMBER, WHOLE (5# CASE)
+Added code: CUW5
+Added name: FAJITA MIX, PEPPER & ONION, JULIENNE (2 X 5) (10# CASE)
+Added code: FMJ
+Added name: FRENCH FRIES (4X5# CASE)
+Added code: FF
+Added name: FRUIT MIXED (5# CASE)
+Added code: FM
+Added name: FRUIT TRAY (5# CASE)
+Added code: FTRAY
+Added name: FRUIT, MIXED (2X5# CASE)
+Added code: FM10
+Added name: GRAPES, RED  (5# CASE)
+Added code: GPL
+Added name: GRAPES, RED  (1# CASE)
+Added code: GPL
+Added name: GREEN ONION, SLICED, (2X5#CASE)
+Added code: GRO10
+Added name: HONEYDEW, SLICED (2X5# CASE)
+Added code: HONS
+Added name: HONEYDEW, CUBED (5# CASE)
+Added code: HON
+Added name: HONEYDEW, HALVED (5# CASE)
+Added code: HH
+Added name: JALAPENO, SLICED (2X5#CASE)
+Added code: JS
+Added name: JALAPENO, WHOLE, (5# CASE)
+Added code: JW5
+Added name: JICAMA, SHRED 1/8' (5# CASE)
+Added code: JSH2/5
+Added name: JICAMA, SHRED 1/8' (2X5# CASE)
+Added code: JSH2/5
+Added name: KALE, SHREDDED (4 X 1# CASE)
+Added code: KAL
+Added name: KIWI, PEELED & SLICED (5# CASE)
+Added code: KI5
+Added name: LEMON WEDGES, (2 X 5# CASE)
+Added code: LEM2/5
+Added name: MANGO, CUBED (5# CASE)
+Added code: MANG
+Added name: NAPA CABBAGE, SHREDDED (2 X 5)
+Added code: NAPA, SHRED
+Added name: NAPA CABBAGE, SHREDDED (4 X 5)
+Added code: NAPA, SHRED
+Added name: ONIONS, RED DICED (20# CASE)
+Added code: ROND
+Added name: ONIONS, RED DICED (5# BAG)
+Added code: RONDB
+Added name: ONIONS, RED JULIENNE (10# CASE)
+Added code: RONJ10
+Added name: ONIONS, RED JULIENNE (20# CASE)
+Added code: RONJ
+Added name: ONIONS, RED JULIENNE (5# BAG)
+Added code: RONJB
+Added name: ONIONS, RED PEELED (20# CASE)
+Added code: RONP
+Added name: ONIONS, RED RINGS (2# BAG)
+Added code: RONR5
+Added name: ONIONS, RED SLICED (10# CASE)
+Added code: RONSL10
+Added name: ONIONS, RED SLICED (20# CASE)
+Added code: RONSL
+Added name: ONIONS, RED WHOLE (5# CASE)
+Added code: ROW5
+Added name: ONIONS, SLICED, (5# TUB)
+Added code: YONT
+Added name: ONIONS, YELLOW WHOLE (5# CASE)
+Added code: YOW5
+Added name: ONIONS, YELLOW DICED (10# CASE)
+Added code: YOND10
+Added name: ONIONS, YELLOW DICED (20# CASE)
+Added code: YOND
+Added name: ONIONS, YELLOW JULIENNE (10# CASE)
+Added code: YONJ10
+Added name: ONIONS, YELLOW JULIENNE (20# CASE)
+Added code: YONJ
+Added name: ONIONS, YELLOW PEELED (20# CASE)
+Added code: YONP
+Added name: ONIONS, YELLOW THIN SLICED (5# CASE)
+Added code: LYONT
+Added name: ONIONS, YELLOW SLICED (10# CASE)
+Added code: YONSL10
+Added name: ONIONS, YELLOW SLICED (20# CASE)
+Added code: YONSL
+Added name: ONIONS, SWEET DICED (20# CASE)
+Added code: YOND
+Added name: ONIONS, RED SHALLOTS (10# CASE)
+Added code: RONSL10
+Added name: ORANGE SLICES, (2 X 5# TRAY)
+Added code: OSL
+Added name: ORANGE PEELED & SECTIONED , (5# TRAY)
+Added code: OSL
+Added name: TANGERINES PEELED & SECTIONED , (5# TRAY)
+Added code: OSL
+Added name: PARSNIP, COIN CUT, (2 X 5# CASE)
+Added code: PARS
+Added name: PARSNIP, PEEL & DICED (10# CASE)
+Added code: PARD
+Added name: PEPPER, DICED YELLOW(5# CASE)
+Added code: DYP
+Added name: PEPPER, GREEN DICED (5# TRAY)
+Added code: DP5
+Added name: PEPPER, GREEN JULIENNE, (10# TRAY)
+Added code: JP10
+Added name: PEPPER, GREEN, DICED, (10# CASE)
+Added code: DP10
+Added name: PEPPER, GREEN, JULIENNE (20# CASE)
+Added code: JP20
+Added name: PEPPER, JUL GREEN (5# CASE)
+Added code: JP5
+Added name: PEPPER, GREEN WHOLE (5# CASE)
+Added code: GPW5
+Added name: PEPPER, RED WHOLE (5# CASE)
+Added code: RPW5
+Added name: PEPPER, RED JULIENNE (10# TRAY)
+Added code: JPR
+Added name: PEPPER, RED, DICED (10# TRAY)
+Added code: DRP
+Added name: PEPPER, YELLOW DICED (10# TRAY)
+Added code: DPY
+Added name: PEPPER, YELLOW JULIENNE (10# TRAY)
+Added code: JPY
+Added name: PEPPERS, DICED, TRI COLOR, (10# CASE)
+Added code: DP10M
+Added name: PEPPERS, JULIENNE, TRI COLOR, (10# CASE)
+Added code: JPM
+Added name: PEPPER, SUNTAN, DICED, (10# CASE)
+Added code: DP10
+Added name: PICO DE GALLO (2 x 1 GAL/CASE)
+Added code: PDG2/1
+Added name: PINEAPPLE CUT (5# CASE)
+Added code: PINC
+Added name: PINEAPPLE, HALVED (5# CASE)
+Added code: PH
+Added name: PINEAPPLE, SLICED (10# CASE)
+Added code: PINSL
+Added name: POTATO, DICED, SKIN ON (20# CASE)
+Added code: POTDSO
+Added name: POTATO, QUARTERED RED (20# CASE)
+Added code: POTQR
+Added name: POTATO, WEDGES (20# CASE)
+Added code: POTWED
+Added name: POTATOES, DICED (10# BAG)
+Added code: POTDB
+Added name: POTATOES, DICED (20# CASE)
+Added code: POTD
+Added name: POTATOES, HASH BROWN (20# CASE)
+Added code: POTHB
+Added name: POTATOES, QUARTERED (20# CASE)
+Added code: POTQ
+Added name: POTATOES, RED QUARTERED (10# BAG)
+Added code: POTQRB
+Added name: POTATOES, SLICED (10# BAG)
+Added code: POTSLB
+Added name: POTATOES, SLICED (20# CASE)
+Added code: POTSL
+Added name: POTATOES, WHOLE PEELED (10# BAG)
+Added code: POTWPB
+Added name: POTATOES, WHOLE PEELED (20# CASE)
+Added code: POTWP
+Added name: RADISH SLICED (10# CASE)
+Added code: RADS
+Added name: RADISH, SHREDDED (10# CASE)
+Added code: RADSH
+Added name: RAW FRIES (10# BAG)
+Added code: RFB
+Added name: RAW FRIES (20# CASE)
+Added code: RF
+Added name: ROOT VEGETABLES, MIXED (4 X 3# CS)
+Added code: RV
+Added name: RUTABAGAS, DICED (20# CASE)
+Added code: RUTD
+Added name: SQUASH, JULIENNE, (2 X 5# BAG)
+Added code: SQJ
+Added name: SQUASH, SLICED (20# CASE)
+Added code: SQS
+Added name: SQUASH, SLICED (5# BAG)
+Added code: SQSB
+Added name: SQUASH, CHAYOTE, (2 X 5# CASE)
+Added code: SQJ
+Added name: STRAWBERRIES, SLICED (5# CASE)
+Added code: STRS
+Added name: STRAWBERRIES, TRIMMED, WASHED (5# TRAY)
+Added code: STR
+Added name: SWEET POTATO, PEELED & SHRED (20# CASE)
+Added code: SPSH
+Added name: SWEET POTATO, PEELED STICKS (20# CASE)
+Added code: SPST
+Added name: SWEET POTATO, PEELED, DICED (20# CASE)
+Added code: SPPD
+Added name: SWEET POTATO, WEDGES (20# CASE)
+Added code: SPW
+Added name: SWEET POTATOES, DICED (20# CASE)
+Added code: SPD
+Added name: SWEET POTATOES, PEELED (20# CASE)
+Added code: SPP
+Added name: SWEET POTATOES, PEELED, QUARTERED (20# CASE)
+Added code: SPPQ
+Added name: TOMATOES, DICED (10# CASE)
+Added code: DT
+Added name: TOMATOES, DICED (5# CASE)
+Added code: DT5
+Added name: TOMATOES, DICED (20# CASE)
+Added code: DT
+Added name: TOMATOES, SLICED (10# CASE)
+Added code: ST
+Added name: TOMATOES, GREEN DICED (10# CASE)
+Added code: DT
+Added name: TURNIP GREENS, CHOPPED (6 X 2#)
+Added code: TC
+Added name: TURNIP, DICED, (10# CASE)
+Added code: TURND
+Added name: TURNIP, DICED, (20# CASE)
+Added code: TURND
+Added name: WATERMELON, CUT (5# CASE)
+Added code: WAC
+Added name: ZUCCHINI SLICED (20# CASE)
+Added code: ZUS
+Added name: ZUCCHINI, DICED (2 X 5# TRAYS)
+Added code: ZUD10
+Added name: ZUCCHINI, JULIENNE, (2 X 5# BAG)
+Added code: ZUJ
+Added name: ZUCCHINI, SLICED (5# CASE)
+Added code: ZUS5
+Added name: APPLE, GREEN WEDGES (100 X 2oz)
+Added code: APPG100
+Added name: APPLE, GREEN WEDGES (50 X 2oz)
+Added code: APPGR
+Added name: APPLE, RED WEDGES (100 X 2oz)
+Added code: APP100
+Added name: APPLE, RED WEDGES (50 X 2oz)
+Added code: APP50
+Added name: ASPARAGUS STICKS (50 X 2oz)
+Added code: AS50
+Added name: BABY CARROTS (50/2oz) W/ LIGHT RANCH
+Added code: CB50W
+Added name: BABY CARROTS  (100 X 2oz)
+Added code: CB100
+Added name: BABY CARROTS  (50 X 2oz)
+Added code: CB50
+Added name: BEANS, VARIOUS (50 x 2oz)
+Added code: BEAN50
+Added name: BEETS, CANDYSTRIPE (50 X 2oz)
+Added code: BE50
+Added name: BLOOD ORANGE WEDGES (50 X 3.5oz)
+Added code: BO
+Added name: BLUEBERRIES  (50 X 2oz)
+Added code: BB
+Added name: BROCCOLI FLORET  (50 X 2oz)
+Added code: BF
+Added name: BROCCOLI FLORET  (50 X 4oz)
+Added code: BF
+Added name: BROCCOLI FLORET  (50 X 2oz) W/  LIGHT RANCH
+Added code: BFW
+Added name: CANTALOUPE, CUBED (50 X 2.7oz)
+Added code: CAN50
+Added name: CARROT, STICKS SNAKPAK (50X2oz)
+Added code: CAR50
+Added name: CARROTS, BABY, (50 X 2oz)
+Added code: CB50
+Added name: CARROTS, RAINBOW COINS  (50 X 2oz)
+Added code: CCARR50
+Added name: CARROTS, RAINBOW COINS  (100 X 2oz)
+Added code: CCARR
+Added name: CARROTS, RAINBOW COINS (50 X 2oz) W/ LIGHT RANCH
+Added code: CCARR50W
+Added name: CARROTS, COINS  (50 X 2oz)
+Added code: CCAR50
+Added name: CARROTS, COINS  (50 X 2oz) W/ LIGHT RANCH
+Added code: CCAR50W
+Added name: CAULIFLOWER FLORET  (50 X 2oz)
+Added code: C
+Added name: CAULIFLOWER FLORET  (50 X 2oz) W/ LIGHT RANCH
+Added code: CF50W
+Added name: CAULIFLOWER FLORET  (50 X 4oz)
+Added code: C
+Added name: CELERY STICKS  (50 X 2oz)
+Added code: CE5
+Added name: CELERY STICKS  (50 X 2oz) W/ LIGHT RANCH
+Added code: CE5W
+Added name: CELERY STICKS  (50 X 4oz)
+Added code: CE5
+Added name: CHERRY TOMATOES SNAKPAK (50 X 2oz)
+Added code: CT
+Added name: CHERRY TOMATOES SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: CTW
+Added name: CUCUMBER, COINS (50 X 2oz)
+Added code: CU5
+Added name: CUCUMBER, COINS (50 X 2oz) W/ LIGHT RANCH
+Added code: CU5W
+Added name: CUCUMBER, COINS (50 X 4oz)
+Added code: CU5
+Added name: DRAGON FRUIT, WEDGES (50 X 2oz)
+Added code: DF50
+Added name: GRAPES, RED  (100 X 3oz)
+Added code: GP
+Added name: GRAPES, RED  (50 X 3oz)
+Added code: GP50
+Added name: GRAPES, COTTON CANDY  (50 X 3oz)
+Added code: GP50
+Added name: GRAPE TOMATO  (50 X 2oz) W/ LIGHT RANCH
+Added code: GTW
+Added name: GRAPE TOMATO  (50 X 2oz)
+Added code: GT
+Added name: GREEN BEANS  (50 X 2oz)
+Added code: GB50
+Added name: GUAVA, WEDGES  (50 X 2oz)
+Added code: GAV
+Added name: HONEYDEW, CUBED, (50 X 2.7oz)
+Added code: HO50
+Added name: JICAMA, STICKS (50 X 2oz)
+Added code: JSP
+Added name: JICAMA, STICKS (50 X 2oz) W/ LIGHT RANCH
+Added code: JSPW
+Added name: KIWI, WEDGED SNAKPAK (50 X 2oz)
+Added code: KI50
+Added name: KIWI, GOLDEN WEDGED SNAKPAK (50 X 2oz)
+Added code: KI50
+Added name: KUMQUAT WHOLE, (50 X 2oz)
+Added code: KUM
+Added name: MANGO, CHUNKS (50x2oz)
+Added code: MANG
+Added name: ORANGE WEDGE SNAKPAK (50 X 4.7oz.)
+Added code: OW
+Added name: PAPAYA, CHUNKS SNAKPAK (50/2oz)
+Added code: PAPSP
+Added name: PEARS, WEDGED (100 X 2oz)
+Added code: PE100
+Added name: PEARS, WEDGED (50 X 2oz)
+Added code: PE50
+Added name: PEPPER STICK, RED, YELLOW, (50 X 2oz)
+Added code: PSTK100
+Added name: PEPPER STICKS, SNAKPAK (50 X 2oz)
+Added code: PSTK
+Added name: PINEAPPLE  (50 X 2.3oz)
+Added code: PS
+Added name: PINEAPPLE PINK (50 X 2.3oz)
+Added code: PS
+Added name: RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz)
+Added code: R
+Added name: RADISH, MATCHSTICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: RAD5
+Added name: SQUASH, HALFMOON (50 X 2 oz) W/ LIGHT RANCH
+Added code: SQ50W
+Added name: SQUASH, HALF-MOON (50 X 2oz)
+Added code: SQ50
+Added name: STRAWBERRIES, TRIMMED (50 X 2oz)
+Added code: STR50
+Added name: STRAWBERRIES, WHITE, TRIMMED (50 X 2oz)
+Added code: STRW50
+Added name: SUGAR SNAPS, SNAKPAK  (50 X 2oz)
+Added code: S5
+Added name: SUGAR SNAPS, SNAKPAK  (50 X 4oz)
+Added code: S5
+Added name: SUGAR SNAPS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: S5W
+Added name: SWEET POTATO STICKS, SNAKPAK (100 X 2oz)
+Added code: SW100
+Added name: SWEET POTATO STICKS, SNAKPAK (50 X 2oz)
+Added code: SW50
+Added name: SWEET POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: SW5W
+Added name: SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz)
+Added code: SWW50
+Added name: SWEET WHITE POTATO STICKS, SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: SWW5W
+Added name: TANGERINE WEDGE SNAKPAK (50 X 3.5oz)
+Added code: TANG
+Added name: TURNIP STICKS (50 X 2oz)
+Added code: TS
+Added name: TURNIP STICKS SNAKPAK (50 X 2oz) W/ LIGHT RANCH
+Added code: TSW
+Added name: UGLY FRUIT  WEDGE SNAKPAK (50 X 3.5oz)
+Added code: UF
+Added name: WATERMELON RADISH STICKS (50 X 2oz)
+Added code: WR
+Added name: WATERMELON, SNAKPAK, (50 X 2oz)
+Added code: W50
+Added name: ZUCHHINI, SLICED W/ RANCH (50 X 2oz)
+Added code: Z50W
+Added name: ZUCHHINI, SLICED (50 X 2oz)
+Added code: Z50
+Added name: BUTTERNUT STICKS 50/2OZ
+Added code: TS
+Added name: DAIKON COIIN CUT 50/2OZ
+Added code: TS
+Added name: MINI SWEET PEPPER
+Added code: PSTK
+Added name: HEIRLOOM GRAPE TOMATO
+Added code: GT
+Added name: GRAPES, WHITE  (5# CASE)
+Added code: GPL
+Added name: GRAPE FRUIT 5#
+Added code: OSL
+Added name: LEMONS WEDGES 50/2.3OZ
+Added code: LW50
+Added name: PARSNIP COIN CUT 50/2OZ
+Added code: PAS50
+Added name: BROCCOLI FLORETS (4X3# CASE)
+Added code: BROF
+Added name: CELERY STICKS (4X5# CASE)
+Added code: CELST
+Added name: CARROT STICKS (20# CASE)
+Added code: CARST
+Added name: CAULIFLOWER FLORETS (4X3# CASE)
+Added code: CFL
+Added name: APPLE RED CUP (4# CASE)
+Added code: GW
+Added name: APPLE GREEN CUPS (4#CS)
+Added code: GRW
+Added name: BLUEBERRIES CUPS  (4# CASE)
+Added code: BB
+Added name: CANTALOUPE CUPS (4# CASE)
+Added code: CANC
+Added name: RED GRAPES CUPS (4# CASE)
+Added code: GPL
+Added name: WHITE GRAPES CUPS (4# CASE)
+Added code: GPLW
+Added name: HONEYDEW CUPS (4# CASE)
+Added code: HON
+Added name: KIWI CUPS (4# CASE)
+Added code: KI
+Added name: MANGO CUPS (4# CASE)
+Added code: MANG
+Added name: ORANGES CUPS (4# CASE)
+Added code: OSL
+Added name: PEARS CUPS (4# CASE)
+Added code: PE50
+Added name: PINEAPPLES CUPS (4# CASE)
+Added code: PINC
+Added name: STRAWBERIES CUPS (4# CASE)
+Added code: STR
+Added name: WATERMELON CUPS (4# CASE)
+Added code: WAC
+Added name: FRUIT MIX (4# CASE)
+Added code: FM
+Added name: TROPICAL MIX (4#CASE)
+Added code: TMS
+Added name: APPLE RED CUP (6# CASE)
+Added code: FM
+Added name: APPLE GREEN CUPS (6#CS)
+Added code: FM
+Added name: BLUEBERRIES CUPS  (6# CASE)
+Added code: FM
+Added name: CANTALOUPE CUPS (6# CASE)
+Added code: FM
+Added name: RED GRAPES CUPS (6# CASE)
+Added code: FM
+Added name: WHITE GRAPES CUPS (6# CASE)
+Added code: FM
+Added name: HONEYDEW CUPS (6# CASE)
+Added code: FM
+Added name: KIWI CUPS (6# CASE)
+Added code: FM
+Added name: MANGO CUPS (6# CASE)
+Added code: FM
+Added name: ORANGES CUPS (6# CASE)
+Added code: FM
+Added name: PEARS CUPS (6# CASE)
+Added code: FM
+Added name: PINEAPPLES CUPS (6# CASE)
+Added code: FM
+Added name: STRAWBERIES CUPS (6# CASE)
+Added code: FM
+Added name: WATERMELON CUPS (6# CASE)
+Added code: FM
+Added name: FRUIT MIX (6# CASE)
+Added code: FM
+Added name: TROPICAL MIX (6#CASE)
+Added code: TMS
+Added name: APPLE RED CUP (3# CASE)
+Added code: FM
+Added name: APPLE GREEN CUPS (3#CS)
+Added code: FM
+Added name: BLUEBERRIES CUPS  (3# CASE)
+Added code: FM
+Added name: CANTALOUPE CUPS (3# CASE)
+Added code: FM
+Added name: RED GRAPES CUPS (3# CASE)
+Added code: FM
+Added name: WHITE GRAPES CUPS (3# CASE)
+Added code: FM
+Added name: HONEYDEW CUPS (3# CASE)
+Added code: FM
+Added name: KIWI CUPS (3# CASE)
+Added code: FM
+Added name: MANGO CUPS (3# CASE)
+Added code: FM
+Added name: ORANGES CUPS (3# CASE)
+Added code: FM
+Added name: PEARS CUPS (3# CASE)
+Added code: FM
+Added name: PINEAPPLES CUPS (3# CASE)
+Added code: FM
+Added name: STRAWBERIES CUPS (3# CASE)
+Added code: FM
+Added name: WATERMELON CUPS (3# CASE)
+Added code: FM
+Added name: FRUIT MIX (3# CASE)
+Added code: FM
+Added name: TROPICAL MIX (3#CASE)
+Added code: TMS
+
+Found 518 unique items in CSV.
+Found 0 invalid rows.
+
+Collecting items from database...
+Found 300 items in database.
+Database contains 518 unique names/codes.
+
+Found 0 items in CSV not in database:
+ERROR: Error processing file: missing_items.html
+Exception type: TemplateNotFound
+Exception traceback: Traceback (most recent call last):
+  File "/Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/routes.py", line 2956, in find_missing_items
+    return render_template('missing_items.html',
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/jinja2/loaders.py", line 126, in load
+    source, filename, uptodate = self.get_source(environment, name)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/flask/templating.py", line 65, in get_source
+    return self._get_source_fast(environment, template)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/cadestocker/Desktop/SouthernProduce/.venv/lib/python3.11/site-packages/flask/templating.py", line 99, in _get_source_fast
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: missing_items.html
+

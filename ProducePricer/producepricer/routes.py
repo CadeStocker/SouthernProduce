@@ -1,5 +1,6 @@
 import datetime
 from io import BytesIO
+import traceback
 from flask_mailman import EmailMessage
 import json
 import math
@@ -7,7 +8,17 @@ from fpdf import FPDF
 import matplotlib
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
-from flask import redirect, render_template, render_template_string, request, url_for, flash, make_response, Blueprint
+from flask import (
+    redirect,
+    render_template,
+    render_template_string,
+    request,
+    url_for,
+    flash,
+    make_response,
+    Blueprint,
+    current_app
+)
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     CostHistory, 
@@ -59,8 +70,6 @@ import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
-
-
 
 main = Blueprint('main', __name__)
 
@@ -127,7 +136,7 @@ def signup():
         db.session.commit()
 
         # token and serializer
-        s = Serializer(app.config['SECRET_KEY'], salt='user-approval')  # 1 hour expiration
+        s = Serializer(current_app.config['SECRET_KEY'], salt='user-approval')  # 1 hour expiration
         token = s.dumps({'pending_user_id': pending.id})
 
         # send link to admin
@@ -146,7 +155,7 @@ def send_admin_approval_email(token, company_id):
 
     msg = EmailMessage(
       subject='Approve new user request',
-      from_email=app.config['MAIL_DEFAULT_SENDER'],
+      from_email=current_app.config['MAIL_DEFAULT_SENDER'],
       to=[admin_email],
       body=f'Click to approve new user:\n\n{link}\n\n'
            'This link will expire in 1 hour.\n(If the link takes you to the login page, please log in and then click the link again.)'
@@ -165,7 +174,7 @@ def approve_user(token):
         return redirect(url_for('main.home'))
 
     # deserialize the token
-    s = Serializer(app.config['SECRET_KEY'], salt='user-approval')
+    s = Serializer(current_app.config['SECRET_KEY'], salt='user-approval')
     try:
         data = s.loads(token, max_age=3600)
     except (BadSignature, SignatureExpired):
@@ -319,6 +328,13 @@ def create_company():
     if form.validate_on_submit():
         # flash a message to the user
         flash(f'Company created for {form.name.data}!', 'success')
+
+        # see if admin email is already registered
+        existing_user = User.query.filter_by(email=form.admin_email.data).first()
+        if existing_user:
+            flash('Admin email already registered. Please use a different email.', 'warning')
+            return redirect(url_for('main.create_company'))
+        
         # make a new company object for database
         company = Company(name=form.name.data,
                           admin_email=form.admin_email.data)
@@ -505,12 +521,12 @@ def upload_packaging_csv():
             return redirect(request.url)
         if file:
             # Ensure the upload folder exists
-            if not os.path.exists(app.config['UPLOAD_FOLDER']):
-                os.makedirs(app.config['UPLOAD_FOLDER'])
+            if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
+                os.makedirs(current_app.config['UPLOAD_FOLDER'])
 
             # Save the file securely
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
             # Read the CSV file into a pandas DataFrame
@@ -736,12 +752,12 @@ def upload_raw_product_csv():
             return redirect(request.url)
         if file:
             # Ensure the upload folder exists
-            if not os.path.exists(app.config['UPLOAD_FOLDER']):
-                os.makedirs(app.config['UPLOAD_FOLDER'])
+            if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
+                os.makedirs(current_app.config['UPLOAD_FOLDER'])
 
             # Save the file securely
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
             # Read the CSV file into a pandas DataFrame
@@ -761,7 +777,23 @@ def upload_raw_product_csv():
             for index, row in df.iterrows():
                 # Clean and convert cost values
                 name = row['name'].strip()
-                cost = float(row['cost'].replace('$', '').strip())
+                
+                # Handle NaN values in cost - THIS IS THE KEY FIX
+                try:
+                    cost_value = row['cost']
+                    # Check if the value is NaN
+                    if pd.isna(cost_value):
+                        flash(f'Invalid cost for raw product "{name}". Skipping.', 'warning')
+                        continue
+                    # Convert to float and strip dollar signs
+                    cost = float(str(cost_value).replace('$', '').strip())
+                except (ValueError, TypeError):
+                    flash(f'Invalid cost format for raw product "{name}". Skipping.', 'warning')
+                    continue
+
+                if cost < 0:
+                    flash(f'Cost for raw product "{name}" cannot be negative. Skipping.', 'warning')
+                    continue
 
                 # Check if the raw product already exists
                 raw_product = RawProduct.query.filter_by(name=name, company_id=current_user.company_id).first()
@@ -782,7 +814,8 @@ def upload_raw_product_csv():
 
             flash('Raw products imported successfully!', 'success')
             return redirect(url_for('main.raw_product'))
-    return render_template('upload_raw_product_csv.html', title='Upload Raw Product CSV', form=form)
+    flash('Invalid data submitted.', 'danger')
+    return render_template('raw_product.html', title='Raw Product', form=form)
 
 @main.route('/delete_raw_product/<int:raw_product_id>', methods=['POST'])
 @login_required
@@ -1205,12 +1238,12 @@ def upload_item_csv():
             return redirect(request.url)
         if file:
             # Ensure the upload folder exists
-            if not os.path.exists(app.config['UPLOAD_FOLDER']):
-                os.makedirs(app.config['UPLOAD_FOLDER'])
+            if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
+                os.makedirs(current_app.config['UPLOAD_FOLDER'])
 
             # Save the file securely
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
             # Read the CSV file into a pandas DataFrame
@@ -1260,8 +1293,20 @@ def upload_item_csv():
                     flash(f'Invalid yield value "{yield_str}" for item "{name}". Skipping item.', 'warning')
                     continue
 
+
+                # Check if the packaging exists (fix issue of capitalization)
+                packaging_type = packaging_type.strip().upper()
+                packaging = Packaging.query.filter_by(packaging_type=packaging_type, company_id=current_user.company_id).first()
+                if not packaging:
+                    # If packaging does not exist, create it
+                    packaging = Packaging(packaging_type=packaging_type, company_id=current_user.company_id)
+                    db.session.add(packaging)
+                    db.session.commit()
+                    #flash(f'Packaging ID {packaging_type} does not exist. Skipping item "{name}".', 'warning')
+                    #continue
+
                 # Check if the item already exists
-                existing_item = Item.query.filter_by(name=name, code=item_code, company_id=current_user.company_id).first()
+                existing_item = Item.query.filter_by(name=name, code=item_code, company_id=current_user.company_id, packaging_id=packaging.id).first()
                 if existing_item:
                     # update yield and labor hours if the item already exists
                     yield_val = row.get('yield', 0.0)
@@ -1282,17 +1327,6 @@ def upload_item_csv():
                     db.session.commit()
                     flash(f'Item "{name}" already exists. Skipping item.', 'warning')
                     continue
-
-                # Check if the packaging exists (fix issue of capitalization)
-                packaging_type = packaging_type.strip().upper()
-                packaging = Packaging.query.filter_by(packaging_type=packaging_type, company_id=current_user.company_id).first()
-                if not packaging:
-                    # If packaging does not exist, create it
-                    packaging = Packaging(packaging_type=packaging_type, company_id=current_user.company_id)
-                    db.session.add(packaging)
-                    db.session.commit()
-                    #flash(f'Packaging ID {packaging_type} does not exist. Skipping item "{name}".', 'warning')
-                    #continue
 
                 # Check if the item designation is valid
                 item_designation = item_designation.strip().upper()
@@ -2183,12 +2217,12 @@ def upload_customer_csv():
             return redirect(request.url)
         if file:
             # Ensure the upload folder exists
-            if not os.path.exists(app.config['UPLOAD_FOLDER']):
-                os.makedirs(app.config['UPLOAD_FOLDER'])
+            if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
+                os.makedirs(current_app.config['UPLOAD_FOLDER'])
 
             # Save the file securely
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
             # Read the CSV file into a pandas DataFrame
@@ -2830,4 +2864,4 @@ def delete_price_sheet(sheet_id):
 
 # only true if this file is run directly
 if __name__ == '__main__':
-    app.run(debug=True)
+    current_app.run(debug=True)
