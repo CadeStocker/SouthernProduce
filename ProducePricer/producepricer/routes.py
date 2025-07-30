@@ -395,6 +395,9 @@ def packaging():
 @main.route('/packaging/<int:packaging_id>')
 @login_required
 def view_packaging(packaging_id):
+    packaging_costs = {}
+    packaging_items = {}
+
     # find the packaging in the database
     packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first()
     if packaging is None:
@@ -406,7 +409,20 @@ def view_packaging(packaging_id):
 
     form = AddPackagingCost()
 
-    return render_template('view_packaging.html', title='View Packaging', packaging=packaging, packaging_costs=packaging_costs, form=form)
+    # items using this packaging
+    packaging_items = Item.query.filter_by(
+        company_id=current_user.company_id,
+        packaging_id=packaging_id
+    ).all()
+
+    return render_template('view_packaging.html',
+        title='View Packaging',
+        packaging=packaging,
+        packaging_costs=packaging_costs,
+        form=form,
+        items_using=packaging_items,
+        packaging_id=packaging_id
+    )
 
 
 @main.route('/add_package', methods=['POST'])

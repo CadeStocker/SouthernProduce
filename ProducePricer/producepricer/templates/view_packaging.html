@@ -88,6 +88,28 @@
 
 </div>
 
+<!-- New: Items Using This Packaging -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5>Items Using This Packaging</h5>
+    </div>
+    <div class="card-body">
+      {% if items_using %}
+        <ul class="list-group">
+          {% for item in items_using %}
+            <li class="list-group-item">
+              <a href="{{ url_for('main.view_item', item_id=item.id|int) }}">
+                {{ item.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No items are using this packaging yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const costData = {
