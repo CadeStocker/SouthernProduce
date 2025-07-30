@@ -360,15 +360,27 @@ def packaging():
 
     if q:
         # filter the packaging by the search query
-        packaging = Packaging.query.filter(
+        pagination = Packaging.query.filter(
             Packaging.packaging_type.ilike(f'%{q}%'),
             Packaging.company_id == current_user.company_id
-        ).all()
+        ).order_by(Packaging.packaging_type.asc()).paginate(
+            page=request.args.get('page', 1, type=int),
+            per_page=15,
+            error_out=False
+        )
     else:
         # get the current user's company
         company = Company.query.filter_by(id=current_user.company_id).first()
         # get the packaging for the current user's company
-        packaging = company.packaging
+        pagination = Packaging.query.filter_by(company_id=current_user.company_id).order_by(Packaging.packaging_type.asc()).paginate(
+            page=request.args.get('page', 1, type=int),
+            per_page=15,
+            error_out=False
+        )
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # amount per page
+    packaging = pagination.items
 
     # get the most recent packaging cost for each packaging
     packaging_costs = {}
@@ -388,7 +400,8 @@ def packaging():
             create_package_form=create_package_form,
             upload_csv_form=upload_packaging_csv_form,
             packaging_costs=packaging_costs,
-            q=q
+            q=q,
+            pagination=pagination
         )
 
 # view an individual package
