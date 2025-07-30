@@ -3,43 +3,84 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Ranch Prices and Costs</h1>
+  <h1 class="mb-4">Ranch Prices and Costs</h1>
 
-    <!-- Button to trigger the modal -->
-    <button type="button" class="btn btn-primary mb-4" data-toggle="modal" data-target="#addRanchPriceModal">
-        Add Ranch Price and Cost
-    </button>
+  <!-- Button to trigger the modal -->
+  <button type="button" class="btn btn-primary mb-4" data-toggle="modal" data-target="#addRanchPriceModal">
+    Add Ranch Price and Cost
+  </button>
 
-    <!-- Table to display previous ranch prices and costs -->
-    <div class="card">
-        <div class="card-header">
-            <h5>Previous Ranch Prices and Costs</h5>
-        </div>
-        <div class="card-body">
-            {% if ranch_prices %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Price</th>
-                            <th>Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ranch_price in ranch_prices %}
-                            <tr>
-                                <td>{{ ranch_price.date.strftime('%Y-%m-%d') }}</td>
-                                <td>${{ "%.2f"|format(ranch_price.price) }}</td>
-                                <td>${{ "%.2f"|format(ranch_price.cost) }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No ranch prices or costs found.</p>
-            {% endif %}
-        </div>
+  <!-- Table to display previous ranch prices and costs -->
+  <div class="card">
+    <div class="card-header"><h5>Previous Ranch Prices and Costs</h5></div>
+    <div class="card-body p-0">
+      {% if ranch_prices %}
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Price ($)</th>
+              <th>Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rp in ranch_prices %}
+            <tr>
+              <td>{{ rp.date.strftime('%Y-%m-%d') }}</td>
+              <td>${{ '%.2f'|format(rp.price) }}</td>
+              <td>${{ '%.2f'|format(rp.cost) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-3">No ranch prices or costs found.</div>
+      {% endif %}
     </div>
+
+    {# Pagination footer matching items page style #}
+    {% if pagination.pages > 1 %}
+    <div class="card-footer bg-white border-top-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <p class="text-muted mb-0">
+          Showing {{ pagination.items|length }} of {{ pagination.total }} entries
+        </p>
+        <nav aria-label="Page navigation">
+          <ul class="pagination mb-0">
+            {# Previous arrow #}
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+              <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('main.ranch', page=pagination.prev_num) }}{% else %}#{% endif %}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+
+            {# Page numbers with ellipses #}
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+              {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                  <a class="page-link" href="{{ url_for('main.ranch', page=page_num) }}">{{ page_num }}</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">…</span>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            {# Next arrow #}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+              <a class="page-link" href="{% if pagination.has_next %}{{ url_for('main.ranch', page=pagination.next_num) }}{% else %}#{% endif %}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Modal for adding a new ranch price and cost -->

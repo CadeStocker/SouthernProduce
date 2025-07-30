@@ -44,6 +44,48 @@
         </div>
     </div>
 
+    {% if labor_pagination.pages > 1 %}
+  <div class="mt-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="text-muted mb-0">
+        Showing {{ labor_pagination.items|length }} of {{ labor_pagination.total }} entries
+      </p>
+      <nav aria-label="Page navigation">
+        <ul class="pagination mb-0">
+          {# Previous #}
+          <li class="page-item {% if not labor_pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link"
+               href="{% if labor_pagination.has_prev %}{{ url_for('main.add_labor_cost', page=labor_pagination.prev_num) }}{% else %}#{% endif %}"
+               aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+         </li>
+
+          {# Pages w/ ellipses #}
+          {% for p in labor_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+              <li class="page-item {% if p == labor_pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('main.add_labor_cost', page=p) }}">{{ p }}</a>
+</li>
+{% else %}
+<li class="page-item disabled"><span class="page-link">…</span></li>
+{% endif %}
+{% endfor %}
+
+{# Next #}
+<li class="page-item {% if not labor_pagination.has_next %}disabled{% endif %}">
+<a class="page-link"
+href="{% if labor_pagination.has_next %}{{ url_for('main.add_labor_cost', page=labor_pagination.next_num) }}{% else %}#{% endif %}"
+aria-label="Next">
+<span aria-hidden="true">&raquo;</span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+{% endif %}
+
     <!-- Button to Open Modal -->
     <button type="button" class="btn btn-primary mt-4" data-toggle="modal" data-target="#addLaborCostModal">
         Add New Labor Cost
@@ -80,4 +122,50 @@
         </div>
     </div>
 </div>
+<!-- new: chart card -->
+ <div class="container mt-4">
+  <div class="card mt-4 mb-4">
+    <div class="card-header"><h5>Labor Cost Trend</h5></div>
+    <div class="card-body">
+      <div style="position: relative; width:100%; height:250px;">
+        <canvas id="laborCostChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const labels = {{ chart_labels|tojson }};
+      const data   = {{ chart_data  |tojson }};
+      const ctx    = document.getElementById('laborCostChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Labor Cost ($/hr)',
+            data: data,
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.1,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'Cost ($/hr)' } }
+          }
+        }
+      });
+    });
+  </script>
 {% endblock %}

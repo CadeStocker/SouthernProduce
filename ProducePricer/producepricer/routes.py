@@ -1892,8 +1892,16 @@ def price():
 def add_labor_cost():
     form = AddLaborCost()
 
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # amount per page
+    labor_pagination = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    past_labor_costs = labor_pagination.items
+
     # get past labor costs for the current user
-    past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+    #past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.asc()).all()
+
+    chart_labels = [lc.date.strftime('%Y-%m-%d') for lc in past_labor_costs]
+    chart_data = [lc.labor_cost for lc in past_labor_costs]
 
     # if a new labor cost is being added
     if request.method == 'POST':
@@ -1913,14 +1921,21 @@ def add_labor_cost():
             update_item_costs_on_labor_change()
 
             flash('Labor cost added successfully!', 'success')
-
-            # get past labor costs for the current user
-            past_labor_costs = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc()).all()
+            return redirect(url_for('main.add_labor_cost'))
 
         else:
             flash('Invalid data submitted.', 'danger')
+            return redirect(url_for('main.add_labor_cost'))
 
-    return render_template('add_labor_cost.html', title='Add Labor Cost', form=form, past_labor_costs=past_labor_costs)
+    return render_template(
+        'add_labor_cost.html',
+        title='Add Labor Cost',
+        form=form,
+        past_labor_costs=past_labor_costs,
+        chart_labels=chart_labels,
+        chart_data=chart_data,
+        labor_pagination=labor_pagination  # Pass pagination object to template
+    )
 
 # delete a labor cost
 @main.route('/delete_labor_cost/<int:cost_id>', methods=['POST'])
@@ -2309,7 +2324,6 @@ def ranch():
             cost=form.cost.data,
             date=form.date.data,
             company_id=current_user.company_id,
-            pagination=ranch_pagination
         )
         db.session.add(ranch_price)
         db.session.commit()
@@ -2328,7 +2342,8 @@ def ranch():
         ranch_prices=ranch_prices,
         form=form,
         chart_data=chart_data,
-        chart_labels=chart_labels
+        chart_labels=chart_labels,
+        pagination=ranch_pagination
         )
 
 @main.route("/reset/_password", methods=["GET", "POST"])
