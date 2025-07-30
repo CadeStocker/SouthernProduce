@@ -646,7 +646,7 @@ def view_raw_product(raw_product_id):
         return redirect(url_for('main.raw_product'))
     
     # Get all the cost history for this raw product
-    cost_history = CostHistory.query.filter_by(raw_product_id=raw_product_id).order_by(CostHistory.date.desc()).all()
+    cost_history = CostHistory.query.filter_by(raw_product_id=raw_product_id).order_by(CostHistory.date.asc()).all()
 
     # find the items that use this raw product
     items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
