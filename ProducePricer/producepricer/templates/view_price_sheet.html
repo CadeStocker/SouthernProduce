@@ -31,28 +31,31 @@
             </tr>
           </thead>
           <tbody>
-            {% for item in sheet.items %}
-            <tr>
-              <td>{{ item.name }}</td>
-              <td>
-                {% if recent[item.id] is not none %}
-                  ${{ '%.2f'|format(recent[item.id].price) }}
-                {% else %}
-                  <span class="text-muted">— no price set —</span>
+        {% for item in sheet.items %}
+          {# safely grab the recent entry or None #}
+          {% set entry = recent.get(item.id) %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>
+              {% if entry %}
+                ${{ '%.2f'|format(entry.price) }}
+              {% else %}
+                <span class="text-muted">— no price set —</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if entry %}
+                {{ entry.date }}
+                {% if entry.customer %}
+                  <!-- maybe show customer name? -->
                 {% endif %}
-              </td>
-                <td>
-  {% if recent[item.id] is not none %}
-    {{ recent[item.id].date }}
-    {% if recent[item.id].customer %}
-    {% endif %}
-  {% else %}
-    <span class="text-muted">— no price history —</span>
-  {% endif %}
-</td>
-            </tr>
-            {% endfor %}
-          </tbody>
+              {% else %}
+                <span class="text-muted">— no price history —</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
         </table>
       </div>
     </div>

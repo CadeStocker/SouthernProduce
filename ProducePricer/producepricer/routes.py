@@ -2172,6 +2172,21 @@ def _generate_price_sheet_pdf_bytes(sheet):
 def add_customer():
     form = AddCustomer()
     if form.validate_on_submit():
+        # Check if the customer already exists
+        existing_customer = Customer.query.filter_by(
+            name=form.name.data,
+            email=form.email.data,
+            company_id=current_user.company_id
+        ).first()
+        if existing_customer:
+            flash(f'Customer "{form.name.data}" already exists.', 'warning')
+            return redirect(url_for('main.customer'))
+        
+        # if email isn't unique, flash a warning
+        if Customer.query.filter_by(email=form.email.data, company_id=current_user.company_id).first():
+            flash('Email must be unique for each customer.', 'warning')
+            return redirect(url_for('main.customer'))
+
         customer = Customer(
             name=form.name.data,
             email=form.email.data,
@@ -2689,7 +2704,8 @@ def edit_price_sheet(sheet_id):
         for item in sheet.items:
             sel = request.form.get(f'price_select_{item.id}')
             inp = request.form.get(f'price_input_{item.id}')
-            raw = (inp or sel or '').strip()
+            #raw = (inp or sel or '').strip()
+            raw = (sel or inp or '').strip()
             try:
                 price = float(raw)
             except ValueError:

@@ -11,7 +11,7 @@ class SignUp(FlaskForm):
     confirm_password = PasswordField('Confirm Password',
                                       validators=[DataRequired(), EqualTo('password')])
     remember = BooleanField('Remember Me')
-    company = SelectField('Company', validators=[DataRequired()])
+    company = SelectField('Company', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Sign Up')
 
     def validate_email(self, email):
