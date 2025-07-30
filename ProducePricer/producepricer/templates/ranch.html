@@ -76,4 +76,48 @@
         </div>
     </div>
 </div>
+
+<!-- Price Trend Chart -->
+ <div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5>Price Trend Over Time</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="ranchPriceChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!-- filepath: producepricer/templates/ranch.html -->
+{% block scripts %}
+  {{ super() }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const canvas = document.getElementById('ranchPriceChart');
+      if (!canvas) return;
+      new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: {{ chart_labels|tojson }},
+          datasets: [{
+            label: 'Ranch Price ($)',
+            data: {{ chart_data|tojson }},
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1,
+            fill: false
+          }]
+        },
+        options: {
+          scales: {
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'Price ($)' } }
+          }
+        }
+      });
+    });
+  </script>
 {% endblock %}

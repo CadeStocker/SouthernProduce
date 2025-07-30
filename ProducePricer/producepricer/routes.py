@@ -402,7 +402,7 @@ def view_packaging(packaging_id):
         return redirect(url_for('main.packaging'))
     
     # get all the packaging costs for this packaging
-    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
+    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.asc()).all()
 
     form = AddPackagingCost()
 
@@ -1078,7 +1078,7 @@ def view_item(item_id):
     price_pagination = (
         PriceHistory.query
         .filter_by(item_id=item_id, company_id=current_user.company_id)
-        .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+        .order_by(PriceHistory.date.asc(), PriceHistory.id.asc())
         .paginate(page=price_page, per_page=per_page, error_out=False)
     )
     price_history = price_pagination.items
@@ -1087,7 +1087,7 @@ def view_item(item_id):
     cost_pagination = (
         ItemTotalCost.query
         .filter_by(item_id=item_id)
-        .order_by(ItemTotalCost.date.desc())
+        .order_by(ItemTotalCost.date.asc())
         .paginate(page=cost_page, per_page=per_page, error_out=False)
     )
     item_costs = cost_pagination.items
@@ -1096,7 +1096,7 @@ def view_item(item_id):
     info_pagination = (
         ItemInfo.query
         .filter_by(item_id=item_id)
-        .order_by(ItemInfo.date.desc())
+        .order_by(ItemInfo.date.asc())
         .paginate(page=info_page, per_page=per_page, error_out=False)
     )
     item_info = info_pagination.items
@@ -2283,6 +2283,10 @@ def upload_customer_csv():
 @main.route('/ranch', methods=['GET', 'POST'])
 @login_required
 def ranch():
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Items per page
+    ranch_pagination = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.asc()).paginate(page=page, per_page=per_page, error_out=False)
+
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
@@ -2290,10 +2294,13 @@ def ranch():
         return redirect(url_for('main.index'))
 
     # Get all previous ranch prices and costs for the current user's company
-    ranch_prices = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.desc()).all()
+    ranch_prices = ranch_pagination.items
 
     # Initialize the form
     form = AddRanchPrice()
+
+    chart_labels = [rp.date.strftime('%Y-%m-%d') for rp in ranch_prices]
+    chart_data = [rp.price for rp in ranch_prices]
 
     if form.validate_on_submit():
         # Create a new ranch price entry
@@ -2301,7 +2308,8 @@ def ranch():
             price=form.price.data,
             cost=form.cost.data,
             date=form.date.data,
-            company_id=current_user.company_id
+            company_id=current_user.company_id,
+            pagination=ranch_pagination
         )
         db.session.add(ranch_price)
         db.session.commit()
@@ -2315,7 +2323,13 @@ def ranch():
         flash('Ranch price and cost updated successfully!', 'success')
         return redirect(url_for('main.ranch'))
 
-    return render_template('ranch.html', title='Ranch', ranch_prices=ranch_prices, form=form)
+    return render_template('ranch.html',
+        title='Ranch',
+        ranch_prices=ranch_prices,
+        form=form,
+        chart_data=chart_data,
+        chart_labels=chart_labels
+        )
 
 @main.route("/reset/_password", methods=["GET", "POST"])
 def reset_password_request():
