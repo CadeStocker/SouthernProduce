@@ -20,11 +20,9 @@ def app():
     with app.app_context():
         db.create_all()
     
-    # Yield the app without an active context
-    yield app
-    
-    # Clean up after test
-    with app.app_context():
+        # Yield the app without an active context
+        yield app
+        
         db.drop_all()
 
 @pytest.fixture
