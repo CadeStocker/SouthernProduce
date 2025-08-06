@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>AI Pricing Assistant</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="prompt">Ask me anything about produce pricing:</label>
+                        <textarea id="prompt" class="form-control" rows="3" placeholder="Example: What are the key factors that influence strawberry pricing?"></textarea>
+                    </div>
+                    <button id="sendBtn" class="btn btn-primary mt-2">Get AI Response</button>
+                    
+                    <div id="loading" class="mt-3 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div id="responseContainer" class="mt-3 d-none">
+                        <h5>Response:</h5>
+                        <div id="response" class="border p-3 rounded bg-light"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('sendBtn').addEventListener('click', async () => {
+    const prompt = document.getElementById('prompt').value.trim();
+    if (!prompt) {
+        alert('Please enter a question');
+        return;
+    }
+    
+    // Show loading indicator
+    document.getElementById('loading').classList.remove('d-none');
+    document.getElementById('responseContainer').classList.add('d-none');
+    
+    try {
+        const response = await fetch('/api/ai-chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ prompt })
+        });
+        
+        const data = await response.json();
+        
+        // Hide loading indicator
+        document.getElementById('loading').classList.add('d-none');
+        document.getElementById('responseContainer').classList.remove('d-none');
+        
+        if (data.success) {
+            document.getElementById('response').innerHTML = data.response.replace(/\n/g, '<br>');
+        } else {
+            document.getElementById('response').innerHTML = `<div class="text-danger">Error: ${data.error}</div>`;
+        }
+    } catch (error) {
+        document.getElementById('loading').classList.add('d-none');
+        document.getElementById('responseContainer').classList.remove('d-none');
+        document.getElementById('response').innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+    }
+});
+</script>
+{% endblock %}

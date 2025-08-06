@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
 from flask import (
+    jsonify,
     redirect,
     render_template,
     render_template_string,
@@ -70,8 +71,34 @@ import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
+from producepricer.utils.ai_utils import get_ai_response
 
 main = Blueprint('main', __name__)
+
+@main.route('/ai-assistant')
+@login_required
+def ai_assistant():
+    """Render the AI assistant page"""
+    return render_template('ai_assistant.html', title="AI Assistant")
+
+@main.route('/api/ai-chat', methods=['POST'])
+@login_required
+def ai_chat():
+    """Handle API requests to the AI"""
+    data = request.get_json()
+    
+    if not data or 'prompt' not in data:
+        # FIX: Return a proper JSON error response
+        return jsonify({"success": False, "error": "Invalid request. Prompt is missing."}), 400
+    
+    # Get response from OpenAI
+    result = get_ai_response(data['prompt'])
+    
+    if result["success"]:
+        return jsonify({"success": True, "response": result["content"]})
+    else:
+        # FIX: Return a proper JSON error response
+        return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}), 500
 
 # route for the root URL
 @main.route('/')
@@ -1230,6 +1257,59 @@ def view_item(item_id):
                           all_item_costs=all_item_costs,
                           all_item_info=all_item_info)
 
+@main.route('/api/item/<int:item_id>/summarize', methods=['POST'])
+@login_required
+def summarize_item(item_id):
+    """Generates an AI-powered summary for a specific item."""
+
+    # get the item from the database
+    item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first_or_404()
+
+    # 1. Gather all data for the prompt
+    costs = ItemTotalCost.query.filter_by(item_id=item.id).order_by(ItemTotalCost.date.asc()).all()
+    infos = ItemInfo.query.filter_by(item_id=item.id).order_by(ItemInfo.date.asc()).all()
+    prices = PriceHistory.query.filter_by(item_id=item.id).order_by(PriceHistory.date.asc()).all()
+    customer_map = {c.id: c.name for c in Customer.query.filter_by(company_id=current_user.company_id).all()}
+
+    # 2. Build the prompt string
+    prompt = f"Please provide a brief executive summary for the produce item '{item.name}' ({item.code}).\n\n"
+    prompt += "Here is the historical data:\n\n"
+
+    if costs:
+        prompt += "Cost History (Total cost per case):\n"
+        for c in costs:
+            prompt += f"- {c.date.strftime('%Y-%m-%d')}: ${c.total_cost:.2f}\n"
+        prompt += "\n"
+
+    if infos:
+        prompt += "Yield and Labor History (the yield is how much product is obtained from a given amount of input aka raw product):\n"
+        for i in infos:
+            prompt += f"- {i.date.strftime('%Y-%m-%d')}: Yield={i.product_yield:.2f}%, Labor Hours={i.labor_hours:.2f}\n"
+        prompt += "\n"
+
+    if prices:
+        prompt += "Price History (Sale price per case):\n"
+        for p in prices:
+            customer_name = customer_map.get(p.customer_id, "General")
+            prompt += f"- {p.date.strftime('%Y-%m-%d')}: ${p.price:.2f} (Customer: {customer_name})\n"
+        prompt += "\n"
+
+    prompt += """
+Based on this data, please analyze the following points and provide actionable insights:
+1.  **Cost Trend:** Is the overall cost to produce this item increasing, decreasing, or stable?
+2.  **Profitability Analysis:** How are the pricing decisions affecting profit margins over time? Are we adjusting prices correctly in response to cost changes?
+3.  **Key Insights & Anomalies:** Are there any sudden spikes or drops in cost, price, or yield that are noteworthy?
+4.  **Actionable Recommendation:** Suggest one clear, data-driven action that could be taken to improve profitability or efficiency for this item.
+"""
+
+    # 3. Get the AI response
+    result = get_ai_response(prompt, system_message="You are a professional produce pricing analyst providing data-driven insights.")
+
+    if result["success"]:
+        return jsonify({"success": True, "summary": result["content"]})
+    else:
+        return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}), 500
+
 @main.route('/delete_item_info/<int:item_info_id>', methods=['POST'])
 @login_required
 def delete_item_info(item_info_id):
@@ -2145,6 +2225,13 @@ def view_price_sheet(sheet_id):
 
 def _generate_price_sheet_pdf_bytes(sheet):
     """Helper function to generate the price sheet PDF bytes."""
+
+    # Helper to sanitize text for FPDF by replacing non-standard characters
+    def sanitize_text(text):
+        if text is None:
+            return ""
+        return text.encode('latin-1', 'replace').decode('latin-1')
+
     # Build recent dict for each item
     recent = {}
     master = Customer.query.filter_by(
@@ -2177,7 +2264,11 @@ def _generate_price_sheet_pdf_bytes(sheet):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, f"Price Sheet: {sheet.name}", ln=1)
+    
+    # Sanitize the sheet name before rendering
+    sanitized_sheet_name = sanitize_text(sheet.name)
+    pdf.cell(0, 10, f"Price Sheet: {sanitized_sheet_name}", ln=1)
+    
     pdf.set_font("Arial", "", 12)
     pdf.cell(0, 8, f"Date: {sheet.date.strftime('%Y-%m-%d')}", ln=1)
     pdf.ln(4)
@@ -2203,7 +2294,10 @@ def _generate_price_sheet_pdf_bytes(sheet):
         if item_date and item_date >= seven_days_ago.date():
             changed_char = "*"
 
-        pdf.cell(col_widths[0], 8, item.name, border=1)
+        # Sanitize the item name before rendering
+        sanitized_item_name = sanitize_text(item.name)
+        pdf.cell(col_widths[0], 8, sanitized_item_name, border=1)
+        
         pdf.cell(col_widths[1], 8, price, border=1, align="C")
         pdf.cell(col_widths[2], 8, changed_char, border=1, align="C")
         pdf.ln()

@@ -6,6 +6,11 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_wtf import CSRFProtect
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize extensions outside create_app
 db = SQLAlchemy()
@@ -15,6 +20,9 @@ login_manager.login_view = 'main.login'
 login_manager.login_message_category = 'info'
 mail = Mail()
 csrf = CSRFProtect()
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def create_app(db_uri=None):
     # Initialize Flask app
@@ -58,11 +66,15 @@ def create_app(db_uri=None):
     mail.init_app(app)
 
     # Import and register blueprints
-    with app.app_context():
-        from producepricer import routes
-        app.register_blueprint(routes.main)
+    # Important: Do this INSIDE create_app to avoid circular imports
+    from producepricer.routes import main
+    app.register_blueprint(main)
+    
+    # Commented out until we create the AI routes
+    # from producepricer.routes.ai import ai_bp
+    # app.register_blueprint(ai_bp, url_prefix='/ai')
 
     return app
 
 # Create the application instance
-app = create_app()
+#app = create_app()
