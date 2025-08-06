@@ -168,7 +168,8 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ cost_form.csrf_token._value() }}'
+                            // FIX: Conditionally add the CSRF token
+                            {% if cost_form.csrf_token %}'X-CSRFToken': '{{ cost_form.csrf_token._value() }}'{% endif %}
                         }
                     });
 

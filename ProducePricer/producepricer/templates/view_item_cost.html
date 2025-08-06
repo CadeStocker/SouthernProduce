@@ -1,65 +1,59 @@
-<!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_item_cost.html -->
 {% extends "base.html" %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Item Cost Details</h1>
-    <a href="{{ url_for('main.delete_item_cost', item_cost_id=item_cost.id) }}" 
-        class="btn btn-danger btn-sm mb-4" 
-        onclick="return confirm('Are you sure you want to delete this item cost?');">
-        Delete Item Cost
-    </a>
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>Item: {{ item.name }}</h5>
-        </div>
-        <div class="card-body">
-            <p><strong>Item Code:</strong> {{ item.code }}</p>
-            <p><strong>Date:</strong> {{ item_cost.date.strftime('%Y-%m-%d') }}</p>
-            <p><strong>Total Cost:</strong> ${{ "%.2f"|format(item_cost.total_cost) }}</p>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">View Item Cost Details</h1>
+        <a href="{{ url_for('main.view_item', item_id=item.id) }}" class="btn btn-secondary">← Back to Item</a>
     </div>
 
-    <div class="card mt-4">
+    <div class="card">
         <div class="card-header">
-            <h5>Cost Breakdown</h5>
+            <h4>Cost Record for: {{ item.name }} ({{ item.code }})</h4>
+            <p class="mb-0"><strong>Date of Record:</strong> {{ item_cost.date.strftime('%Y-%m-%d') }}</p>
         </div>
         <div class="card-body">
-            <ul class="list-group">
-                <li class="list-group-item">
-                    <strong>Labor Cost:</strong> ${{ "%.2f"|format(item_cost.labor_cost) }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Packaging Cost:</strong> ${{ "%.2f"|format(item_cost.packaging_cost) }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Raw Product Cost:</strong> ${{ "%.2f"|format(item_cost.raw_product_cost) }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Designation Cost: ({{ item.item_designation.value }})</strong> ${{ "%.2f"|format(item_cost.designation_cost) }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Ranch Cost:</strong> ${{ "%.2f"|format(item_cost.ranch_cost) }}
-                </li>
-            </ul>
+            <h5 class="card-title">Total Cost: ${{ "%.2f"|format(item_cost.total_cost) }}</h5>
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Cost Breakdown:</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Raw Product(s) Cost
+                            <span>${{ "%.2f"|format(item_cost.raw_product_cost) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Packaging Cost
+                            <span>${{ "%.2f"|format(item_cost.packaging_cost) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Labor Cost
+                            <span>${{ "%.2f"|format(item_cost.labor_cost) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Ranch Cost
+                            <span>${{ "%.2f"|format(item_cost.ranch_cost) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Designation Cost
+                            <span>${{ "%.2f"|format(item_cost.designation_cost) }}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Item Info at Time of Costing:</h6>
+                    {% if most_recent_info %}
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>Yield:</strong> {{ most_recent_info.product_yield }}%</li>
+                            <li class="list-group-item"><strong>Labor Hours:</strong> {{ most_recent_info.labor_hours }}</li>
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-warning">No Item Info record was available at the time this cost was calculated.</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5>Most Recent Item Info</h5>
-        </div>
-        <div class="card-body">
-            {% if most_recent_info %}
-                <p><strong>Product Yield:</strong> {{ "%.2f"|format(most_recent_info.product_yield) }}%</p>
-                <p><strong>Labor Hours:</strong> {{ "%.2f"|format(most_recent_info.labor_hours) }}</p>
-                <p><strong>Date:</strong> {{ most_recent_info.date.strftime('%Y-%m-%d') }}</p>
-            {% else %}
-                <p>No recent item info available.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <a href="{{ url_for('main.view_item', item_id=item.id) }}" class="btn btn-primary mt-4">Back to Item</a>
 </div>
 {% endblock %}
