@@ -40,6 +40,25 @@ class Company(db.Model):
     def __repr__(self):
         return f"Company('{self.name}')"
     
+class AIResponse(db.Model):
+    __tablename__ = 'ai_response'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)  # optional name for the response
+    #user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, content, date, company_id, name=None):
+        #self.user_id = user_id
+        self.content = content
+        self.date = date
+        self.company_id = company_id
+        self.name = name
+
+    def __repr__(self):
+        return f"AIResponse('{self.content[:50]}', '{self.date}')"
+    
 # table of users
 class User(db.Model, UserMixin):
     __tablename__ = 'user'

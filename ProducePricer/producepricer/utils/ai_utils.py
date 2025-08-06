@@ -1,5 +1,9 @@
+import datetime
 from producepricer import openai_client
+from producepricer.models import AIResponse
+from flask import jsonify
 import logging
+from producepricer import db
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +21,13 @@ def get_ai_response(prompt, system_message=None):
             ],
             max_tokens=800
         )
-        
+
+        # save the response to the database
+        # summary = response.choices[0].message.content
+        # ai_response = AIResponse(content=summary, date=datetime.utcnow())
+        # db.session.add(ai_response)
+        # db.session.commit()
+
         return {
             "success": True,
             "content": response.choices[0].message.content

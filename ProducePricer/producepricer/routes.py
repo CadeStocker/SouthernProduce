@@ -22,6 +22,7 @@ from flask import (
 )
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
+    AIResponse,
     CostHistory, 
     Customer,
     DesignationCost, 
@@ -99,6 +100,159 @@ def ai_chat():
     else:
         # FIX: Return a proper JSON error response
         return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}), 500
+
+@main.route('/ai-summaries')
+@login_required
+def ai_summaries():
+    """Displays a paginated list of past AI-generated summaries."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of summaries per page
+
+    summaries_pagination = AIResponse.query.filter_by(
+        company_id=current_user.company_id
+    ).order_by(
+        AIResponse.date.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(
+        'ai_summaries.html',
+        title='AI Summary History',
+        summaries_pagination=summaries_pagination
+    )
+
+@main.route('/delete_ai_summary/<int:summary_id>', methods=['POST'])
+@login_required
+def delete_ai_summary(summary_id):
+    """Deletes an AI summary."""
+    summary = AIResponse.query.filter_by(
+        id=summary_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+
+    db.session.delete(summary)
+    db.session.commit()
+    flash('AI summary has been deleted.', 'success')
+    return redirect(url_for('main.ai_summaries'))
+
+@main.route('/api/raw-product/<int:raw_product_id>/summarize', methods=['POST'])
+@login_required
+def summarize_raw_product(raw_product_id):
+    """Generates an AI-powered summary for a specific raw product."""
+    raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first_or_404()
+
+    # 1. Gather all data for the prompt
+    costs = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.asc()).all()
+    items_using = Item.query.filter(Item.raw_products.any(id=raw_product.id)).all()
+
+    # 2. Build the prompt string
+    prompt = f"Please provide a brief executive summary for the raw produce material '{raw_product.name}'.\n\n"
+    prompt += "Here is the historical data:\n\n"
+
+    if costs:
+        prompt += "Cost History (Price per unit from supplier):\n"
+        for c in costs:
+            prompt += f"- {c.date.strftime('%Y-%m-%d')}: ${c.cost:.2f}\n"
+        prompt += "\n"
+    else:
+        prompt += "No cost history is available for this raw product.\n\n"
+
+    if items_using:
+        prompt += "This raw product is currently used as an ingredient in the following finished items:\n"
+        for item in items_using:
+            prompt += f"- {item.name} ({item.code})\n"
+        prompt += "\n"
+    else:
+        prompt += "This raw product is not currently used in any finished items.\n\n"
+
+    prompt += """
+Based on this data, please analyze the following points and provide actionable insights:
+1.  **Cost Trend:** Is the cost of this raw material increasing, decreasing, or stable over time?
+2.  **Impact Analysis:** How do fluctuations in this material's cost affect the total cost of the finished goods that depend on it?
+3.  **Key Insights & Anomalies:** Are there any sudden spikes or drops in cost that are noteworthy?
+4.  **Actionable Recommendation:** Suggest one clear, data-driven action. For example, should we explore alternative suppliers, consider a substitute material, or is the price stable enough to negotiate a long-term contract?
+"""
+
+    # 3. Get the AI response
+    result = get_ai_response(prompt, system_message="You are a professional supply chain analyst for a produce company, specializing in raw material costs.")
+
+    if result["success"]:
+        # save the response to the database
+        try:
+            summary = result["content"]
+            response = AIResponse(
+                content=summary,
+                date=datetime.datetime.utcnow(),
+                company_id=current_user.company_id,
+                name=f"Raw Product Summary for {raw_product.name}"
+            )
+            db.session.add(response)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error saving AI response to DB: {e}")
+
+        return jsonify({"success": True, "summary": result["content"]})
+    else:
+        return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}, 500)
+
+
+@main.route('/api/packaging/<int:packaging_id>/summarize', methods=['POST'])
+@login_required
+def summarize_packaging(packaging_id):
+    """Generates an AI-powered summary for a specific packaging."""
+    packaging = Packaging.query.filter_by(id=packaging_id, company_id=current_user.company_id).first_or_404()
+
+    # 1. Gather all data for the prompt
+    costs = PackagingCost.query.filter_by(packaging_id=packaging.id).order_by(PackagingCost.date.asc()).all()
+    items_using = Item.query.filter_by(packaging_id=packaging.id, company_id=current_user.company_id).all()
+
+    # 2. Build the prompt string
+    prompt = f"Please provide a brief executive summary for the packaging material '{packaging.packaging_type}'.\n\n"
+    prompt += "Here is the historical data:\n\n"
+
+    if costs:
+        prompt += "Cost History (Total cost per unit):\n"
+        for c in costs:
+            total_cost = c.box_cost + c.bag_cost + c.tray_andor_chemical_cost + c.label_andor_tape_cost
+            prompt += f"- {c.date.strftime('%Y-%m-%d')}: total cost:${total_cost:.2f} box cost:${c.box_cost:.2f} bag cost:${c.bag_cost:.2f} tray/chemical cost:${c.tray_andor_chemical_cost:.2f} label/tape cost:${c.label_andor_tape_cost:.2f}\n"
+        prompt += "\n"
+    else:
+        prompt += "No cost history is available for this packaging.\n\n"
+
+    if items_using:
+        prompt += "This packaging is currently used by the following items:\n"
+        for item in items_using:
+            prompt += f"- {item.name} ({item.code})\n"
+        prompt += "\n"
+    else:
+        prompt += "This packaging is not currently used by any items.\n\n"
+
+    prompt += """
+Based on this data, please analyze the following points and provide actionable insights:
+1.  **Cost Trend:** Is the cost of this packaging increasing, decreasing, or stable over time?
+2.  **Impact Analysis:** How do changes in this packaging's cost affect the profitability of the items that use it?
+3.  **Key Insights & Anomalies:** Are there any sudden spikes or drops in cost that are noteworthy?
+4.  **Actionable Recommendation:** Suggest one clear, data-driven action. For example, should we look for alternative suppliers, or is the cost stable enough to lock in a price?
+"""
+
+    # 3. Get the AI response
+    result = get_ai_response(prompt, system_message="You are a professional supply chain analyst for a produce company, specializing in packaging costs.")
+
+    if result["success"]:
+        # save the response to the database
+        try:
+            summary = result["content"]
+            response = AIResponse(content=summary, date=datetime.datetime.utcnow(), company_id=current_user.company_id, name=f"Packaging Summary for {packaging.packaging_type}")
+            db.session.add(response)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            # Optionally log this error, but don't block the user
+            print(f"Error saving AI response to DB: {e}")
+        # return the summary as JSON
+        return jsonify({"success": True, "summary": result["content"]})
+    else:
+        return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}, 500)
 
 # route for the root URL
 @main.route('/')
@@ -1306,6 +1460,17 @@ Based on this data, please analyze the following points and provide actionable i
     result = get_ai_response(prompt, system_message="You are a professional produce pricing analyst providing data-driven insights.")
 
     if result["success"]:
+        # save the response
+        try:
+            summary = result["content"]
+            response = AIResponse(content=summary, date=datetime.datetime.utcnow(), company_id=current_user.company_id, name=f"Summary for {item.name} ({item.code})")
+            db.session.add(response)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            # Optionally log this error, but don't block the user
+            print(f"Error saving AI response to DB: {e}")
+        
         return jsonify({"success": True, "summary": result["content"]})
     else:
         return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}), 500
