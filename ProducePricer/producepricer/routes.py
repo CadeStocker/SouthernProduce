@@ -1645,7 +1645,7 @@ def upload_item_csv():
                     db.session.commit()
                     item.raw_products.append(raw_product_obj)
                     #flash(f'Raw product "{raw_product}" does not exist. Skipping item "{name}".', 'warning')
-                    #continue
+                    # continue
 
                 # add the item to the database so that it gets assigned an ID
                 db.session.add(item)
