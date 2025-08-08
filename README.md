@@ -4,3 +4,5 @@ producepricer package is inside of ProducePricer project
 
 Using flask migrate
   flask --app __init__ db <<command>>
+
+Deployed at: https://producepricer.onrender.com
