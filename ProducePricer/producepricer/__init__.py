@@ -28,6 +28,21 @@ def create_app(db_uri=None):
     # Initialize Flask app
     app = Flask(__name__)
 
+    # --- START: Production Database Configuration ---
+    # This logic checks if it's running on Render by looking for the mounted disk.
+    render_data_dir = '/var/data'
+    db_path = os.path.join(render_data_dir, 'site.db')
+
+    if os.path.exists(render_data_dir):
+        # If on Render, use the persistent disk path
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    else:
+        # Otherwise, use the local instance folder for development
+        local_db_path = os.path.join(app.instance_path, 'site.db')
+        os.makedirs(app.instance_path, exist_ok=True)
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{local_db_path}'
+    # --- END: Production Database Configuration ---
+
     # Configuration
     app.config['SECRET_KEY'] = '33d151aee312625a351143d17aeb358f'
     app.config['WTF_CSRF_ENABLED'] = True
