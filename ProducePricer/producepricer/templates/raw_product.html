@@ -5,23 +5,22 @@
 <div class="container mt-5">
   <h1 class="mb-4">Raw Product List</h1>
 
-  <!-- Add / Import Buttons -->
+  <!-- Action Buttons -->
   <div class="mb-3">
     <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#addRawProductModal">
       Add New Raw Product
     </button>
-    <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#importRawProductsModal">
-      Import Raw Products
+    <button type="button" class="btn btn-secondary mr-2" data-toggle="modal" data-target="#importRawProductsModal">
+      Import from CSV
+    </button>
+    <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pdfUploadModal">
+      Import Costs from PDF
     </button>
   </div>
 
   <!-- Search Form -->
   <form method="GET" action="{{ url_for('main.raw_product') }}" class="form-inline mb-4">
-    <input type="text"
-           name="q"
-           class="form-control mr-2"
-           placeholder="Search raw products..."
-           value="{{ q }}">
+    <input type="text" name="q" class="form-control mr-2" placeholder="Search raw products..." value="{{ q }}">
     <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
     {% if q %}
       <a href="{{ url_for('main.raw_product') }}" class="btn btn-link">Clear</a>
@@ -47,11 +46,7 @@
             <tbody>
               {% for rp in raw_products %}
               <tr>
-                <td>
-                  <a href="{{ url_for('main.view_raw_product', raw_product_id=rp.id) }}">
-                    {{ rp.name }}
-                  </a>
-                </td>
+                <td><a href="{{ url_for('main.view_raw_product', raw_product_id=rp.id) }}">{{ rp.name }}</a></td>
                 {% if raw_product_costs[rp.id] %}
                   <td>${{ raw_product_costs[rp.id].cost|round(2) }}</td>
                   <td>{{ raw_product_costs[rp.id].date.strftime('%Y-%m-%d') }}</td>
@@ -59,18 +54,8 @@
                   <td colspan="2">None available</td>
                 {% endif %}
                 <td>
-                  <button type="button"
-                          class="btn btn-sm btn-secondary mr-1"
-                          data-toggle="modal"
-                          data-target="#addCostModal-{{ rp.id }}">
-                    Add/Update Cost
-                  </button>
-                  <button type="button"
-                          class="btn btn-sm btn-danger"
-                          data-toggle="modal"
-                          data-target="#deleteRawProductModal-{{ rp.id }}">
-                    Delete
-                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary mr-1" data-toggle="modal" data-target="#addCostModal-{{ rp.id }}">Add/Update Cost</button>
+                  <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteRawProductModal-{{ rp.id }}">Delete</button>
                 </td>
               </tr>
               {% endfor %}
@@ -88,42 +73,25 @@
         <div class="modal-content">
           <form method="POST" action="{{ url_for('main.add_raw_product_cost', raw_product_id=rp.id) }}">
             {{ cost_form.hidden_tag() }}
-            <div class="modal-header">
-              <h5 class="modal-title" id="addCostModalLabel-{{ rp.id }}">Add Cost for {{ rp.name }}</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title" id="addCostModalLabel-{{ rp.id }}">Add Cost for {{ rp.name }}</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
             <div class="modal-body">
-              <div class="form-group">
-                {{ cost_form.cost.label(class="form-control-label") }}
-                {{ cost_form.cost(class="form-control") }}
-              </div>
-              <div class="form-group">
-                {{ cost_form.date.label(class="form-control-label") }}
-                {{ cost_form.date(class="form-control") }}
-              </div>
+              <div class="form-group">{{ cost_form.cost.label(class="form-control-label") }}{{ cost_form.cost(class="form-control") }}</div>
+              <div class="form-group">{{ cost_form.date.label(class="form-control-label") }}{{ cost_form.date(class="form-control") }}</div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Cost</button>
-            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Cost</button></div>
           </form>
         </div>
       </div>
     </div>
-
+    
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteRawProductModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRawProductModalLabel-{{ rp.id }}" aria-hidden="true">
+  <div class="modal fade" id="deleteRawProductModal-{{ rp.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteRawProductModalLabel-{{ rp.id }}" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <form method="POST" action="{{ url_for('main.delete_raw_product', raw_product_id=rp.id) }}">
-            {{ csrf_token() }}
-            <div class="modal-header">
-              <h5 class="modal-title" id="deleteRawProductModalLabel-{{ rp.id }}">Delete {{ rp.name }}</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+            {{ delete_form.hidden_tag() }}
+            <div class="modal-header"><h5 class="modal-title" id="deleteRawProductModalLabel-{{ rp.id }}">Delete {{ rp.name }}</h5>
+              <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
               <p>Are you sure you want to delete <strong>{{ rp.name }}</strong>?</p>
@@ -147,22 +115,9 @@
       <div class="modal-content">
         <form method="POST" action="{{ url_for('main.add_raw_product') }}">
           {{ form.hidden_tag() }}
-          <div class="modal-header">
-            <h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              {{ form.name.label(class="form-control-label") }}
-              {{ form.name(class="form-control") }}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            {{ form.submit(class="btn btn-primary") }}
-          </div>
+          <div class="modal-header"><h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+          <div class="modal-body"><div class="form-group">{{ form.name.label(class="form-control-label") }}{{ form.name(class="form-control") }}</div></div>
+          <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>{{ form.submit(class="btn btn-primary") }}</div>
         </form>
       </div>
     </div>
@@ -173,27 +128,237 @@
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <form method="POST" action="{{ url_for('main.upload_raw_product_csv') }}" enctype="multipart/form-data">
-          {{ upload_csv_form.hidden_tag() }}
-          <div class="modal-header">
-            <h5 class="modal-title" id="importRawProductsModalLabel">Import Raw Products</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          {{ csv_form.hidden_tag() }}
+          <div class="modal-header"><h5 class="modal-title" id="importRawProductsModalLabel">Import Raw Products from CSV</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
           <div class="modal-body">
             <div class="form-group">
-              {{ upload_csv_form.file.label(class="form-control-label") }}
-              {{ upload_csv_form.file(class="form-control") }}
+              {{ csv_form.file.label(class="form-control-label") }}
+              {{ csv_form.file(class="form-control-file") }}
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            {{ upload_csv_form.submit(class="btn btn-primary") }}
+            {{ csv_form.submit(class="btn btn-primary") }}
           </div>
         </form>
       </div>
     </div>
   </div>
 
+  <!-- PDF Upload Modal -->
+  <div class="modal fade" id="pdfUploadModal" tabindex="-1" role="dialog" aria-labelledby="pdfUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form id="pdf-upload-form">
+          {{ csv_form.hidden_tag() }} {# Use the generic form's CSRF token #}
+          <div class="modal-header"><h5 class="modal-title" id="pdfUploadModalLabel">Import Costs from PDF</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+          <div class="modal-body">
+            <div id="pdf-upload-spinner" style="display: none; text-align: center; padding: 20px;">
+              <div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>
+              <p class="mt-2">Parsing PDF with AI, please wait...</p>
+            </div>
+            <div class="alert alert-danger" id="pdf-upload-error" style="display: none;"></div>
+            <div class="form-group" id="pdf-upload-input-group">
+              {# Render the file field from the generic form #}
+              {{ csv_form.file.label(class="form-control-label", text="Select PDF Price List") }}
+              {{ csv_form.file(class="form-control-file", id="pdf-file-input", accept=".pdf", required=True) }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            {# Use a standard submit button so the JS can handle it #}
+            <button type="submit" class="btn btn-primary">Upload and Review</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<!-- PDF Review Modal -->
+<div class="modal fade" id="pdfReviewModal" tabindex="-1" role="dialog" aria-labelledby="pdfReviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pdfReviewModalLabel">Review Parsed Costs</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="review-info" class="alert alert-info"></div>
+        <h5 class="mt-3">Matched Items to be Created</h5>
+        <p>Review the matched items below. Uncheck any rows you do not want to import. Please read through all entries to make sure the AI didn't make mistakes.</p>
+        <div class="table-responsive" style="max-height: 250px;">
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th style="width: 60px;">Import?</th>
+                <th>Name from PDF</th>
+                <th>Matched Product</th>
+                <th>Price</th>
+                <th>Match Score</th>
+              </tr>
+            </thead>
+            <tbody id="review-matched-table-body"></tbody>
+          </table>
+        </div>
+        <h5 class="mt-4">Skipped Items</h5>
+        <div class="table-responsive" style="max-height: 150px;">
+          <table class="table table-sm table-bordered">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Reason Skipped</th>
+              </tr>
+            </thead>
+            <tbody id="review-skipped-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" id="confirm-save-btn" class="btn btn-success">Confirm and Save</button>
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pdfUploadForm = document.getElementById('pdf-upload-form');
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    const spinner = document.getElementById('pdf-upload-spinner');
+    const uploadInputGroup = document.getElementById('pdf-upload-input-group');
+    const uploadErrorAlert = document.getElementById('pdf-upload-error');
+    const confirmSaveBtn = document.getElementById('confirm-save-btn');
+
+    let parsedDataForSave = {};
+
+    pdfUploadForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!pdfFileInput.files.length) {
+            alert('Please select a PDF file.');
+            return;
+        }
+
+        spinner.style.display = 'block';
+        uploadInputGroup.style.display = 'none';
+        uploadErrorAlert.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', pdfFileInput.files[0]);
+
+        try {
+            const response = await fetch("{{ url_for('main.parse_price_pdf') }}", {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'An unknown error occurred during parsing.');
+            }
+            
+            parsedDataForSave = {
+                effective_date: result.effective_date,
+                matched_items: result.matched_items
+            };
+
+            populateReviewModal(result);
+            $('#pdfUploadModal').modal('hide');
+            $('#pdfReviewModal').modal('show');
+
+        } catch (error) {
+            uploadErrorAlert.textContent = 'Error: ' + error.message;
+            uploadErrorAlert.style.display = 'block';
+        } finally {
+            spinner.style.display = 'none';
+            uploadInputGroup.style.display = 'block';
+            pdfUploadForm.reset();
+        }
+    });
+
+    confirmSaveBtn.addEventListener('click', async function() {
+        const itemsToCreate = [];
+        const checkboxes = document.querySelectorAll('#review-matched-table-body input[type="checkbox"]:checked');
+        
+        checkboxes.forEach(checkbox => {
+            const index = parseInt(checkbox.dataset.index, 10);
+            itemsToCreate.push(parsedDataForSave.matched_items[index]);
+        });
+
+        if (itemsToCreate.length === 0) {
+            alert('No items selected to save.');
+            return;
+        }
+
+        const payload = {
+            effective_date: parsedDataForSave.effective_date,
+            items_to_create: itemsToCreate
+        };
+
+        try {
+            const response = await fetch("{{ url_for('main.save_parsed_prices') }}", {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+
+            const result = await response.json();
+            if (!response.ok) { throw new Error(result.error || 'Failed to save data.'); }
+
+            alert(result.message);
+            $('#pdfReviewModal').modal('hide');
+            window.location.reload();
+
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    });
+
+    function populateReviewModal(data) {
+    const matchedBody = document.getElementById('review-matched-table-body');
+    const skippedBody = document.getElementById('review-skipped-table-body');
+    const reviewInfo = document.getElementById('review-info');
+    
+    reviewInfo.innerHTML = `<strong>Vendor:</strong> ${data.vendor || 'N/A'}<br><strong>Effective Date:</strong> ${data.effective_date || 'N/A'}`;
+    
+    // Build all matched rows first
+    let matchedRows = '';
+    data.matched_items.forEach((item, index) => {
+        matchedRows += `
+            <tr>
+                <td class="text-center" style="width:60px;">
+  <div class="form-check m-0">
+    <input type="checkbox"
+           class="form-check-input position-static"
+           data-index="${index}" checked>
+  </div>
+</td>
+                <td>${item.name_from_pdf}</td>
+                <td>${item.matched_product_name}</td>
+                <td>$${Number(item.price_from_pdf).toFixed(2)}</td>
+                <td>${Math.round(item.match_score)}%</td>
+            </tr>`;
+    });
+    matchedBody.innerHTML = matchedRows;
+
+    // Build all skipped rows
+    let skippedRows = '';
+    data.skipped_items.forEach(item => {
+        skippedRows += `
+            <tr>
+                <td>${item.name || '<i>Unnamed</i>'}</td>
+                <td>${item.reason}</td>
+            </tr>`;
+    });
+    skippedBody.innerHTML = skippedRows;
+}
+});
+</script>
 {% endblock %}

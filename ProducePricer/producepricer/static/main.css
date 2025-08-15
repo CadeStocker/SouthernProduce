@@ -9,6 +9,14 @@ body {
   background-color: #f8f9fa; /* light background for contrast */
 }
 
+/* Sticky table headers for review modal */
+#pdfReviewModal th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
 /* make the existing light navbar green */
 .navbar.bg-light {
   background-color: #28a745 !important;

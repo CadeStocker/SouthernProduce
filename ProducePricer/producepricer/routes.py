@@ -6,6 +6,9 @@ import json
 import math
 from fpdf import FPDF
 import matplotlib
+
+from producepricer.utils.matching import best_match
+from producepricer.utils.parsing import coerce_iso_date, parse_price_list_with_openai
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
 from flask import (
@@ -51,7 +54,8 @@ from producepricer.forms import(
     AddRanchPrice, 
     AddRawProduct, 
     AddRawProductCost, 
-    CreatePackage, 
+    CreatePackage,
+    DeleteForm, 
     EditItem,
     PriceQuoterForm,
     PriceSheetForm, 
@@ -60,7 +64,8 @@ from producepricer.forms import(
     SignUp, 
     Login, 
     CreateCompany, 
-    UpdateItemInfo, 
+    UpdateItemInfo,
+    UploadCSV, 
     UploadCustomerCSV, 
     UploadItemCSV, 
     UploadPackagingCSV, 
@@ -73,8 +78,128 @@ import os
 from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
 from producepricer.utils.ai_utils import get_ai_response
+import pdfplumber
+import tempfile
+from sqlalchemy import func
 
 main = Blueprint('main', __name__)
+
+# Utility function to extract text from PDF
+@main.route('/api/parse_price_pdf', methods=['POST'])
+@login_required
+def parse_price_pdf():
+    """
+    Step 1: Parses a PDF and returns the matched/unmatched items for user review WITHOUT saving.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    f = request.files["file"]
+    if not f.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Please upload a PDF file"}), 400
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+        f.save(tf.name)
+        pdf_path = tf.name
+
+    try:
+        pdf_text = extract_pdf_text(pdf_path)
+        parsed = parse_price_list_with_openai(pdf_text)
+
+        if "error" in parsed:
+            return jsonify({"error": f"AI Parsing Failed: {parsed['error']}"}), 500
+
+        effective_date = coerce_iso_date(parsed.get("effective_date"))
+        items = parsed.get("items", [])
+        vendor = parsed.get("vendor", "").strip() or "Unknown Vendor"
+
+        company_id = current_user.company_id
+        all_products = db.session.query(RawProduct.id, RawProduct.name).filter(RawProduct.company_id == company_id).all()
+        name_map = {name: rid for (rid, name) in all_products}
+        candidate_names = list(name_map.keys())
+
+        matched_items, skipped_items = [], []
+        for it in items:
+            name = (it.get("name") or "").strip()
+            price = it.get("price_usd")
+            if not name or price is None:
+                skipped_items.append({"name": name, "reason": "Missing name or price"})
+                continue
+
+            hit = best_match(name, candidate_names)
+            if not hit:
+                skipped_items.append({"name": name, "reason": "No strong match found"})
+                continue
+            
+            matched_name, score = hit
+            matched_items.append({
+                "name_from_pdf": name,
+                "price_from_pdf": price,
+                "matched_product_name": matched_name,
+                "matched_product_id": name_map[matched_name],
+                "match_score": score
+            })
+
+        return jsonify({
+            "vendor": vendor,
+            "effective_date": effective_date.isoformat(),
+            "matched_items": matched_items,
+            "skipped_items": skipped_items
+        })
+
+    finally:
+        try:
+            os.remove(pdf_path)
+        except OSError as e:
+            print(f"Error removing temporary file {pdf_path}: {e}")
+
+# 
+@main.route('/api/save_parsed_prices', methods=['POST'])
+@login_required
+def save_parsed_prices():
+    """
+    Step 2: Receives reviewed data from the frontend and saves it to the database.
+    """
+    data = request.get_json()
+    items_to_create = data.get('items_to_create', [])
+    effective_date = coerce_iso_date(data.get('effective_date'))
+    company_id = current_user.company_id
+    
+    created_count = 0
+    skipped_count = 0
+
+    for item in items_to_create:
+        raw_product_id = item.get('matched_product_id')
+        price = item.get('price_from_pdf')
+
+        # Final check for duplicates before inserting
+        exists = db.session.query(CostHistory.id).filter(
+            CostHistory.company_id == company_id,
+            CostHistory.raw_product_id == raw_product_id,
+            CostHistory.date == effective_date,
+            func.abs(CostHistory.cost - float(price)) < 0.001
+        ).first()
+
+        if exists:
+            skipped_count += 1
+            continue
+
+        ch = CostHistory(
+            cost=float(price),
+            date=effective_date,
+            company_id=company_id,
+            raw_product_id=raw_product_id,
+        )
+        db.session.add(ch)
+        created_count += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": f"Successfully created {created_count} new cost entries. Skipped {skipped_count} duplicates."
+    })
+
 
 @main.route('/ai-assistant')
 @login_required
@@ -253,6 +378,17 @@ Based on this data, please analyze the following points and provide actionable i
         return jsonify({"success": True, "summary": result["content"]})
     else:
         return jsonify({"success": False, "error": result.get("error", "An unknown error occurred.")}, 500)
+
+# function to extract text from PDF
+def extract_pdf_text(file_path: str) -> str:
+    text_parts = []
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text_parts.append(page.extract_text() or "")
+    return "\n".join(text_parts)
+
+
+
 
 # route for the root URL
 @main.route('/')
@@ -833,6 +969,8 @@ def raw_product():
     form = AddRawProduct()
     cost_form = AddRawProductCost()
     upload_raw_product_csv_form = UploadRawProductCSV()
+    csv_form = UploadCSV()
+    delete_form = DeleteForm()
 
     return render_template(
         'raw_product.html',
@@ -842,7 +980,9 @@ def raw_product():
         form=form,
         cost_form=cost_form,
         upload_csv_form=upload_raw_product_csv_form,
-        q=q
+        q=q,
+        delete_form=delete_form,
+        csv_form=csv_form
     )
 
 # view an individual raw product

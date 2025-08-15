@@ -56,8 +56,15 @@ class AddPackagingCost(FlaskForm):
     label_andor_tape_cost = FloatField('Label and/or Tape Cost', validators=[DataRequired()])
     submit = SubmitField('Add Packaging Cost')
 
+class DeleteForm(FlaskForm):
+    pass
+
 # allow import of csv file for packaging costs
 class UploadPackagingCSV(FlaskForm):
+    file = FileField('Upload CSV', validators=[DataRequired()])
+    submit = SubmitField('Upload')
+
+class UploadCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
 
