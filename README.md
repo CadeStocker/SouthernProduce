@@ -7,4 +7,9 @@ Using flask migrate
 
 Using python 3.11.10
 
+<<<<<<< HEAD
 Deployed at: https://producepricer.onrender.com
+=======
+Deployed at: https://producepricer.onrender.com
+
+>>>>>>> c3c419336c895c21354a7f17b1fbd3be451e7ba2
