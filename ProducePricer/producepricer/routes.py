@@ -387,9 +387,6 @@ def extract_pdf_text(file_path: str) -> str:
             text_parts.append(page.extract_text() or "")
     return "\n".join(text_parts)
 
-
-
-
 # route for the root URL
 @main.route('/')
 @main.route('/home')
@@ -932,21 +929,20 @@ def upload_packaging_csv():
 @main.route('/raw_product')
 @login_required
 def raw_product():
-    # search feature
     q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Number of raw products per page
 
     if q:
-        # filter the raw products by the search query
-        raw_products = RawProduct.query.filter(
+        query = RawProduct.query.filter(
             RawProduct.company_id == current_user.company_id,
             RawProduct.name.ilike(f'%{q}%')
-        ).all()
-
+        )
     else:
-        # Get the current user's company
-        company = Company.query.filter_by(id=current_user.company_id).first()
-        # Get the raw products for the current user's company
-        raw_products = company.raw_products if company else []
+        query = RawProduct.query.filter_by(company_id=current_user.company_id)
+
+    pagination = query.order_by(RawProduct.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    raw_products = pagination.items
 
     # Get the most recent cost for each raw product
     raw_product_costs = {}
@@ -954,14 +950,9 @@ def raw_product():
         most_recent_cost = (
             CostHistory.query
             .filter_by(raw_product_id=raw_product.id)
-            .order_by(
-                CostHistory.date.desc(),   # newest date first
-                CostHistory.id.desc()
-            )     # for ties, highest id (i.e. last inserted) first
+            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
             .first()
         )
-        #most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc(), CostHistory.id.desc()).first()
-        # most_recent_cost = CostHistory.query.filter_by(raw_product_id=raw_product.id).order_by(CostHistory.date.desc()),(CostHistory.id.desc()).first()
         if most_recent_cost:
             raw_product_costs[raw_product.id] = most_recent_cost
 
@@ -982,7 +973,8 @@ def raw_product():
         upload_csv_form=upload_raw_product_csv_form,
         q=q,
         delete_form=delete_form,
-        csv_form=csv_form
+        csv_form=csv_form,
+        pagination=pagination  # Pass pagination object to template
     )
 
 # view an individual raw product

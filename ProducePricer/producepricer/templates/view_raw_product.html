@@ -96,17 +96,22 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Aggregate cost history by date (latest cost per date)
+    const costHistory = [
+        {% for cost in cost_history %}
+            { date: "{{ cost.date.strftime('%Y-%m-%d') }}", cost: {{ "%.2f"|format(cost.cost) }} }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ];
+
+    // Use a map to keep only the latest cost per date
+    const costMap = {};
+    costHistory.forEach(entry => {
+        costMap[entry.date] = entry.cost; // This will overwrite duplicates, keeping the last one
+    });
+
     const costData = {
-        labels: [
-            {% for cost in cost_history %}
-                "{{ cost.date.strftime('%Y-%m-%d') }}"{% if not loop.last %}, {% endif %}
-            {% endfor %}
-        ],
-        data: [
-            {% for cost in cost_history %}
-                {{ "%.2f"|format(cost.cost) }}{% if not loop.last %}, {% endif %}
-            {% endfor %}
-        ]
+        labels: Object.keys(costMap),
+        data: Object.values(costMap)
     };
 
     document.addEventListener('DOMContentLoaded', function() {
