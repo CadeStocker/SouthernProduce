@@ -22,6 +22,7 @@
               <th>Date</th>
               <th>Price ($)</th>
               <th>Cost ($)</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -30,6 +31,14 @@
               <td>{{ rp.date.strftime('%Y-%m-%d') }}</td>
               <td>${{ '%.2f'|format(rp.price) }}</td>
               <td>${{ '%.2f'|format(rp.cost) }}</td>
+              <td>
+  <form method="POST" action="{{ url_for('main.delete_ranch_price', ranch_price_id=rp.id) }}" style="display:inline;">
+    {{ delete_form.csrf_token }}
+    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">
+      Delete
+    </button>
+  </form>
+</td>
             </tr>
             {% endfor %}
           </tbody>

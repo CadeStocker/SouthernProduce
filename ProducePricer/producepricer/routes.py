@@ -2120,8 +2120,6 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
     # If there are raw costs, average them for raw_product_cost
     raw_product_cost = sum(raw_costs) / len(raw_costs) if raw_costs else 0.0
 
-
-
     # get the packaging cost for the item
     packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
     total_packaging_cost = 0.0
@@ -2165,6 +2163,18 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
 
     # add designation cost to the total
     total_cost += designation_cost
+
+@main.route('/delete_ranch_price/<int:ranch_price_id>', methods=['POST'])
+@login_required
+def delete_ranch_price(ranch_price_id):
+    ranch_price = RanchPrice.query.filter_by(id=ranch_price_id, company_id=current_user.company_id).first()
+    if not ranch_price:
+        flash('Ranch price not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.ranch'))
+    db.session.delete(ranch_price)
+    db.session.commit()
+    flash('Ranch price/cost deleted successfully.', 'success')
+    return redirect(url_for('main.ranch'))
 
 # automatically update total cost for an item
 def update_item_total_cost(item_id):
@@ -2727,6 +2737,8 @@ def ranch():
     per_page = 15  # Items per page
     ranch_pagination = RanchPrice.query.filter_by(company_id=current_user.company_id).order_by(RanchPrice.date.asc()).paginate(page=page, per_page=per_page, error_out=False)
 
+    delete_form = DeleteForm()
+
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
@@ -2768,7 +2780,8 @@ def ranch():
         form=form,
         chart_data=chart_data,
         chart_labels=chart_labels,
-        pagination=ranch_pagination
+        pagination=ranch_pagination,
+        delete_form=delete_form,
         )
 
 @main.route("/reset/_password", methods=["GET", "POST"])
