@@ -1753,6 +1753,8 @@ def upload_item_csv():
                 else:
                     ranch = False
 
+                # test for git
+
                 # Create a new item object
                 item = Item(
                     name=name,
