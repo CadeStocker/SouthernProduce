@@ -1,4 +1,5 @@
 .venv/
 .flaskenv
 site.db
-instance/site.db
+instance/site.db__pycache__/
+*.pyc
