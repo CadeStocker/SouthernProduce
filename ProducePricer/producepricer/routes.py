@@ -98,13 +98,24 @@ def parse_price_pdf():
     if not f.filename.lower().endswith(".pdf"):
         return jsonify({"error": "Please upload a PDF file"}), 400
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
-        f.save(tf.name)
-        pdf_path = tf.name
-
     try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+            f.save(tf.name)
+            pdf_path = tf.name
+
         pdf_text = extract_pdf_text(pdf_path)
+        
+        # Add size limit to prevent timeout
+        if len(pdf_text) > 15000:
+            pdf_text = pdf_text[:15000] + "\n[Text truncated due to length...]"
+            
         parsed = parse_price_list_with_openai(pdf_text)
+
+        # Clean up temp file
+        try:
+            os.remove(pdf_path)
+        except OSError:
+            pass
 
         if "error" in parsed:
             return jsonify({"error": f"AI Parsing Failed: {parsed['error']}"}), 500
@@ -113,6 +124,7 @@ def parse_price_pdf():
         items = parsed.get("items", [])
         vendor = parsed.get("vendor", "").strip() or "Unknown Vendor"
 
+        # Process items as before...
         company_id = current_user.company_id
         all_products = db.session.query(RawProduct.id, RawProduct.name).filter(RawProduct.company_id == company_id).all()
         name_map = {name: rid for (rid, name) in all_products}
@@ -147,12 +159,8 @@ def parse_price_pdf():
             "skipped_items": skipped_items
         })
 
-    finally:
-        try:
-            os.remove(pdf_path)
-        except OSError as e:
-            print(f"Error removing temporary file {pdf_path}: {e}")
-
+    except Exception as e:
+        return jsonify({"error": f"PDF processing error: {str(e)}"}), 500
 # 
 @main.route('/api/save_parsed_prices', methods=['POST'])
 @login_required
@@ -385,12 +393,16 @@ def extract_pdf_text(file_path: str) -> str:
     text_parts = []
     try:
         with pdfplumber.open(file_path) as pdf:
+            # Even for single-page PDFs, we need to limit extraction time
             for page in pdf.pages:
-                text_parts.append(page.extract_text() or "")
+                extracted_text = page.extract_text() or ""
+                if len(extracted_text) > 20000:  # Limit per page for very dense PDFs
+                    extracted_text = extracted_text[:20000] + "\n[Page text truncated due to length...]"
+                text_parts.append(extracted_text)
         return "\n".join(text_parts)
     except Exception as e:
         print(f"PDF read error: {e}")
-        return ""
+        return f"Error extracting PDF text: {str(e)}"
 
 # route for the root URL
 @main.route('/')
