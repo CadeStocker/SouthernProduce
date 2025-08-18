@@ -31,6 +31,8 @@ def create_app(db_uri=None):
     # turn back off
     #app.config['DEBUG'] = True
 
+    # adding a comment to test git
+
     # --- START: Production Database Configuration ---
     # This logic checks if it's running on Render by looking for the mounted disk.
     render_data_dir = '/var/data'
