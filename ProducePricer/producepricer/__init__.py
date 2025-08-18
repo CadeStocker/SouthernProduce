@@ -56,8 +56,8 @@ def create_app(db_uri=None):
     # Set database URI - use parameter if provided (for testing)
     if db_uri:
         app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-    else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+    # else:
+    #     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 
     # Initialize extensions with app
     db.init_app(app)
