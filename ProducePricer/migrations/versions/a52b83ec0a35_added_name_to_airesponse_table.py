@@ -21,6 +21,8 @@ def upgrade():
     with op.batch_alter_table('ai_response', schema=None) as batch_op:
         batch_op.add_column(sa.Column('name', sa.String(length=100), nullable=True))
 
+    op.add_column('item_total_cost', sa.Column('ranch_cost', sa.Float(), nullable=False, server_default='0.0'))
+    op.alter_column('item_total_cost', 'ranch_cost', server_default=None)
     # ### end Alembic commands ###
 
 
