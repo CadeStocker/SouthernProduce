@@ -152,6 +152,7 @@ def load_user(user_id):
 
 # table to store total costs of items on a given date
 class ItemTotalCost(db.Model):
+    # ranch cost exists here, but deployed version says it doesn't
     __tablename__ = 'item_total_cost'
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
