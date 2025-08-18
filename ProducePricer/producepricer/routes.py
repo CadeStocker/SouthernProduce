@@ -381,11 +381,16 @@ Based on this data, please analyze the following points and provide actionable i
 
 # function to extract text from PDF
 def extract_pdf_text(file_path: str) -> str:
+    import pdfplumber
     text_parts = []
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            text_parts.append(page.extract_text() or "")
-    return "\n".join(text_parts)
+    try:
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                text_parts.append(page.extract_text() or "")
+        return "\n".join(text_parts)
+    except Exception as e:
+        print(f"PDF read error: {e}")
+        return ""
 
 # route for the root URL
 @main.route('/')
