@@ -1892,6 +1892,8 @@ def edit_item(item_id):
             if raw_product:
                 item.raw_products.append(raw_product)
 
+        # comment to test git
+
         # Commit the changes to the database
         db.session.commit()
         # Update the total cost for the item
