@@ -99,17 +99,27 @@ def parse_price_pdf():
         return jsonify({"error": "Please upload a PDF file"}), 400
 
     try:
+        import tempfile
+        import os
+        
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
             f.save(tf.name)
             pdf_path = tf.name
 
         pdf_text = extract_pdf_text(pdf_path)
         
+        # Make sure pdf_text is not None
+        if not pdf_text:
+            return jsonify({"error": "Could not extract text from PDF"}), 400
+        
         # Add size limit to prevent timeout
         if len(pdf_text) > 15000:
             pdf_text = pdf_text[:15000] + "\n[Text truncated due to length...]"
             
         parsed = parse_price_list_with_openai(pdf_text)
+
+        # print(f"PDF text extracted: {pdf_text[:100]}...")  # First 100 chars
+        # print(f"AI response: {parsed}")
 
         # Clean up temp file
         try:
@@ -118,7 +128,7 @@ def parse_price_pdf():
             pass
 
         if "error" in parsed:
-            return jsonify({"error": f"AI Parsing Failed: {parsed['error']}"}), 500
+            return jsonify({"error": parsed["error"]}), 500
 
         effective_date = coerce_iso_date(parsed.get("effective_date"))
         items = parsed.get("items", [])
@@ -130,7 +140,9 @@ def parse_price_pdf():
         name_map = {name: rid for (rid, name) in all_products}
         candidate_names = list(name_map.keys())
 
+        # Initialize empty lists
         matched_items, skipped_items = [], []
+        
         for it in items:
             name = (it.get("name") or "").strip()
             price = it.get("price_usd")
@@ -160,8 +172,10 @@ def parse_price_pdf():
         })
 
     except Exception as e:
+        print(f"PDF processing error: {str(e)}")
         return jsonify({"error": f"PDF processing error: {str(e)}"}), 500
-# 
+    
+# Helper function to extract text from PDF using pdfplumber
 @main.route('/api/save_parsed_prices', methods=['POST'])
 @login_required
 def save_parsed_prices():
@@ -396,13 +410,11 @@ def extract_pdf_text(file_path: str) -> str:
             # Even for single-page PDFs, we need to limit extraction time
             for page in pdf.pages:
                 extracted_text = page.extract_text() or ""
-                if len(extracted_text) > 20000:  # Limit per page for very dense PDFs
-                    extracted_text = extracted_text[:20000] + "\n[Page text truncated due to length...]"
                 text_parts.append(extracted_text)
         return "\n".join(text_parts)
     except Exception as e:
         print(f"PDF read error: {e}")
-        return f"Error extracting PDF text: {str(e)}"
+        return ""  # Return empty string instead of None
 
 # route for the root URL
 @main.route('/')

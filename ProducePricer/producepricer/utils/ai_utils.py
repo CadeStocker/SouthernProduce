@@ -7,8 +7,8 @@ from producepricer import db
 
 logger = logging.getLogger(__name__)
 
-def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-4-turbo-preview", response_format=None):
-    """Get a response from OpenAI API with proper error handling"""
+def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-3.5-turbo", response_format=None):
+    """Get a response from OpenAI API with speed optimizations"""
     if system_message is None:
         system_message = "You are a helpful assistant for a produce pricing application."
     
@@ -19,15 +19,17 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
                 {"role": "user", "content": prompt or ""}
             ]
         
-        # Check if content is too large and truncate if needed
+        # Check if content is too large and truncate
         max_tokens_per_message = 4000
         for msg in messages:
-            if len(msg.get("content", "")) > max_tokens_per_message * 4:  # rough char estimate
-                msg["content"] = msg["content"][:max_tokens_per_message*4] + "\n[Content truncated due to length]"
+            if len(msg.get("content", "")) > max_tokens_per_message * 4:
+                msg["content"] = msg["content"][:max_tokens_per_message*4] + "\n[Content truncated]"
         
         kwargs = {
-            "model": model,
-            "messages": messages
+            "model": model,  # Using gpt-3.5-turbo instead of gpt-4 (much faster)
+            "messages": messages,
+            "max_tokens": 2000,  # Limit response size
+            "temperature": 0.3   # Lower temperature = faster, more predictable responses
         }
         
         if response_format:
@@ -35,17 +37,14 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
         
         response = openai_client.chat.completions.create(**kwargs)
         
-        # If response is a dict (old API or mock), handle accordingly
+        # Response handling code...
         if isinstance(response, dict):
-            # Try to get content from dict structure
             choices = response.get("choices")
             if choices and isinstance(choices, list) and "message" in choices[0]:
                 content = choices[0]["message"]["content"]
             else:
-                # Fallback: try to get content directly
                 content = response.get("content", "")
         else:
-            # New OpenAI object API
             content = response.choices[0].message.content
 
         return {

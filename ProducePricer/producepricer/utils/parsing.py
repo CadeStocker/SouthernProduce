@@ -49,16 +49,26 @@ Return ONLY JSON that matches the provided schema. Infer:
 
 def parse_price_list_with_openai(pdf_text: str) -> Dict[str, Any]:
     """Sends PDF text to OpenAI and returns structured JSON."""
+
+    MAX_TEXT_LENGTH = 6000
+
+    if len(pdf_text) > MAX_TEXT_LENGTH:
+        pdf_text = pdf_text[:MAX_TEXT_LENGTH] + "\n[Text truncated due to length...]"
+
+    # Clean and normalize the text for faster parsing
+    cleaned_text = pdf_text.replace('\n\n', '\n').strip()
+
     try:
         response = get_ai_response(
             prompt="I am going to give you a text that i would like you to parse into structured JSON.",
             model="gpt-4-turbo-preview",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": USER_PROMPT_TEMPLATE.format(pdf_text=pdf_text)}
+                {"role": "system", "content": "You are an assistant that parses produce price lists into structured data. Extract only what's clearly visible."},
+                {"role": "user", "content": f"Parse this price list into JSON format with vendor, effective_date, and items array with name and price_usd fields:\n\n{cleaned_text}"}
             ]
         )
+
         # FIX: Use the dict returned by get_ai_response
         if not response.get("success"):
             raise Exception(response.get("error", "Unknown error from AI"))
