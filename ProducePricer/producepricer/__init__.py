@@ -49,7 +49,7 @@ def create_app(db_uri=None):
     # --- END: Production Database Configuration ---
 
     # Configuration
-    app.config['SECRET_KEY'] = '33d151aee312625a351143d17aeb358f'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'devkey')
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     
