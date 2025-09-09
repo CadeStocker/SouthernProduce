@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Raw Product Price Sheet{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Raw Product Price Sheet</h1>
+    <div>
+      <a href="{{ url_for('main.export_raw_price_sheet_pdf') }}" class="btn btn-outline-primary">Export PDF</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Raw Product</th>
+              <th>Latest Cost</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rp in raw_products %}
+              {% set info = recent[rp.id] %}
+              <tr>
+                <td>{{ info.name }}</td>
+                <td>
+                  {% if info.price %}
+                    ${{ info.price }}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>{{ info.date or '—' }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="3" class="text-muted">No raw products found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -694,6 +694,90 @@ def create_company():
                 
     return render_template('create_company.html', title='Create Company', form=form)
 
+# raw price sheet
+@main.route('/raw_price_sheet')
+@login_required
+def raw_price_sheet():
+    """
+    Show a price sheet with the latest cost for every raw product for the current company.
+    """
+    # load all raw products for the company
+    raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
+
+    # build a mapping of latest cost + date for each raw product
+    recent = {}
+    for rp in raw_products:
+        ch = (CostHistory.query
+              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
+              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+              .first())
+        recent[rp.id] = {
+            'name': rp.name,
+            'price': f"{ch.cost:.2f}" if ch and ch.cost is not None else None,
+            'date': ch.date.strftime('%Y-%m-%d') if ch and ch.date else None
+        }
+
+    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent)
+
+def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, sheet_name="Raw Product Price Sheet"):
+    """
+    Simple PDF generator that lists raw products and their most recent prices.
+    Returns bytes.
+    """
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.add_page()
+    # Add company name as a prominent title
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Southern Produce Processors Inc.", ln=1, align="C")
+    # Add the sheet name as a subtitle
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, sheet_name, ln=1, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.ln(2)
+
+    # table header
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(100, 8, "Raw Product", border=1)
+    pdf.cell(40, 8, "Latest Cost", border=1, align="C")
+    pdf.cell(40, 8, "Date", border=1, align="C")
+    pdf.ln()
+
+    pdf.set_font("Arial", "", 10)
+    for rp in raw_products:
+        info = recent_map.get(rp.id, {})
+        price = f"${info['price']}" if info.get('price') else "—"
+        date = info.get('date') or "—"
+        pdf.cell(100, 8, rp.name[:60], border=1)  # truncate if very long
+        pdf.cell(40, 8, price, border=1, align="C")
+        pdf.cell(40, 8, date, border=1, align="C")
+        pdf.ln()
+
+    return bytes(pdf.output(dest='S'))
+
+
+@main.route('/raw_price_sheet/export_pdf')
+@login_required
+def export_raw_price_sheet_pdf():
+    # reuse same data gathering as the html view
+    raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
+    recent = {}
+    for rp in raw_products:
+        ch = (CostHistory.query
+              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
+              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+              .first())
+        recent[rp.id] = {
+            'name': rp.name,
+            'price': f"{ch.cost:.2f}" if ch and ch.cost is not None else None,
+            'date': ch.date.strftime('%Y-%m-%d') if ch and ch.date else None
+        }
+
+    pdf_bytes = _generate_raw_price_sheet_pdf_bytes(raw_products, recent, sheet_name="Raw Products Price Sheet")
+    resp = make_response(pdf_bytes)
+    resp.headers['Content-Type'] = 'application/pdf'
+    resp.headers['Content-Disposition'] = 'attachment; filename=raw_price_sheet_all.pdf'
+    return resp
+
 # packaging page
 @main.route('/packaging')
 @login_required
