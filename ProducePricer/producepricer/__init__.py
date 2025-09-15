@@ -40,6 +40,7 @@ def create_app(db_uri=None):
     render_data_dir = '/var/data'
     db_path = os.path.join(render_data_dir, 'site.db')
 
+    # Check if the Render data directory exists
     if os.path.exists(render_data_dir):
         # If on Render, use the persistent disk path
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
@@ -71,7 +72,8 @@ def create_app(db_uri=None):
     migrate.init_app(app, db)
     # Set up database migration
     #migrate = Migrate(app, db)
-    
+
+    # User loader for Flask-Login
     @login_manager.user_loader
     def load_user(user_id):
         from producepricer.models import User
@@ -88,6 +90,7 @@ def create_app(db_uri=None):
     )
     app.config['RESET_PASS_TOKEN_MAX_AGE'] = 3600  # 1 hour
     
+    # Initialize Flask-Mail or Flask-Mailman
     try:
         from flask_mailman import Mail
         MAILMAN_PREFERRED = True
@@ -95,8 +98,10 @@ def create_app(db_uri=None):
         Mail = None
         MAILMAN_PREFERRED = False
 
+    # Use Flask-Mailman if available, otherwise fallback to Flask-Mail
     mail = Mail() if Mail else None
 
+    # Initialize mail with app if mail is available
     if mail:
         mail.init_app(app)
     else:

@@ -3468,6 +3468,7 @@ if __name__ == '__main__':
 def email_templates():
     """List and create email templates for the current company."""
     form = EmailTemplateForm()
+    delete_form = DeleteForm()
     # Handle creation
     if form.validate_on_submit():
         # if the new template is marked default, unset other defaults
@@ -3487,7 +3488,7 @@ def email_templates():
 
     # get existing templates
     templates = EmailTemplate.query.filter_by(company_id=current_user.company_id).order_by(EmailTemplate.is_default.desc(), EmailTemplate.name.asc()).all()
-    return render_template('email_templates.html', title='Email Templates', templates=templates, form=form)
+    return render_template('email_templates.html', title='Email Templates', templates=templates, form=form, delete_form=delete_form)
 
 
 @main.route('/email_template/<int:template_id>/edit', methods=['GET','POST'])

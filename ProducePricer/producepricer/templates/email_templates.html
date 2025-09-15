@@ -74,12 +74,14 @@
                     <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.edit_email_template', template_id=t.id) }}">Edit</a>
 
                     <form method="POST" action="{{ url_for('main.delete_email_template', template_id=t.id) }}" style="display:inline;">
-                      <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Delete this template?')">Delete</button>
+                        {{ delete_form.hidden_tag() }}
+                        <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Delete this template?')">Delete</button>
                     </form>
 
                     {% if not t.is_default %}
                     <form method="POST" action="{{ url_for('main.set_default_email_template', template_id=t.id) }}" style="display:inline;">
-                      <button class="btn btn-sm btn-outline-primary" type="submit">Set default</button>
+                        {{ delete_form.hidden_tag() }}   {# same CSRF token for this POST form #}
+                        <button class="btn btn-sm btn-outline-primary" type="submit">Set default</button>
                     </form>
                     {% else %}
                       <span class="badge badge-success ml-2">Default</span>
