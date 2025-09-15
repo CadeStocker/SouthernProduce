@@ -1,10 +1,13 @@
 import os
 from flask import Flask
-from flask_mailman import Mail
+try:
+    from flask_mail import Mail
+except ImportError:
+    Mail = None  # Handle the case where flask_mail is not installed
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
-from flask_migrate import Migrate
+from flask_migrate import Migrate, migrate
 from flask_wtf import CSRFProtect
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -18,8 +21,9 @@ bcrypt = Bcrypt()
 login_manager = LoginManager()
 login_manager.login_view = 'main.login'
 login_manager.login_message_category = 'info'
-mail = Mail()
+mail = Mail() if Mail else None
 csrf = CSRFProtect()
+migrate = Migrate()
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
@@ -27,11 +31,9 @@ openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 def create_app(db_uri=None):
     # Initialize Flask app
     app = Flask(__name__)
-
+    
     # turn back off
     app.config['DEBUG'] = True
-
-    # adding a comment to test git
 
     # --- START: Production Database Configuration ---
     # This logic checks if it's running on Render by looking for the mounted disk.
@@ -65,8 +67,10 @@ def create_app(db_uri=None):
     login_manager.init_app(app)
     csrf.init_app(app)
     
+    # attempt to fix "No such command 'db'" error
+    migrate.init_app(app, db)
     # Set up database migration
-    migrate = Migrate(app, db)
+    #migrate = Migrate(app, db)
     
     @login_manager.user_loader
     def load_user(user_id):
@@ -83,7 +87,21 @@ def create_app(db_uri=None):
         MAIL_DEFAULT_SENDER = os.environ.get('EMAIL_USER'),
     )
     app.config['RESET_PASS_TOKEN_MAX_AGE'] = 3600  # 1 hour
-    mail.init_app(app)
+    
+    try:
+        from flask_mailman import Mail
+        MAILMAN_PREFERRED = True
+    except Exception:
+        Mail = None
+        MAILMAN_PREFERRED = False
+
+    mail = Mail() if Mail else None
+
+    if mail:
+        mail.init_app(app)
+    else:
+        app.logger.warning("Warning: flask_mail is not installed. Email functionality will be disabled.")
+
 
     # Import and register blueprints
     # Important: Do this INSIDE create_app to avoid circular imports

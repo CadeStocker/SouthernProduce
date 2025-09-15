@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, ValidationError
+from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
 from producepricer.models import UnitOfWeight, User, Company
 
@@ -205,3 +205,10 @@ class PriceSheetForm(FlaskForm):
     def validate_items(self, items):
         if not items.data:
             raise ValidationError('Please select at least one item.')
+        
+class EmailTemplateForm(FlaskForm):
+    name = StringField('Template Name', validators=[DataRequired(), Length(max=120)])
+    subject = StringField('Subject', validators=[DataRequired(), Length(max=255)])
+    body = TextAreaField('Body (Jinja syntax)', validators=[DataRequired()])
+    is_default = BooleanField('Set as default')
+    submit = SubmitField('Save Template')

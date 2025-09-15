@@ -28,7 +28,8 @@ from producepricer.models import (
     AIResponse,
     CostHistory, 
     Customer,
-    DesignationCost, 
+    DesignationCost,
+    EmailTemplate, 
     Item,
     ItemDesignation, 
     ItemInfo, 
@@ -57,6 +58,7 @@ from producepricer.forms import(
     CreatePackage,
     DeleteForm, 
     EditItem,
+    EmailTemplateForm,
     PriceQuoterForm,
     PriceSheetForm, 
     ResetPasswordForm, 
@@ -3379,35 +3381,35 @@ def edit_price_sheet(sheet_id):
       recent_prices=recent_prices,
       available_items=available_items
     )
+# MADE A NEW VERSION OF THIS FUNCTION USING EMAIL TEMPLATE MODEL
+# @main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
+# @login_required
+# def email_price_sheet(sheet_id):
+#     sheet = PriceSheet.query.filter_by(
+#         id=sheet_id,
+#         company_id=current_user.company_id
+#     ).first_or_404()
 
-@main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
-@login_required
-def email_price_sheet(sheet_id):
-    sheet = PriceSheet.query.filter_by(
-        id=sheet_id,
-        company_id=current_user.company_id
-    ).first_or_404()
+#     # Generate PDF bytes using the helper function
+#     pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
 
-    # Generate PDF bytes using the helper function
-    pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
+#     # Get recipient email from form
+#     recipient = request.form.get('recipient')
+#     if not recipient:
+#         flash('Recipient email required.', 'danger')
+#         return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
-    # Get recipient email from form
-    recipient = request.form.get('recipient')
-    if not recipient:
-        flash('Recipient email required.', 'danger')
-        return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
+#     # Send email
+#     msg = EmailMessage(
+#         subject=f'Price Sheet: {sheet.name}',
+#         body='Attached is your requested price sheet PDF.',
+#         to=[recipient]
+#     )
+#     msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
+#     msg.send()
 
-    # Send email
-    msg = EmailMessage(
-        subject=f'Price Sheet: {sheet.name}',
-        body='Attached is your requested price sheet PDF.',
-        to=[recipient]
-    )
-    msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
-    msg.send()
-
-    flash(f'Price sheet emailed to {recipient}.', 'success')
-    return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
+#     flash(f'Price sheet emailed to {recipient}.', 'success')
+#     return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
 @main.route('/view_price_sheet/<int:sheet_id>/export_pdf')
 @login_required
@@ -3460,3 +3462,137 @@ def delete_price_sheet(sheet_id):
 # only true if this file is run directly
 if __name__ == '__main__':
     current_app.run(debug=True)
+
+@main.route('/email_templates', methods=['GET', 'POST'])
+@login_required
+def email_templates():
+    """List and create email templates for the current company."""
+    form = EmailTemplateForm()
+    # Handle creation
+    if form.validate_on_submit():
+        # if the new template is marked default, unset other defaults
+        if form.is_default.data:
+            EmailTemplate.query.filter_by(company_id=current_user.company_id, is_default=True).update({'is_default': False})
+        tpl = EmailTemplate(
+            name=form.name.data,
+            subject=form.subject.data,
+            body=form.body.data,
+            company_id=current_user.company_id,
+            is_default=bool(form.is_default.data)
+        )
+        db.session.add(tpl)
+        db.session.commit()
+        flash('Email template saved.', 'success')
+        return redirect(url_for('main.email_templates'))
+
+    # get existing templates
+    templates = EmailTemplate.query.filter_by(company_id=current_user.company_id).order_by(EmailTemplate.is_default.desc(), EmailTemplate.name.asc()).all()
+    return render_template('email_templates.html', title='Email Templates', templates=templates, form=form)
+
+
+@main.route('/email_template/<int:template_id>/edit', methods=['GET','POST'])
+@login_required
+def edit_email_template(template_id):
+    # get desired template
+    tpl = EmailTemplate.query.filter_by(id=template_id, company_id=current_user.company_id).first_or_404()
+    # use the same form, but to edit instead of create
+    form = EmailTemplateForm(obj=tpl)
+    if form.validate_on_submit():
+        # if you make it the default, take away default status from existing template
+        if form.is_default.data:
+            EmailTemplate.query.filter_by(company_id=current_user.company_id, is_default=True).update({'is_default': False})
+        tpl.name = form.name.data
+        tpl.subject = form.subject.data
+        tpl.body = form.body.data
+        tpl.is_default = bool(form.is_default.data)
+        db.session.commit()
+        flash('Template updated.', 'success')
+        return redirect(url_for('main.email_templates'))
+    return render_template('email_template_edit.html', form=form, template=tpl, title='Edit Email Template')
+
+# delete a template
+@main.route('/email_template/<int:template_id>/delete', methods=['POST'])
+@login_required
+def delete_email_template(template_id):
+    tpl = EmailTemplate.query.filter_by(id=template_id, company_id=current_user.company_id).first_or_404()
+    db.session.delete(tpl)
+    db.session.commit()
+    flash('Template deleted.', 'success')
+    return redirect(url_for('main.email_templates'))
+
+# set a template as the default
+@main.route('/email_template/<int:template_id>/set_default', methods=['POST'])
+@login_required
+def set_default_email_template(template_id):
+    tpl = EmailTemplate.query.filter_by(id=template_id, company_id=current_user.company_id).first_or_404()
+    # unset others
+    EmailTemplate.query.filter_by(company_id=current_user.company_id, is_default=True).update({'is_default': False})
+    tpl.is_default = True
+    db.session.commit()
+    flash(f'"{tpl.name}" is now the default template.', 'success')
+    return redirect(url_for('main.email_templates'))
+
+# Update email_price_sheet route to use template
+@main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
+@login_required
+def email_price_sheet(sheet_id):
+    sheet = PriceSheet.query.filter_by(id=sheet_id, company_id=current_user.company_id).first_or_404()
+
+    # Choose template_id from form or fallback to company default
+    template_id = request.form.get('template_id', type=int)
+    tpl = None
+    if template_id:
+        tpl = EmailTemplate.query.filter_by(id=template_id, company_id=current_user.company_id).first()
+    if tpl is None:
+        tpl = EmailTemplate.query.filter_by(company_id=current_user.company_id, is_default=True).first()
+
+    recipient = request.form.get('recipient')
+    if not recipient:
+        flash('Recipient email required.', 'danger')
+        return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
+
+    # Build context for template rendering
+    context = {
+        'sheet': sheet,
+        'company': Company.query.get(current_user.company_id),
+        'recipient': recipient,
+        'sheet_url': url_for('main.view_price_sheet', sheet_id=sheet.id, _external=True),
+        'now': datetime.datetime.utcnow()
+    }
+
+    # Render subject/body from template or use defaults
+    subject = f'Price Sheet: {sheet.name}'
+    body = 'Attached is your requested price sheet PDF.'
+
+    if tpl:
+        try:
+            subject = render_template_string(tpl.subject, **context)
+            body = render_template_string(tpl.body, **context)
+        except Exception as e:
+            # if template rendering fails, fallback and notify
+            print(f"Template render error: {e}")
+            flash('Error rendering selected email template — using defaults.', 'warning')
+            subject = f'Price Sheet: {sheet.name}'
+            body = 'Attached is your requested price sheet PDF.'
+
+    # Generate PDF bytes
+    pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
+
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('EMAIL_USER')
+
+    # send email
+    msg = EmailMessage(
+        subject=subject,
+        body=body,
+        to=[recipient],
+        from_email=sender
+    )
+    msg.content_subtype = 'html'  # Set content type to HTML
+    msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
+    try:
+        msg.send()
+        flash(f'Price sheet emailed to {recipient}.', 'success')
+    except Exception as e:
+        flash(f'Failed to send email: {e}', 'danger')
+
+    return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))

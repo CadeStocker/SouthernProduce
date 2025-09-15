@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Edit Email Template{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-3">Edit Template: {{ template.name }}</h1>
+
+  <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+      {{ form.subject.label(class="form-label") }}
+      {{ form.subject(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+      {{ form.body.label(class="form-label") }}
+      {{ form.body(class="form-control", rows=10) }}
+      <small class="form-text text-muted">
+        Use Jinja placeholders: <code>{{ '{{ sheet.name }}' }}</code>, <code>{{ '{{ recipient }}' }}</code>,
+        <code>{{ '{{ sheet_url }}' }}</code>, <code>{{ '{{ company.name }}' }}</code>.
+      </small>
+    </div>
+
+    <div class="form-check mb-3">
+      {{ form.is_default(class="form-check-input") }}
+      {{ form.is_default.label(class="form-check-label") }}
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('main.email_templates') }}" class="btn btn-secondary">Back</a>
+      {{ form.submit(class="btn btn-primary") }}
+    </div>
+  </form>
+
+  <hr class="my-4">
+
+  <div class="card">
+    <div class="card-header"><strong>Live Preview</strong></div>
+    <div class="card-body">
+      <h5 id="previewSubject" class="card-title">{{ template.subject }}</h5>
+      <div id="previewBody" class="card-text" style="white-space:pre-wrap;">{{ template.body }}</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const subjEl = document.querySelector('[name="subject"]');
+  const bodyEl = document.querySelector('[name="body"]');
+  const ps = document.getElementById('previewSubject');
+  const pb = document.getElementById('previewBody');
+
+  function updatePreview(){
+    if(ps && subjEl) ps.textContent = subjEl.value || '{{ template.subject|e }}';
+    if(pb && bodyEl) pb.innerHTML = (bodyEl.value || `{{ template.body|e }}`).replace(/\n/g, '<br>');
+  }
+
+  if(subjEl) subjEl.addEventListener('input', updatePreview);
+  if(bodyEl) bodyEl.addEventListener('input', updatePreview);
+  // initialize
+  updatePreview();
+})();
+{% endblock %}

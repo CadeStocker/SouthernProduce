@@ -455,3 +455,22 @@ def generate_reset_password_token(self):
     serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
     return serializer.dumps(self.email, salt=self.password)
+
+class EmailTemplate(db.Model):
+    __tablename__ = 'email_template'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    body = db.Column(db.Text, nullable=False)  # Jinja template syntax
+    is_default = db.Column(db.Boolean, default=False, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, subject, body, company_id, is_default=False):
+        self.name = name
+        self.subject = subject
+        self.body = body
+        self.is_default = is_default
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"EmailTemplate('{self.name}', '{self.subject}', Default={self.is_default})"
