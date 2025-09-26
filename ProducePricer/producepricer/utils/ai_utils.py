@@ -28,8 +28,8 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
         kwargs = {
             "model": model,  # Using gpt-3.5-turbo instead of gpt-4 (much faster)
             "messages": messages,
-            "max_tokens": 2000,  # Limit response size
-            "temperature": 0.3   # Lower temperature = faster, more predictable responses
+            "max_tokens": 4000,  # Increased token limit for longer JSON responses
+            "temperature": 0.1   # Even lower temperature for more consistent JSON structure
         }
         
         if response_format:
@@ -46,6 +46,20 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
                 content = response.get("content", "")
         else:
             content = response.choices[0].message.content
+
+        # Validate that we have content
+        if not content:
+            raise ValueError("Empty response from OpenAI API")
+            
+        # If response_format is json_object, validate it's valid JSON
+        if response_format and response_format.get("type") == "json_object":
+            try:
+                import json
+                json.loads(content)  # Just validate, don't store result
+            except json.JSONDecodeError as e:
+                print(f"OpenAI returned invalid JSON: {e}")
+                print(f"Raw response: {content[:500]}...")
+                raise ValueError(f"OpenAI returned invalid JSON: {e}")
 
         return {
             "success": True,
