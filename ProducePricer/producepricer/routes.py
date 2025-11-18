@@ -1055,17 +1055,19 @@ def raw_product():
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Number of raw products per page
+    show_all = request.args.get('show_all', '0').lower() in ('1', 'true', 'yes')
 
+    base_query = RawProduct.query.filter_by(company_id=current_user.company_id)
     if q:
-        query = RawProduct.query.filter(
-            RawProduct.company_id == current_user.company_id,
-            RawProduct.name.ilike(f'%{q}%')
-        )
+        base_query = RawProduct.query.filter(RawProduct.name.ilike(f'%{q}%'))
+    
+    if show_all:
+        # return all result without pagination
+        raw_products = base_query.order_by(RawProduct.name.asc()).all()
+        pagination = None
     else:
-        query = RawProduct.query.filter_by(company_id=current_user.company_id)
-
-    pagination = query.order_by(RawProduct.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
-    raw_products = pagination.items
+        pagination = base_query.order_by(RawProduct.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        raw_products = pagination.items
 
     # Get the most recent cost for each raw product
     raw_product_costs = {}
@@ -1097,7 +1099,8 @@ def raw_product():
         q=q,
         delete_form=delete_form,
         csv_form=csv_form,
-        pagination=pagination  # Pass pagination object to template
+        pagination=pagination,  # Pass pagination object to template
+        show_all=show_all
     )
 
 # view an individual raw product

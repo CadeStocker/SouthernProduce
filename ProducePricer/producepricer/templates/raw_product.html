@@ -16,6 +16,13 @@
     <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pdfUploadModal">
       Import Costs from PDF
     </button>
+
+    {# Toggle pagination / show all #}
+    {% if show_all %}
+      <a href="{{ url_for('main.raw_product', q=q) }}" class="btn btn-outline-secondary">Use Pagination</a>
+    {% else %}
+      <a href="{{ url_for('main.raw_product', q=q, show_all=1) }}" class="btn btn-outline-secondary">Show All</a>
+    {% endif %}
   </div>
 
   <!-- Search Form -->
@@ -65,40 +72,39 @@
         </div>
       </div>
 
-        
-          {% if pagination.pages > 1 %}
-<div class="d-flex justify-content-end mt-3">
-  <nav aria-label="Raw Product pagination">
-    <ul class="pagination">
-      {% if pagination.has_prev %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.prev_num, q=q) }}">&laquo; Prev</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
-      {% endif %}
-      {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
-        {% if p %}
-          {% if p == pagination.page %}
-            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-          {% else %}
-            <li class="page-item"><a class="page-link" href="{{ url_for('main.raw_product', page=p, q=q) }}">{{ p }}</a></li>
-          {% endif %}
-        {% else %}
-          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% if not show_all and pagination and pagination.pages > 1 %}
+        <div class="d-flex justify-content-end mt-3">
+          <nav aria-label="Raw Product pagination">
+            <ul class="pagination">
+              {% if pagination.has_prev %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.prev_num, q=q) }}">&laquo; Prev</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
+              {% endif %}
+              {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                {% if p %}
+                  {% if p == pagination.page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                  {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('main.raw_product', page=p, q=q) }}">{{ p }}</a></li>
+                  {% endif %}
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+              {% endfor %}
+              {% if pagination.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.next_num, q=q) }}">Next &raquo;</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
         {% endif %}
-      {% endfor %}
-      {% if pagination.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.next_num, q=q) }}">Next &raquo;</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
-      {% endif %}
-    </ul>
-  </nav>
-</div>
-{% endif %}
 
 
     {# Modals per raw product #}
