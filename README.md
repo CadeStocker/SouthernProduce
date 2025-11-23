@@ -156,32 +156,6 @@ Tips:
 
 ---
 
-## Notes on design decisions & technical highlights
-
-- Multi‑tenant model: all models carry `company_id` to scope data to an organization — important for real business use cases and security.
-- Pagination: server‑side pagination used on listing pages to avoid loading large datasets and to enable stable URLable pages for sharing and testing.
-- Forms: WTForms select fields are populated before validation so tests and POSTs validate correctly. Tests illustrate typical pitfalls (CSRF in tests, session detached objects).
-- Tests: Functional tests use Flask test client and app factory pattern, demonstrating maintainable testing practices.
-- AI integration: lightweight wrapper around OpenAI for summarization tasks, with responses persisted (AIResponse model) for audit/history.
-- Charting & UX: Chart.js used for interactive client‑side graphs fed by server JSON/templated arrays.
-- Robust PDF handling: pdfplumber is used with careful exception handling; backend uses 'Agg' matplotlib for headless charting if required.
----
-
-## Troubleshooting / common issues
-
-- "Cannot nest client invocations" in tests: avoid nested `with client:` usage; log in using `client.post(...)` outside a context manager.
-- DetachedInstanceError: return only IDs from fixtures or requery objects inside an app context.
-- Missing pagination Location header in tests: ensure form choices are populated before `validate_on_submit()` so SelectField can validate.
-- CSRF in tests: disable `WTF_CSRF_ENABLED` in test config OR include the token in form posts.
-
----
-
-## Contributing
-
-- Fork, branch per feature/fix, create tests for new behavior, open a PR.
-- Follow the code style in the repo; tests should pass locally before opening a PR.
-
----
 
 ## License
 
