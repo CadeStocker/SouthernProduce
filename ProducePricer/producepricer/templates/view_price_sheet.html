@@ -3,62 +3,120 @@
 {% block title %}View Price Sheet – {{ sheet.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5 d-flex align-items-center">
-    <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary mb-4 mr-2">← Back to Sheets</a>
-    <a href="{{ url_for('main.export_price_sheet_pdf', sheet_id=sheet.id) }}" class="btn btn-secondary mb-4 mr-3">
-        Export PDF
-    </a>
-    <!-- filepath: /Users/cadestocker/Desktop/SouthernProduce/ProducePricer/producepricer/templates/view_price_sheet.html -->
-<form method="POST" action="{{ url_for('main.email_price_sheet', sheet_id=sheet.id) }}" class="form-inline mb-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="recipient" value="{{ customer.email }}">
-    <button type="submit" class="btn btn-success">Email PDF to {{ customer.email }}</button>
-</form>
-</div>
-  <div class="card">
-    <div class="card-header">
-      <strong>Price Sheet: {{ sheet.name }}</strong>
-    <span class="float-right">{{ now.strftime('%Y-%m-%d') }}</span>
+<div class="container mt-5">
+    <div class="d-flex align-items-center mb-4">
+        <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary mr-2">← Back to Sheets</a>
+        <a href="{{ url_for('main.export_price_sheet_pdf', sheet_id=sheet.id) }}" class="btn btn-secondary mr-3">
+            Export PDF
+        </a>
+        <!-- Email Button - opens modal for email selection -->
+        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#emailModal">
+            Email PDF
+        </button>
     </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="thead-light">
-            <tr>
-              <th>Product</th>
-              <th>Price</th>
-              <th>Last Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-        {% for item in sheet.items %}
-          {# safely grab the recent entry or None #}
-          {% set entry = recent.get(item.id) %}
-          <tr>
-            <td>{{ item.name }}</td>
-            <td>
-              {% if entry %}
-                ${{ '%.2f'|format(entry.price) }}
-              {% else %}
-                <span class="text-muted">— no price set —</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if entry %}
-                {{ entry.date }}
-                {% if entry.customer %}
-                  <!-- maybe show customer name? -->
-                {% endif %}
-              {% else %}
-                <span class="text-muted">— no price history —</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-        </table>
-      </div>
+
+    <!-- Email Selection Modal -->
+    <div class="modal fade" id="emailModal" tabindex="-1" role="dialog" aria-labelledby="emailModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailModalLabel">Send Price Sheet to {{ customer.name }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="{{ url_for('main.email_price_sheet', sheet_id=sheet.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <p>Select which email address(es) to send the price sheet to:</p>
+                        
+                        {% set all_emails = customer.get_all_emails() %}
+                        {% if all_emails %}
+                            <div class="form-group">
+                                {% for email in all_emails %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="recipients" value="{{ email }}" id="email_{{ loop.index }}" {% if loop.first %}checked{% endif %}>
+                                        <label class="form-check-label" for="email_{{ loop.index }}">
+                                            {{ email }}
+                                            {% if email == customer.email %}
+                                                <span class="badge badge-primary">Primary</span>
+                                            {% else %}
+                                                {% for ce in customer.emails if ce.email == email and ce.label %}
+                                                    <span class="badge badge-secondary">{{ ce.label }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                No email addresses configured for this customer. 
+                                <a href="{{ url_for('main.manage_customer_emails', customer_id=customer.id) }}">Add emails</a>
+                            </div>
+                        {% endif %}
+
+                        <!-- Option to add a custom email -->
+                        <hr>
+                        <div class="form-group">
+                            <label for="custom_email">Or enter a custom email:</label>
+                            <input type="email" class="form-control" name="recipient" id="custom_email" placeholder="another@email.com">
+                            <small class="form-text text-muted">Leave blank to only send to selected emails above.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success" {% if not all_emails %}disabled{% endif %}>Send Email</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <div class="card">
+        <div class="card-header">
+            <strong>Price Sheet: {{ sheet.name }}</strong>
+            <span class="float-right">{{ now.strftime('%Y-%m-%d') }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sheet.items %}
+                            {# safely grab the recent entry or None #}
+                            {% set entry = recent.get(item.id) %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>
+                                    {% if entry %}
+                                        ${{ '%.2f'|format(entry.price) }}
+                                    {% else %}
+                                        <span class="text-muted">— no price set —</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if entry %}
+                                        {{ entry.date }}
+                                        {% if entry.customer %}
+                                            <!-- maybe show customer name? -->
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">— no price history —</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

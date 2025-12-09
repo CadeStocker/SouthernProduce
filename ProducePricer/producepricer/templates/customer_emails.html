@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Manage Emails for {{ customer.name }}</h1>
+        <a href="{{ url_for('main.customer') }}" class="btn btn-secondary">← Back to Customers</a>
+    </div>
+
+    <!-- Primary Email Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Primary Email</h5>
+        </div>
+        <div class="card-body">
+            {% if customer.email %}
+                <p class="mb-0"><strong>{{ customer.email }}</strong> <span class="badge badge-primary">Primary</span></p>
+                <small class="text-muted">Edit this in the customer details on the Customers page.</small>
+            {% else %}
+                <p class="text-muted mb-0">No primary email set. You can set one by editing the customer.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Additional Emails Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Additional Emails</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addEmailModal">
+                Add Email
+            </button>
+        </div>
+        <div class="card-body">
+            {% if customer.emails %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Email Address</th>
+                            <th>Label</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for email_entry in customer.emails %}
+                            <tr>
+                                <td>{{ email_entry.email }}</td>
+                                <td>
+                                    {% if email_entry.label %}
+                                        <span class="badge badge-secondary">{{ email_entry.label }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex">
+                                        <!-- Edit Label Button -->
+                                        <button type="button" class="btn btn-warning btn-sm mr-2" data-toggle="modal" data-target="#editEmailModal{{ email_entry.id }}">
+                                            Edit Label
+                                        </button>
+                                        <!-- Delete Button -->
+                                        <form method="POST" action="{{ url_for('main.delete_customer_email', customer_id=customer.id, email_id=email_entry.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this email?');">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Edit Label Modal -->
+                                    <div class="modal fade" id="editEmailModal{{ email_entry.id }}" tabindex="-1" role="dialog">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Edit Label for {{ email_entry.email }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <form method="POST" action="{{ url_for('main.update_customer_email', customer_id=customer.id, email_id=email_entry.id) }}">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="modal-body">
+                                                        <div class="form-group">
+                                                            <label for="label">Label (e.g., Billing, Sales, etc.)</label>
+                                                            <input type="text" name="label" class="form-control" value="{{ email_entry.label or '' }}" placeholder="Optional label">
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-primary">Save</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted mb-0">No additional emails added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="card">
+        <div class="card-header">
+            <h5>All Email Addresses for {{ customer.name }}</h5>
+        </div>
+        <div class="card-body">
+            {% set all_emails = customer.get_all_emails() %}
+            {% if all_emails %}
+                <ul class="list-group">
+                    {% for email in all_emails %}
+                        <li class="list-group-item">{{ email }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">No emails configured for this customer.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Adding New Email -->
+<div class="modal fade" id="addEmailModal" tabindex="-1" role="dialog" aria-labelledby="addEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEmailModalLabel">Add Email Address</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('main.add_customer_email', customer_id=customer.id) }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        {{ form.email(class="form-control", id="email", placeholder="email@example.com") }}
+                    </div>
+                    <div class="form-group">
+                        <label for="label">Label (optional)</label>
+                        {{ form.label(class="form-control", id="label", placeholder="e.g., Billing, Sales, Purchasing") }}
+                        <small class="form-text text-muted">A label helps identify the purpose of this email.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Email</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

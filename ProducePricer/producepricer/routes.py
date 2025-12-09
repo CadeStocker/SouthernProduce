@@ -28,6 +28,7 @@ from producepricer.models import (
     AIResponse,
     CostHistory, 
     Customer,
+    CustomerEmail,
     DesignationCost,
     EmailTemplate, 
     Item,
@@ -48,6 +49,7 @@ from producepricer.models import (
 )
 from producepricer.forms import(
     AddCustomer,
+    AddCustomerEmail,
     AddDesignationCost, 
     AddItem, 
     AddLaborCost, 
@@ -2790,6 +2792,72 @@ def delete_customer(customer_id):
     flash(f'Customer "{customer.name}" has been deleted successfully.', 'success')
     return redirect(url_for('main.customer'))
 
+# manage customer emails page
+@main.route('/customer/<int:customer_id>/emails')
+@login_required
+def manage_customer_emails(customer_id):
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first_or_404()
+    form = AddCustomerEmail()
+    return render_template('customer_emails.html', customer=customer, form=form, title=f'Manage Emails - {customer.name}')
+
+# add email to customer
+@main.route('/customer/<int:customer_id>/emails/add', methods=['POST'])
+@login_required
+def add_customer_email(customer_id):
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first_or_404()
+    form = AddCustomerEmail()
+    if form.validate_on_submit():
+        # Check if email already exists for this customer
+        existing = CustomerEmail.query.filter_by(customer_id=customer_id, email=form.email.data).first()
+        if existing:
+            flash('This email is already added to this customer.', 'warning')
+            return redirect(url_for('main.manage_customer_emails', customer_id=customer_id))
+        
+        # Also check against primary email
+        if customer.email and customer.email.lower() == form.email.data.lower():
+            flash('This email is already the primary email for this customer.', 'warning')
+            return redirect(url_for('main.manage_customer_emails', customer_id=customer_id))
+        
+        new_email = CustomerEmail(
+            email=form.email.data,
+            customer_id=customer_id,
+            label=form.label.data if form.label.data else None
+        )
+        db.session.add(new_email)
+        db.session.commit()
+        flash(f'Email "{form.email.data}" added successfully!', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+    return redirect(url_for('main.manage_customer_emails', customer_id=customer_id))
+
+# delete email from customer
+@main.route('/customer/<int:customer_id>/emails/<int:email_id>/delete', methods=['POST'])
+@login_required
+def delete_customer_email(customer_id, email_id):
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first_or_404()
+    email_entry = CustomerEmail.query.filter_by(id=email_id, customer_id=customer_id).first_or_404()
+    
+    email_address = email_entry.email
+    db.session.delete(email_entry)
+    db.session.commit()
+    flash(f'Email "{email_address}" removed successfully.', 'success')
+    return redirect(url_for('main.manage_customer_emails', customer_id=customer_id))
+
+# update customer email label
+@main.route('/customer/<int:customer_id>/emails/<int:email_id>/update', methods=['POST'])
+@login_required
+def update_customer_email(customer_id, email_id):
+    customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first_or_404()
+    email_entry = CustomerEmail.query.filter_by(id=email_id, customer_id=customer_id).first_or_404()
+    
+    new_label = request.form.get('label', '').strip()
+    email_entry.label = new_label if new_label else None
+    db.session.commit()
+    flash(f'Email label updated successfully.', 'success')
+    return redirect(url_for('main.manage_customer_emails', customer_id=customer_id))
+
 # upload customer CSV
 @main.route('/upload_customer_csv', methods=['GET', 'POST'])
 @login_required
@@ -3558,16 +3626,26 @@ def email_price_sheet(sheet_id):
     if tpl is None:
         tpl = EmailTemplate.query.filter_by(company_id=current_user.company_id, is_default=True).first()
 
-    recipient = request.form.get('recipient')
-    if not recipient:
-        flash('Recipient email required.', 'danger')
+    # Support multiple recipients - can be from form or getlist for multiple selection
+    recipients = request.form.getlist('recipients')
+    # Also support single recipient field for backwards compatibility
+    single_recipient = request.form.get('recipient')
+    if single_recipient and single_recipient not in recipients:
+        recipients.append(single_recipient)
+    
+    # Filter out empty strings
+    recipients = [r.strip() for r in recipients if r and r.strip()]
+    
+    if not recipients:
+        flash('At least one recipient email is required.', 'danger')
         return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
     # Build context for template rendering
     context = {
         'sheet': sheet,
         'company': Company.query.get(current_user.company_id),
-        'recipient': recipient,
+        'recipient': ', '.join(recipients),  # For template compatibility
+        'recipients': recipients,
         'sheet_url': url_for('main.view_price_sheet', sheet_id=sheet.id, _external=True),
         'now': datetime.datetime.utcnow()
     }
@@ -3592,18 +3670,19 @@ def email_price_sheet(sheet_id):
 
     sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('EMAIL_USER')
 
-    # send email
+    # send email to all recipients
     msg = EmailMessage(
         subject=subject,
         body=body,
-        to=[recipient],
+        to=recipients,
         from_email=sender
     )
     msg.content_subtype = 'html'  # Set content type to HTML
     msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
     try:
         msg.send()
-        flash(f'Price sheet emailed to {recipient}.', 'success')
+        recipient_list = ', '.join(recipients)
+        flash(f'Price sheet emailed to {recipient_list}.', 'success')
     except Exception as e:
         flash(f'Failed to send email: {e}', 'danger')
 

@@ -39,7 +39,8 @@
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Email</th>
+                            <th>Primary Email</th>
+                            <th>Additional Emails</th>
                             <th>Is Master Customer?</th>
                             <th>Actions</th>
                         </tr>
@@ -48,7 +49,14 @@
                         {% for customer in customers %}
                             <tr>
                                 <td>{{ customer.name }}</td>
-                                <td>{{ customer.email }}</td>
+                                <td>{{ customer.email or '—' }}</td>
+                                <td>
+                                    {% if customer.emails|length > 0 %}
+                                        <span class="badge badge-info">{{ customer.emails|length }} additional</span>
+                                    {% else %}
+                                        <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if customer.is_master %}
                                         <span class="badge badge-success">Yes</span>
@@ -61,6 +69,10 @@
                                     <button type="button" class="btn btn-warning btn-sm mr-2" data-toggle="modal" data-target="#editCustomerModal{{ customer.id }}">
                                         Edit
                                     </button>
+                                    <!-- Manage Emails Button -->
+                                    <a href="{{ url_for('main.manage_customer_emails', customer_id=customer.id) }}" class="btn btn-info btn-sm mr-2">
+                                        Emails
+                                    </a>
                                     <form method="POST" action="{{ url_for('main.delete_customer', customer_id=customer.id) }}">
                                         {{ form.hidden_tag() }}
                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>

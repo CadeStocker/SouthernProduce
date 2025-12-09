@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, TextAreaField, ValidationError
-from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional
 from producepricer.models import UnitOfWeight, User, Company
 
 class SignUp(FlaskForm):
@@ -114,6 +114,11 @@ class AddCustomer(FlaskForm):
     name = StringField('Customer Name', validators=[DataRequired()])
     email = StringField('Customer Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Add Customer')
+
+class AddCustomerEmail(FlaskForm):
+    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    label = StringField('Label (optional)', validators=[Optional()])
+    submit = SubmitField('Add Email')
 
 class UploadCustomerCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
