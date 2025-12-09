@@ -755,8 +755,8 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, sheet_name="Ra
     pdf.set_font("Arial", "", 10)
     for rp in raw_products:
         info = recent_map.get(rp.id, {})
-        price = f"${info['price']}" if info.get('price') else "—"
-        date = info.get('date') or "—"
+        price = f"${info['price']}" if info.get('price') else "-"
+        date = info.get('date') or "-"
         pdf.cell(100, 8, rp.name[:60], border=1)  # truncate if very long
         pdf.cell(40, 8, price, border=1, align="C")
         pdf.cell(40, 8, date, border=1, align="C")
