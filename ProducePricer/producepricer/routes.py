@@ -60,6 +60,7 @@ from producepricer.forms import(
     CreatePackage,
     DeleteForm, 
     EditItem,
+    EditRawProduct,
     EmailTemplateForm,
     PriceQuoterForm,
     PriceSheetForm, 
@@ -1122,8 +1123,10 @@ def view_raw_product(raw_product_id):
     items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
 
     cost_form = AddRawProductCost()
+    edit_form = EditRawProduct()
+    edit_form.name.data = raw_product.name  # Pre-populate with current name
 
-    return render_template('view_raw_product.html', items_using_raw_product=items_using_raw_product, title='View Raw Product', cost_form=cost_form, raw_product=raw_product, cost_history=cost_history)
+    return render_template('view_raw_product.html', items_using_raw_product=items_using_raw_product, title='View Raw Product', cost_form=cost_form, edit_form=edit_form, raw_product=raw_product, cost_history=cost_history)
 
 # delete a raw product cost
 @main.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
@@ -1296,6 +1299,11 @@ def delete_raw_product(raw_product_id):
         flash('Raw product not found or you do not have permission to delete it.', 'danger')
         return redirect(url_for('main.raw_product'))
 
+    # Remove all associations from item_raw table (unlink from items)
+    # This must be done before deleting the raw product to avoid foreign key issues
+    for item in raw_product.items:
+        item.raw_products.remove(raw_product)
+    
     # Delete all associated CostHistory entries
     CostHistory.query.filter_by(raw_product_id=raw_product_id).delete()
 
@@ -1305,6 +1313,40 @@ def delete_raw_product(raw_product_id):
 
     flash(f'Raw product "{raw_product.name}" and its associated costs have been deleted.', 'success')
     return redirect(url_for('main.raw_product'))
+
+@main.route('/edit_raw_product/<int:raw_product_id>', methods=['POST'])
+@login_required
+def edit_raw_product(raw_product_id):
+    # Find the raw product in the database
+    raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
+    if not raw_product:
+        flash('Raw product not found or you do not have permission to edit it.', 'danger')
+        return redirect(url_for('main.raw_product'))
+
+    form = EditRawProduct()
+    if form.validate_on_submit():
+        new_name = form.name.data.strip()
+        
+        # Check if another raw product already has this name (excluding the current one)
+        existing = RawProduct.query.filter(
+            RawProduct.name == new_name,
+            RawProduct.company_id == current_user.company_id,
+            RawProduct.id != raw_product_id
+        ).first()
+        
+        if existing:
+            flash(f'A raw product with the name "{new_name}" already exists.', 'warning')
+            return redirect(url_for('main.view_raw_product', raw_product_id=raw_product_id))
+        
+        old_name = raw_product.name
+        raw_product.name = new_name
+        db.session.commit()
+        
+        flash(f'Raw product renamed from "{old_name}" to "{new_name}" successfully!', 'success')
+        return redirect(url_for('main.view_raw_product', raw_product_id=raw_product_id))
+    
+    flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('main.view_raw_product', raw_product_id=raw_product_id))
 
 @main.route('/items')
 @login_required
@@ -2980,7 +3022,7 @@ def ranch():
 @main.route("/reset/_password", methods=["GET", "POST"])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.home'))
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -3027,7 +3069,7 @@ def send_reset_password_email(user):
 @main.route('/reset_password/<token>/<int:user_id>', methods=['GET', 'POST'])
 def reset_password(token, user_id):
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.home'))
     
     user = User.query.get(user_id)
     if not user or not user.verify_reset_password_token(token, user_id):

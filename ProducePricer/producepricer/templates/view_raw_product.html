@@ -37,6 +37,9 @@
             <p><strong>Raw Product Name:</strong> {{ raw_product.name }}</p>
             <p><strong>Raw Product ID:</strong> {{ raw_product.id }}</p>
             <p><strong>Company:</strong> {{ raw_product.company.name }}</p>
+            <button type="button" class="btn btn-sm btn-primary mr-1" data-toggle="modal" data-target="#editRawProductModal-{{ raw_product.id }}">
+                Edit Name
+            </button>
             <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#addCostModal-{{ raw_product.id }}">
                 Update Cost
             </button>
@@ -244,6 +247,33 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary">Add Cost</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Raw Product Modal -->
+<div class="modal fade" id="editRawProductModal-{{ raw_product.id }}" tabindex="-1" role="dialog" aria-labelledby="editRawProductModalLabel-{{ raw_product.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRawProductModalLabel-{{ raw_product.id }}">Edit Raw Product</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('main.edit_raw_product', raw_product_id=raw_product.id) }}">
+                {{ edit_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ edit_form.name.label(class="form-control-label") }}
+                        {{ edit_form.name(class="form-control", value=raw_product.name) }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    {{ edit_form.submit(class="btn btn-primary") }}
                 </div>
             </form>
         </div>

@@ -83,6 +83,10 @@ class UploadRawProductCSV(FlaskForm):
     file = FileField('Upload CSV', validators=[DataRequired()])
     submit = SubmitField('Upload')
 
+class EditRawProduct(FlaskForm):
+    name = StringField('Raw Product Name', validators=[DataRequired()])
+    submit = SubmitField('Update Raw Product')
+
 class AddItem(FlaskForm):
     name = StringField('Item Name', validators=[DataRequired()])
     item_code = StringField('Item Code', validators=[DataRequired()])
