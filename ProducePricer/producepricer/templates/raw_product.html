@@ -18,10 +18,10 @@
     </button>
 
     {# Toggle pagination / show all #}
-    {% if show_all %}
-      <a href="{{ url_for('main.raw_product', q=q) }}" class="btn btn-outline-secondary">Use Pagination</a>
+    {% if use_pagination %}
+      <a href="{{ url_for('main.raw_product', q=q) }}" class="btn btn-outline-secondary">Show All</a>
     {% else %}
-      <a href="{{ url_for('main.raw_product', q=q, show_all=1) }}" class="btn btn-outline-secondary">Show All</a>
+      <a href="{{ url_for('main.raw_product', q=q, paginate=1) }}" class="btn btn-outline-secondary">Use Pagination</a>
     {% endif %}
   </div>
 
@@ -72,13 +72,13 @@
         </div>
       </div>
 
-        {% if not show_all and pagination and pagination.pages > 1 %}
+        {% if use_pagination and pagination and pagination.pages > 1 %}
         <div class="d-flex justify-content-end mt-3">
           <nav aria-label="Raw Product pagination">
             <ul class="pagination">
               {% if pagination.has_prev %}
                 <li class="page-item">
-                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.prev_num, q=q) }}">&laquo; Prev</a>
+                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.prev_num, q=q, paginate=1) }}">&laquo; Prev</a>
                 </li>
               {% else %}
                 <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
@@ -88,7 +88,7 @@
                   {% if p == pagination.page %}
                     <li class="page-item active"><span class="page-link">{{ p }}</span></li>
                   {% else %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('main.raw_product', page=p, q=q) }}">{{ p }}</a></li>
+                    <li class="page-item"><a class="page-link" href="{{ url_for('main.raw_product', page=p, q=q, paginate=1) }}">{{ p }}</a></li>
                   {% endif %}
                 {% else %}
                   <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -96,7 +96,7 @@
               {% endfor %}
               {% if pagination.has_next %}
                 <li class="page-item">
-                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.next_num, q=q) }}">Next &raquo;</a>
+                  <a class="page-link" href="{{ url_for('main.raw_product', page=pagination.next_num, q=q, paginate=1) }}">Next &raquo;</a>
                 </li>
               {% else %}
                 <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
