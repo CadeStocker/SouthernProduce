@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import directly from the app package
 from producepricer import create_app, db
+from producepricer.models import User, Company
 
 @pytest.fixture
 def app():
@@ -67,3 +68,30 @@ def bcrypt():
     """Provide the bcrypt password hashing utility for tests."""
     from producepricer import bcrypt
     return bcrypt
+
+@pytest.fixture
+def logged_in_user(client, app):
+    """Create a user and log them in."""
+    with app.app_context():
+        company = Company(name="Test Company", admin_email="test@example.com")
+        db.session.add(company)
+        db.session.commit()
+        
+        user = User(
+            first_name="Test",
+            last_name="User",
+            email="test@example.com",
+            password="password",
+            company_id=company.id
+        )
+        db.session.add(user)
+        db.session.commit()
+        user_id = user.id
+        
+    client.post('/login', data={
+        'email': 'test@example.com',
+        'password': 'password'
+    }, follow_redirects=True)
+    
+    with app.app_context():
+        return db.session.get(User, user_id)

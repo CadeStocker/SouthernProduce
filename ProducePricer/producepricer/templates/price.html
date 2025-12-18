@@ -6,26 +6,39 @@
     <h1 class="mb-4">Item Pricing</h1>
 
     <!-- Search form -->
-    <form method="GET" action="{{ url_for('main.price') }}" class="form-inline mb-3">
-        <input
-            type="text"
-            name="q"
-            class="form-control mr-2"
-            placeholder="Search items..."
-            value="{{ q }}"
-        >
-        <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
-        {% if q %}
-            <a href="{{ url_for('main.price') }}" class="btn btn-link">Clear</a>
+    <div class="d-flex justify-content-between mb-3">
+        <form method="GET" action="{{ url_for('main.price') }}" class="form-inline">
+            <input
+                type="text"
+                name="q"
+                class="form-control mr-2"
+                placeholder="Search items..."
+                value="{{ q }}"
+            >
+            <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+            {% if q %}
+                <a href="{{ url_for('main.price') }}" class="btn btn-link">Clear</a>
+            {% endif %}
+        </form>
+
+        {# Toggle pagination / show all #}
+        {% if use_pagination %}
+          <a href="{{ url_for('main.price', q=q) }}" class="btn btn-outline-secondary">Show All</a>
+        {% else %}
+          <a href="{{ url_for('main.price', q=q, paginate=1) }}" class="btn btn-outline-secondary">Use Pagination</a>
         {% endif %}
-    </form>
+    </div>
 
     {% if items %}
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Item Pricing Details</h5>
             <span class="text-muted">
-                Showing {{ pagination.items|length }} of {{ pagination.total }} items
+                {% if pagination %}
+                    Showing {{ pagination.items|length }} of {{ pagination.total }} items
+                {% else %}
+                    Showing {{ items|length }} items
+                {% endif %}
                 {% if q %}matching "{{ q }}"{% endif %}
             </span>
         </div>
@@ -80,6 +93,7 @@
     </div>
     
     <!-- Pagination Controls -->
+    {% if use_pagination and pagination %}
     <div class="mt-4 mb-4">
         <div class="d-flex justify-content-between align-items-center">
             <p class="text-muted mb-0">
@@ -92,7 +106,7 @@
                 <ul class="pagination mb-0">
                     <!-- Previous Page -->
                     <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('main.price', page=pagination.prev_num, q=q) if pagination.has_prev else '#' }}" aria-label="Previous">
+                        <a class="page-link" href="{{ url_for('main.price', page=pagination.prev_num, q=q, paginate=1) if pagination.has_prev else '#' }}" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
@@ -101,7 +115,7 @@
                     {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
                             <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('main.price', page=page_num, q=q) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('main.price', page=page_num, q=q, paginate=1) }}">{{ page_num }}</a>
                             </li>
                         {% else %}
                             <li class="page-item disabled">
@@ -112,7 +126,7 @@
                     
                     <!-- Next Page -->
                     <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('main.price', page=pagination.next_num, q=q) if pagination.has_next else '#' }}" aria-label="Next">
+                        <a class="page-link" href="{{ url_for('main.price', page=pagination.next_num, q=q, paginate=1) if pagination.has_next else '#' }}" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
@@ -121,6 +135,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
     
     {% else %}
         <p>No items found for your company.</p>

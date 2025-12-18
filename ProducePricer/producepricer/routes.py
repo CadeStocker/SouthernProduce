@@ -2275,7 +2275,7 @@ def calculate_item_cost(item_id):
     # Calculate the total cost based on labor hours and other factors
     if itemInfo and itemInfo.labor_hours:
         # Assuming a fixed labor cost per hour, e.g., $15/hour
-        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
+        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).order_by(LaborCost.date.desc(), LaborCost.id.desc()).first()
         if labor_cost_per_hour:
             labor_cost_per_hour = labor_cost_per_hour.labor_cost
         else:
@@ -2511,6 +2511,7 @@ def price():
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Items per page
+    use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
     
     # Get search parameter
     q = request.args.get('q', '').strip()
@@ -2531,8 +2532,12 @@ def price():
         )
     
     # Apply pagination
-    pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
-    items = pagination.items
+    if use_pagination:
+        pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
+    else:
+        items = query.order_by(Item.name).all()
+        pagination = None
     
     # Process items for display
     item_data = []
@@ -2599,7 +2604,8 @@ def price():
                            pagination=pagination,  # Pass pagination object to template 
                            item_data=item_data,
                            company=company,
-                           q=q)
+                           q=q,
+                           use_pagination=use_pagination)
 
 # page to add labor cost
 @main.route('/add_labor_cost', methods=['GET', 'POST'])
