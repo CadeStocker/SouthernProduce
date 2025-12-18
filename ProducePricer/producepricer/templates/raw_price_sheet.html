@@ -18,12 +18,15 @@
             <tr>
               <th>Raw Product</th>
               <th>Latest Cost</th>
-              <th>Date</th>
+              <th>Latest Cost Date</th>
+              <th>Previous Cost</th>
+              <th>Previous Cost Date</th>
             </tr>
           </thead>
           <tbody>
             {% for rp in raw_products %}
               {% set info = recent[rp.id] %}
+              {% set prev_info = previous[rp.id] %}
               <tr>
                 <td>{{ info.name }}</td>
                 <td>
@@ -34,6 +37,15 @@
                   {% endif %}
                 </td>
                 <td>{{ info.date or '—' }}</td>
+                
+                <td>
+                  {% if prev_info.price %}
+                    ${{ prev_info.price }}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>{{ prev_info.date or '—' }}</td>
               </tr>
             {% else %}
               <tr>

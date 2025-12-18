@@ -718,7 +718,10 @@ def raw_price_sheet():
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
 
     # build a mapping of latest cost + date for each raw product
+    # need to show 1st and second most recent costs
     recent = {}
+    previous = {}
+
     for rp in raw_products:
         ch = (CostHistory.query
               .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
@@ -730,7 +733,19 @@ def raw_price_sheet():
             'date': ch.date.strftime('%Y-%m-%d') if ch and ch.date else None
         }
 
-    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent)
+        # Get the second-most-recent CostHistory entry by offsetting the ordered query.
+        ch_prev = (CostHistory.query
+              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
+              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+              .offset(1)
+              .first())  # second most recent
+        previous[rp.id] = {
+            'name': rp.name,
+            'price': f"{ch_prev.cost:.2f}" if ch_prev and ch_prev.cost is not None else None,
+            'date': ch_prev.date.strftime('%Y-%m-%d') if ch_prev and ch_prev.date else None
+        }
+
+    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous)
 
 def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, sheet_name="Raw Product Price Sheet"):
     """
