@@ -45,7 +45,7 @@ numpy==2.2.5
 openai==1.99.1
 packaging==25.0
 pandas==2.2.3
-pdfminer.six==20250506
+pdfminer.six==20251107
 pdfplumber==0.11.7
 pillow==11.3.0
 pluggy==1.6.0
