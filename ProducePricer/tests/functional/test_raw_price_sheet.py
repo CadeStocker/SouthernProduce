@@ -115,6 +115,7 @@ def test_raw_price_sheet_page(client, app, logged_in_user):
     
     # Let's just check for the text "Export PDF"
     assert "Export PDF" in html
+    assert "Email PDF" in html
 
 def test_raw_price_sheet_empty(client, app, logged_in_user):
     """Test the raw price sheet page when there are no raw products."""

@@ -716,9 +716,6 @@ def raw_price_sheet():
     """
     # load all raw products for the company
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
-    
-    # load all customers for the email modal
-    customers = Customer.query.filter_by(company_id=current_user.company_id).order_by(Customer.name).all()
 
     # build a mapping of latest cost + date for each raw product
     # need to show 1st and second most recent costs
@@ -748,9 +745,9 @@ def raw_price_sheet():
             'date': ch_prev.date.strftime('%Y-%m-%d') if ch_prev and ch_prev.date else None
         }
 
-    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous, customers=customers)
+    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous)
 
-def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=None, hide_previous=False, sheet_name="Raw Product Price Sheet"):
+def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, sheet_name="Raw Product Price Sheet"):
     """
     Simple PDF generator that lists raw products and their most recent prices.
     Returns bytes.
@@ -768,19 +765,9 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=N
 
     # table header
     pdf.set_font("Arial", "B", 11)
-    
-    if hide_previous:
-        # 3 columns
-        col_widths = [100, 40, 40]
-        headers = ["Raw Product", "Latest Cost", "Date"]
-    else:
-        # 5 columns - need to adjust widths to fit A4 (approx 190mm usable width)
-        # 190 total. 
-        col_widths = [70, 30, 30, 30, 30]
-        headers = ["Raw Product", "Latest Cost", "Date", "Prev Cost", "Prev Date"]
-
-    for i, header in enumerate(headers):
-        pdf.cell(col_widths[i], 8, header, border=1, align="C")
+    pdf.cell(100, 8, "Raw Product", border=1)
+    pdf.cell(40, 8, "Latest Cost", border=1, align="C")
+    pdf.cell(40, 8, "Date", border=1, align="C")
     pdf.ln()
 
     pdf.set_font("Arial", "", 10)
@@ -788,22 +775,9 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=N
         info = recent_map.get(rp.id, {})
         price = f"${info['price']}" if info.get('price') else "-"
         date = info.get('date') or "-"
-        
-        # Truncate name if needed
-        name = rp.name[:40] if not hide_previous else rp.name[:60]
-
-        pdf.cell(col_widths[0], 8, name, border=1)
-        pdf.cell(col_widths[1], 8, price, border=1, align="C")
-        pdf.cell(col_widths[2], 8, date, border=1, align="C")
-        
-        if not hide_previous:
-            prev_info = previous_map.get(rp.id, {}) if previous_map else {}
-            prev_price = f"${prev_info['price']}" if prev_info.get('price') else "-"
-            prev_date = prev_info.get('date') or "-"
-            
-            pdf.cell(col_widths[3], 8, prev_price, border=1, align="C")
-            pdf.cell(col_widths[4], 8, prev_date, border=1, align="C")
-            
+        pdf.cell(100, 8, rp.name[:60], border=1)  # truncate if very long
+        pdf.cell(40, 8, price, border=1, align="C")
+        pdf.cell(40, 8, date, border=1, align="C")
         pdf.ln()
 
     return bytes(pdf.output(dest='S'))
@@ -815,8 +789,6 @@ def export_raw_price_sheet_pdf():
     # reuse same data gathering as the html view
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
     recent = {}
-    previous = {}
-    
     for rp in raw_products:
         ch = (CostHistory.query
               .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
@@ -827,94 +799,12 @@ def export_raw_price_sheet_pdf():
             'price': f"{ch.cost:.2f}" if ch and ch.cost is not None else None,
             'date': ch.date.strftime('%Y-%m-%d') if ch and ch.date else None
         }
-        
-        ch_prev = (CostHistory.query
-              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
-              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-              .offset(1)
-              .first())
-        previous[rp.id] = {
-            'name': rp.name,
-            'price': f"{ch_prev.cost:.2f}" if ch_prev and ch_prev.cost is not None else None,
-            'date': ch_prev.date.strftime('%Y-%m-%d') if ch_prev and ch_prev.date else None
-        }
 
-    pdf_bytes = _generate_raw_price_sheet_pdf_bytes(raw_products, recent, previous_map=previous, hide_previous=False)
-
+    pdf_bytes = _generate_raw_price_sheet_pdf_bytes(raw_products, recent, sheet_name="Raw Products Price Sheet")
     resp = make_response(pdf_bytes)
     resp.headers['Content-Type'] = 'application/pdf'
-    resp.headers['Content-Disposition'] = 'attachment; filename=raw_price_sheet.pdf'
+    resp.headers['Content-Disposition'] = 'attachment; filename=raw_price_sheet_all.pdf'
     return resp
-
-@main.route('/raw_price_sheet/email', methods=['POST'])
-@login_required
-def email_raw_price_sheet():
-    # Get recipients
-    recipients = request.form.getlist('recipients')
-    single_recipient = request.form.get('recipient')
-    if single_recipient and single_recipient not in recipients:
-        recipients.append(single_recipient)
-    
-    # Filter out empty strings
-    recipients = [r.strip() for r in recipients if r and r.strip()]
-    
-    if not recipients:
-        flash('At least one recipient email is required.', 'danger')
-        return redirect(url_for('main.raw_price_sheet'))
-        
-    # Check if we should hide previous costs
-    hide_previous = request.form.get('hide_previous') == 'on'
-    
-    # Generate PDF
-    raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
-    recent = {}
-    previous = {}
-    
-    for rp in raw_products:
-        ch = (CostHistory.query
-              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
-              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-              .first())
-        recent[rp.id] = {
-            'name': rp.name,
-            'price': f"{ch.cost:.2f}" if ch and ch.cost is not None else None,
-            'date': ch.date.strftime('%Y-%m-%d') if ch and ch.date else None
-        }
-        
-        ch_prev = (CostHistory.query
-              .filter_by(raw_product_id=rp.id, company_id=current_user.company_id)
-              .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-              .offset(1)
-              .first())
-        previous[rp.id] = {
-            'name': rp.name,
-            'price': f"{ch_prev.cost:.2f}" if ch_prev and ch_prev.cost is not None else None,
-            'date': ch_prev.date.strftime('%Y-%m-%d') if ch_prev and ch_prev.date else None
-        }
-
-    pdf_bytes = _generate_raw_price_sheet_pdf_bytes(raw_products, recent, previous_map=previous, hide_previous=hide_previous)
-    
-    # Send email
-    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('EMAIL_USER')
-    subject = "Raw Product Price Sheet"
-    body = "Attached is the current Raw Product Price Sheet."
-    
-    msg = EmailMessage(
-        subject=subject,
-        body=body,
-        to=recipients,
-        from_email=sender
-    )
-    msg.content_subtype = 'html'
-    msg.attach('raw_price_sheet.pdf', pdf_bytes, 'application/pdf')
-    
-    try:
-        msg.send()
-        flash(f'Raw Price Sheet emailed to {", ".join(recipients)}.', 'success')
-    except Exception as e:
-        flash(f'Failed to send email: {e}', 'danger')
-        
-    return redirect(url_for('main.raw_price_sheet'))
 
 # packaging page
 @main.route('/packaging')

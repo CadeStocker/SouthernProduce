@@ -7,7 +7,65 @@
     <h1 class="mb-0">Raw Product Price Sheet</h1>
     <div>
       <a href="{{ url_for('main.export_raw_price_sheet_pdf') }}" class="btn btn-outline-primary">Export PDF</a>
+      <button type="button" class="btn btn-success ml-2" data-toggle="modal" data-target="#emailModal">
+          Email PDF
+      </button>
     </div>
+  </div>
+
+  <!-- Email Selection Modal -->
+  <div class="modal fade" id="emailModal" tabindex="-1" role="dialog" aria-labelledby="emailModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="emailModalLabel">Email Raw Price Sheet</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
+              </div>
+              <form method="POST" action="{{ url_for('main.email_raw_price_sheet') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-body">
+                      <div class="form-group">
+                          <div class="custom-control custom-checkbox">
+                              <input type="checkbox" class="custom-control-input" id="hidePrevious" name="hide_previous">
+                              <label class="custom-control-label" for="hidePrevious">Hide "Previous Cost" columns</label>
+                          </div>
+                      </div>
+                      <hr>
+                      <p>Select recipients:</p>
+                      
+                      <div style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px;">
+                          {% for customer in customers %}
+                              {% set all_emails = customer.get_all_emails() %}
+                              {% if all_emails %}
+                                  <div class="font-weight-bold mt-2">{{ customer.name }}</div>
+                                  {% for email in all_emails %}
+                                      <div class="form-check ml-3">
+                                          <input class="form-check-input" type="checkbox" name="recipients" value="{{ email }}" id="email_{{ customer.id }}_{{ loop.index }}">
+                                          <label class="form-check-label" for="email_{{ customer.id }}_{{ loop.index }}">
+                                              {{ email }}
+                                          </label>
+                                      </div>
+                                  {% endfor %}
+                              {% endif %}
+                          {% endfor %}
+                      </div>
+
+                      <!-- Option to add a custom email -->
+                      <div class="form-group mt-3">
+                          <label for="custom_email">Or enter a custom email:</label>
+                          <input type="email" class="form-control" name="recipient" id="custom_email" placeholder="another@email.com">
+                          <small class="form-text text-muted">Leave blank to only send to selected emails above.</small>
+                      </div>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-success">Send Email</button>
+                  </div>
+              </form>
+          </div>
+      </div>
   </div>
 
   <div class="card">

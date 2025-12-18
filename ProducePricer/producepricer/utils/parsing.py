@@ -4,6 +4,11 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from producepricer.utils.ai_utils import get_ai_response
 
+"""
+This file helps with taking the parsed contents of a pdf, then sending it to chatgpt
+to organize into json data
+"""
+
 # The schema for the JSON data we want from the AI
 SCHEMA = {
     "type": "object",
@@ -119,6 +124,10 @@ def _attempt_parse(cleaned_text: str) -> Dict[str, Any]:
                     if last_complete_item > 0:
                         fixed_content = fixed_content[:last_complete_item + 1]
                     
+                    # Recalculate open braces/brackets after potential slicing
+                    open_braces = fixed_content.count('{') - fixed_content.count('}')
+                    open_brackets = fixed_content.count('[') - fixed_content.count(']')
+                    
                     # Close any incomplete objects/arrays
                     for _ in range(open_brackets):
                         fixed_content += ']'
@@ -150,7 +159,7 @@ def _attempt_parse(cleaned_text: str) -> Dict[str, Any]:
 def coerce_iso_date(s: Optional[str]) -> datetime.date:
     """Converts a date string to a date object, with fallbacks."""
     if not s:
-        return datetime.utcnow().date()
+        return datetime.now().date()
     # Accept YYYY-MM-DD
     m1 = re.match(r"(\d{4})-(\d{2})-(\d{2})", s.strip())
     if m1:
@@ -160,4 +169,4 @@ def coerce_iso_date(s: Optional[str]) -> datetime.date:
     if m2:
         return datetime(int(m2.group(3)), int(m2.group(1)), int(m2.group(2))).date()
     
-    return datetime.utcnow().date()
+    return datetime.now().date()
