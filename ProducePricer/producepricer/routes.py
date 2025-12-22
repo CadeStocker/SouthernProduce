@@ -2750,7 +2750,7 @@ def edit_customer(customer_id):
     customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
     if not customer:
         flash('Customer not found or you do not have permission to edit it.', 'danger')
-        return redirect(url_for('main.customer'))
+        return make_response(redirect(url_for('main.customer')), 404)
 
     # Update the customer's basic info
     customer.name = request.form['name']
@@ -2759,6 +2759,7 @@ def edit_customer(customer_id):
     # handle master customer checkbox
     is_master = request.form.get('is_master') == 'on'
 
+    # only can be one master customer
     if is_master:
         # unmark any other master
         existing_master = Customer.query.filter_by(
@@ -2957,7 +2958,7 @@ def delete_customer(customer_id):
     customer = Customer.query.filter_by(id=customer_id, company_id=current_user.company_id).first()
     if not customer:
         flash('Customer not found or you do not have permission to delete it.', 'danger')
-        return redirect(url_for('main.customer'))
+        return make_response(redirect(url_for('main.customer')), 404)
 
     # Delete the customer
     db.session.delete(customer)
@@ -3094,6 +3095,12 @@ def upload_customer_csv():
                 db.session.commit()
 
             flash('Customers imported successfully!', 'success')
+    else:
+        if request.method == 'POST':
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f'{field}: {error}', 'danger')
+
     return redirect(url_for('main.customer'))
 
 @main.route('/ranch', methods=['GET', 'POST'])
