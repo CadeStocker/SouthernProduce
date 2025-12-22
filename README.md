@@ -71,7 +71,7 @@ This project shows full‑stack skills: REST endpoints, server‑side rendering,
 
 ## Installation (macOS)
 
-Prereqs: Python 3.10+ (3.11.10 recommended), git, pip.
+Prereqs: Python 3.10+ (deployed with 3.13.4), git, pip.
 
 Open Terminal:
 
