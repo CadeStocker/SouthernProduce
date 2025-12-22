@@ -3,6 +3,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from producepricer import db, login_manager
 from flask_login import UserMixin
 from enum import Enum
+from datetime import datetime
 
 # might remove this
 class UnitOfWeight(Enum):
@@ -504,3 +505,93 @@ class EmailTemplate(db.Model):
 
     def __repr__(self):
         return f"EmailTemplate('{self.name}', '{self.subject}', Default={self.is_default})"
+
+class BrandName(db.Model):
+    __tablename__ = 'brand_name'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, company_id):
+        self.name = name
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"BrandName('{self.name}')"
+
+
+class Seller(db.Model):
+    __tablename__ = 'seller'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, company_id):
+        self.name = name
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"Seller('{self.name}')"
+
+
+class GrowerOrDistributor(db.Model):
+    __tablename__ = 'grower_or_distributor'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String, nullable=False)
+    state = db.Column(db.String, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, name, company_id, city, state):
+        self.name = name
+        self.company_id = company_id
+        self.city = city
+        self.state = state
+
+    def __repr__(self):
+        return f"GrowerOrDistributor('{self.name}')"
+
+
+class ReceivingLog(db.Model):
+    __tablename__ = 'receiving_log'
+    id = db.Column(db.Integer, primary_key=True)
+    raw_product_id = db.Column(db.Integer, db.ForeignKey('raw_product.id'), nullable=False)
+    pack_size_unit = db.Column(db.String(50), nullable=False) # can be in pounds or count (number of items in box)
+    pack_size = db.Column(db.Float, nullable=False)
+    brand_name_id = db.Column(db.Integer, db.ForeignKey('brand_name.id'), nullable=False) 
+    quantity_received = db.Column(db.Integer, nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False) 
+    temperature = db.Column(db.Float, nullable=False)
+    hold_or_used = db.Column(db.String(20), nullable=False) # choices are 'hold' or 'used'
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    grower_or_distributor_id = db.Column(db.Integer, db.ForeignKey('grower_or_distributor.id'), nullable=False)
+    country_of_origin = db.Column(db.String(100), nullable=False) 
+    received_by = db.Column(db.String(100), nullable=False) # employee's name who made the log entry
+    returned = db.Column(db.String(100), nullable=True) # this doesn't appear in most entries, and when it does it's an employee's name
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    # Relationships
+    raw_product = db.relationship('RawProduct', backref='receiving_logs')
+    brand_name = db.relationship('BrandName', backref='receiving_logs')
+    seller = db.relationship('Seller', backref='receiving_logs')
+    grower_or_distributor = db.relationship('GrowerOrDistributor', backref='receiving_logs')
+    
+    def __init__(self, raw_product_id, pack_size_unit, pack_size, brand_name_id, quantity_received, seller_id, temperature, hold_or_used, grower_or_distributor_id, country_of_origin, received_by, company_id, returned=None, date_time=None):
+        self.raw_product_id = raw_product_id
+        self.pack_size_unit = pack_size_unit
+        self.pack_size = pack_size
+        self.brand_name_id = brand_name_id
+        self.quantity_received = quantity_received
+        self.seller_id = seller_id
+        self.temperature = temperature
+        self.hold_or_used = hold_or_used
+        self.grower_or_distributor_id = grower_or_distributor_id
+        self.country_of_origin = country_of_origin
+        self.received_by = received_by
+        self.company_id = company_id
+        self.returned = returned
+        if date_time:
+            self.datetime = date_time
+        
+    def __repr__(self):
+        return f"ReceivingLog('{self.datetime}', '{self.raw_product_id}', '{self.quantity_received}')"
