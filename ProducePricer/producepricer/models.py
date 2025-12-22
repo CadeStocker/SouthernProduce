@@ -575,6 +575,7 @@ class ReceivingLog(db.Model):
     brand_name = db.relationship('BrandName', backref='receiving_logs')
     seller = db.relationship('Seller', backref='receiving_logs')
     grower_or_distributor = db.relationship('GrowerOrDistributor', backref='receiving_logs')
+    images = db.relationship('ReceivingImage', backref='receiving_log', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, raw_product_id, pack_size_unit, pack_size, brand_name_id, quantity_received, seller_id, temperature, hold_or_used, grower_or_distributor_id, country_of_origin, received_by, company_id, returned=None, date_time=None):
         self.raw_product_id = raw_product_id
@@ -595,3 +596,19 @@ class ReceivingLog(db.Model):
         
     def __repr__(self):
         return f"ReceivingLog('{self.datetime}', '{self.raw_product_id}', '{self.quantity_received}')"
+
+class ReceivingImage(db.Model):
+    __tablename__ = 'receiving_image'
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    receiving_log_id = db.Column(db.Integer, db.ForeignKey('receiving_log.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __init__(self, filename, receiving_log_id, company_id):
+        self.filename = filename
+        self.receiving_log_id = receiving_log_id
+        self.company_id = company_id
+
+    def __repr__(self):
+        return f"ReceivingImage('{self.filename}', '{self.receiving_log_id}')"

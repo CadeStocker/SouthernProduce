@@ -111,7 +111,13 @@ def create_app(db_uri=None):
     # Import and register blueprints
     # Important: Do this INSIDE create_app to avoid circular imports
     from producepricer.routes import main
+    from producepricer.api import api
+    
+    # Exempt API from CSRF protection as it will be used by external clients (iPad app)
+    csrf.exempt(api)
+    
     app.register_blueprint(main)
+    app.register_blueprint(api)
     
     # Commented out until we create the AI routes
     # from producepricer.routes.ai import ai_bp
