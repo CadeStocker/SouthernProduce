@@ -1330,7 +1330,7 @@ def add_raw_product_cost(raw_product_id):
         flash(f'Cost added for raw product!', 'success')
     else:
         flash('Invalid data submitted.', 'danger')
-    return redirect(url_for('main.view_raw_product', raw_product_id=raw_product_id))
+    return redirect(url_for('main.raw_product', raw_product_id=raw_product_id))
 
 
 # raw product import
