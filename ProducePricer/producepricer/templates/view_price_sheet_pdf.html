@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Price Sheet – {{ sheet.name }}</title>
+  <title>Price Sheet - {{ sheet.name }}</title>
   <style>
     @page { margin: 1cm; }
     body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; }
@@ -36,13 +36,6 @@
         <td>
           {% if recent[item.id]['price'] is not none %}
             ${{ '%.2f'|format(recent[item.id]['price']) }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>
-          {% if recent[item.id]['date'] %}
-            {{ recent[item.id]['date'] }}
           {% else %}
             —
           {% endif %}

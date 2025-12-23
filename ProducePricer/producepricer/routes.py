@@ -1,5 +1,6 @@
 import datetime
 from io import BytesIO
+from sqlite3 import IntegrityError
 import traceback
 from flask_mailman import EmailMessage
 import json
@@ -2090,10 +2091,16 @@ def upload_item_csv():
 
                 # Add the item info to the database
                 db.session.add(item_info)
-                db.session.commit()
 
-                # find the total cost of the item
-                update_item_total_cost(item.id)
+                try:
+                    db.session.commit()
+
+                    # find the total cost of the item
+                    update_item_total_cost(item.id)
+                except IntegrityError:
+                    db.session.rollback()
+                    flash(f'Skipped item {name}')
+                    continue
                 
                 #flash(f'Item "{name}" has been added successfully!', 'success')
             flash('Items imported successfully!', 'success')
@@ -2287,13 +2294,12 @@ def calculate_item_cost(item_id):
 
     designation_cost = 0.0
 
-    # add 2.25 if snakpak, add 1 otherwise
-    if item.item_designation == 'SNAKPAK':
-        total_cost += 2.25
-        designation_cost = 2.25
-    else:
-        total_cost += 1.00
-        designation_cost = 1.00
+    # Calculate designation cost
+    if not find_designation_cost(item.item_designation):
+        flash('No designation cost found. Please assign values to each designation cost.')
+    
+    designation_cost += find_designation_cost(item.item_designation)
+    total_cost += designation_cost
 
     # return the different costs and the total
     return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost, ranch_cost
@@ -2373,90 +2379,10 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
 
     # Calculate designation cost
     designation_cost += find_designation_cost(item_designation)
+    total_cost += designation_cost
 
     # return the different costs and the total
     return total_cost, labor_cost, designation_cost, total_packaging_cost, raw_product_cost, ranch_cost
-
-# overriden version of calculate_item_cost that takes item info as args, rather than
-# just the item id
-def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case_weight, ranch, item_designation, raw_products):
-    # Calculate the total cost of the item based on its raw products and packaging costs
-    total_cost = 0.0
-
-    raw_product_cost = 0.0
-
-    ranch_cost = 0.0
-
-    # if ranch is true, add most recent ranch cost
-    if ranch:
-        most_recent_ranch_cost = RanchPrice.query.order_by(RanchPrice.date.desc(), RanchPrice.id.desc()).filter_by(company_id=current_user.company_id).first()
-        if most_recent_ranch_cost:
-            ranch_cost = most_recent_ranch_cost.cost
-            total_cost += ranch_cost
-        else:
-            flash('No ranch cost found.', 'warning')
-
-    # get the (raw price/yield) for each raw product
-    raw_costs = []
-    for raw_product in raw_products:
-        most_recent_cost = (
-            CostHistory.query
-            .filter_by(raw_product_id=raw_product.id)
-            .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-            .first()
-        )
-        if most_recent_cost:
-            # calculate the cost per unit of yield
-            cost_per_unit_yield = most_recent_cost.cost / (product_yield or 1)  # Avoid division by zero
-            cost = cost_per_unit_yield * case_weight
-            total_cost += cost
-            raw_costs.append(cost)
-    # If there are raw costs, average them for raw_product_cost
-    raw_product_cost = sum(raw_costs) / len(raw_costs) if raw_costs else 0.0
-
-    # get the packaging cost for the item
-    packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()
-    total_packaging_cost = 0.0
-
-    if packaging_costs:
-        # Use the most recent packaging cost
-        most_recent_packaging_cost = packaging_costs[0]
-        total_cost += (
-            most_recent_packaging_cost.box_cost +
-            most_recent_packaging_cost.bag_cost +
-            most_recent_packaging_cost.tray_andor_chemical_cost +
-            most_recent_packaging_cost.label_andor_tape_cost
-        )
-        # update total_packaging_cost
-        total_packaging_cost = (
-            most_recent_packaging_cost.box_cost +
-            most_recent_packaging_cost.bag_cost +
-            most_recent_packaging_cost.tray_andor_chemical_cost +
-            most_recent_packaging_cost.label_andor_tape_cost
-        )
-    else:
-        flash('No packaging costs found.', 'warning')
-
-    labor_cost = 0.0
-    # Calculate the total cost based on labor hours and other factors
-    if labor_hours:
-        # Assuming a fixed labor cost per hour, e.g., $15/hour
-        labor_cost_per_hour = LaborCost.query.filter_by(company_id=current_user.company_id).first()
-        if labor_cost_per_hour:
-            labor_cost_per_hour = labor_cost_per_hour.labor_cost
-        else:
-            flash('Labor cost not found. Assuming $0 per hour.', 'warning')
-            labor_cost_per_hour = 0
-
-        total_cost += labor_hours * labor_cost_per_hour
-        labor_cost = labor_hours * labor_cost_per_hour
-
-    # Calculate designation cost
-    designation_cost = 0.0
-    designation_cost += find_designation_cost(item_designation)
-
-    # add designation cost to the total
-    total_cost += designation_cost
 
 @main.route('/delete_ranch_price/<int:ranch_price_id>', methods=['POST'])
 @login_required
@@ -2900,7 +2826,7 @@ def _generate_price_sheet_pdf_bytes(sheet):
 
     for item in sheet.items:
         info = recent.get(item.id, {})
-        price = f"${info.get('price'):.2f}" if info.get('price') is not None else "—"
+        price = f"${info.get('price'):.2f}" if info.get('price') is not None else "-"
         
         changed_char = ""
         item_date = info.get('date')
@@ -3841,7 +3767,7 @@ def email_price_sheet(sheet_id):
         except Exception as e:
             # if template rendering fails, fallback and notify
             print(f"Template render error: {e}")
-            flash('Error rendering selected email template — using defaults.', 'warning')
+            flash('Error rendering selected email template - using defaults.', 'warning')
             subject = f'Price Sheet: {sheet.name}'
             body = 'Attached is your requested price sheet PDF.'
 
