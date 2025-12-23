@@ -2777,25 +2777,43 @@ def _generate_price_sheet_pdf_bytes(sheet):
         company_id=current_user.company_id,
         is_master=True
     ).first()
+    
+    seven_days_ago_date = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).date()
+
     for item in sheet.items:
         # Try to get price for master customer first
         ph = None
+        ph_old = None
+        
         if master:
             ph = PriceHistory.query.filter_by(
                 company_id=current_user.company_id,
                 item_id=item.id,
                 customer_id=master.id
             ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+            
+            ph_old = PriceHistory.query.filter_by(
+                company_id=current_user.company_id,
+                item_id=item.id,
+                customer_id=master.id
+            ).filter(PriceHistory.date <= seven_days_ago_date).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+
         # Fallback: any customer
         if not ph:
             ph = PriceHistory.query.filter_by(
                 company_id=current_user.company_id,
                 item_id=item.id
             ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+            
+            ph_old = PriceHistory.query.filter_by(
+                company_id=current_user.company_id,
+                item_id=item.id
+            ).filter(PriceHistory.date <= seven_days_ago_date).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
         
         recent[item.id] = {
             'price': float(ph.price) if ph and ph.price is not None else None,
             'date': ph.date if ph and ph.date else None,
+            'old_price': float(ph_old.price) if ph_old and ph_old.price is not None else None
         }
 
     # Create PDF
@@ -2822,22 +2840,29 @@ def _generate_price_sheet_pdf_bytes(sheet):
 
     # Table rows
     pdf.set_font("Arial", "", 10)
-    seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
 
     for item in sheet.items:
         info = recent.get(item.id, {})
-        price = f"${info.get('price'):.2f}" if info.get('price') is not None else "-"
+        current_price = info.get('price')
+        old_price = info.get('old_price')
+        
+        price_str = f"${current_price:.2f}" if current_price is not None else "-"
         
         changed_char = ""
-        item_date = info.get('date')
-        if item_date and item_date >= seven_days_ago.date():
-            changed_char = "*"
+        
+        if current_price is not None:
+            if old_price is not None:
+                if abs(current_price - old_price) > 0.001:
+                    changed_char = "*"
+            else:
+                # No price history older than 7 days, so this is a new price
+                changed_char = "*"
 
         # Sanitize the item name before rendering
         sanitized_item_name = sanitize_text(item.name)
         pdf.cell(col_widths[0], 8, sanitized_item_name, border=1)
         
-        pdf.cell(col_widths[1], 8, price, border=1, align="C")
+        pdf.cell(col_widths[1], 8, price_str, border=1, align="C")
         pdf.cell(col_widths[2], 8, changed_char, border=1, align="C")
         pdf.ln()
 
