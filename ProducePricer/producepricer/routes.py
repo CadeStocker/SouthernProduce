@@ -1480,6 +1480,7 @@ def items():
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Items per page
+    use_pagination = request.args.get('paginate') == 'true'
     
     # Get search parameter
     q = request.args.get('q', '').strip()
@@ -1503,9 +1504,13 @@ def items():
             (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
         )
     
-    # Apply pagination
-    pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
-    items = pagination.items
+    # Apply pagination or get all
+    if use_pagination:
+        pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
+        items = pagination.items
+    else:
+        items = query.order_by(Item.name).all()
+        pagination = None
     
     # Get packaging lookup
     packaging_lookup = {

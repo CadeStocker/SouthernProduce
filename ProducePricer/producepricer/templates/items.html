@@ -169,42 +169,54 @@
   <!-- Pagination Controls -->
   <div class="mt-4 mb-4">
     <div class="d-flex justify-content-between align-items-center">
-      <p class="text-muted mb-0">
-        Showing {{ pagination.items|length }} of {{ pagination.total }} items
-        {% if q %}matching "{{ q }}"{% endif %}
-      </p>
-      
-      {% if pagination.pages > 1 %}
-      <nav aria-label="Page navigation">
-        <ul class="pagination mb-0">
-          <!-- Previous Page -->
-          <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('main.items', page=pagination.prev_num, q=q) if pagination.has_prev else '#' }}" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
+      {% if pagination %}
+        <p class="text-muted mb-0">
+          Showing {{ pagination.items|length }} of {{ pagination.total }} items
+          {% if q %}matching "{{ q }}"{% endif %}
+        </p>
+        
+        <div class="d-flex align-items-center">
+          <a href="{{ url_for('main.items', q=q) }}" class="btn btn-sm btn-outline-secondary mr-3">Show All</a>
           
-          <!-- Page Numbers -->
-          {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-            {% if page_num %}
-              <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('main.items', page=page_num, q=q) }}">{{ page_num }}</a>
+          {% if pagination.pages > 1 %}
+          <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+              <!-- Previous Page -->
+              <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('main.items', page=pagination.prev_num, q=q, paginate='true') if pagination.has_prev else '#' }}" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
               </li>
-            {% else %}
-              <li class="page-item disabled">
-                <span class="page-link">…</span>
+              
+              <!-- Page Numbers -->
+              {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                  <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('main.items', page=page_num, q=q, paginate='true') }}">{{ page_num }}</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next Page -->
+              <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('main.items', page=pagination.next_num, q=q, paginate='true') if pagination.has_next else '#' }}" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
               </li>
-            {% endif %}
-          {% endfor %}
-          
-          <!-- Next Page -->
-          <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('main.items', page=pagination.next_num, q=q) if pagination.has_next else '#' }}" aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">
+          Showing all {{ items|length }} items
+          {% if q %}matching "{{ q }}"{% endif %}
+        </p>
+        <a href="{{ url_for('main.items', paginate='true', q=q) }}" class="btn btn-sm btn-outline-secondary">Enable Pagination</a>
       {% endif %}
     </div>
   </div>
