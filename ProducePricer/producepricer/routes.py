@@ -2229,12 +2229,12 @@ def calculate_item_cost(item_id):
     if not item:
         flash('Item not found or you do not have permission to calculate cost.', 'danger')
         print(f'Item with ID {item_id} not found for company {current_user.company_id}.')
-        return 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     
     if not itemInfo:
         flash(f'No item info found for item "{item.name}".', 'warning')
         print(f'No item info found for item with ID {item_id} for company {current_user.company_id}.')
-        return 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
     # Calculate the total cost of the item based on its raw products and packaging costs
     total_cost = 0.0
@@ -2496,6 +2496,10 @@ def price():
                 .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
                 .first()
             )
+        
+        # Skip items that still don't have a cost after trying to calculate it
+        if not most_recent_cost:
+            continue
 
         # Calculate additional values
         cost_per_lb = most_recent_cost.total_cost / item.case_weight if item.case_weight else 0.0
@@ -2544,6 +2548,186 @@ def price():
                            company=company,
                            q=q,
                            use_pagination=use_pagination)
+
+@main.route('/price/export-pdf')
+@login_required
+def export_price_pdf():
+    """Export the price table as a PDF"""
+    # Get search parameter
+    q = request.args.get('q', '').strip()
+    
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    # Base query - filtered by company (no pagination for export)
+    query = Item.query.filter_by(company_id=current_user.company_id)
+    
+    # Apply search filter if provided
+    if q:
+        query = query.filter(
+            (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
+        )
+    
+    items = query.order_by(Item.name).all()
+    
+    # Process items for display
+    item_data = []
+    for item in items:
+        # Get the most recent total cost for the item
+        most_recent_cost = (
+            ItemTotalCost.query
+            .filter_by(item_id=item.id)
+            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+            .first()
+        )
+        if not most_recent_cost:
+            # If no cost is found, calculate it
+            update_item_total_cost(item.id)
+            most_recent_cost = (
+                ItemTotalCost.query
+                .filter_by(item_id=item.id)
+                .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+                .first()
+            )
+        
+        # Skip items that still don't have a cost after trying to calculate it
+        if not most_recent_cost:
+            continue
+
+        # Calculate additional values
+        cost_per_lb = most_recent_cost.total_cost / item.case_weight if item.case_weight else 0.0
+        cost_per_oz = cost_per_lb / 16
+        labor_cost = most_recent_cost.labor_cost
+        packaging_cost = most_recent_cost.packaging_cost
+        unit_cost = most_recent_cost.total_cost
+        
+        # Rounded costs (rounded up to the nearest .25)
+        def round_up_to_nearest_quarter(value):
+            return math.ceil(value * 4) / 4
+
+        # Calculate rounded prices
+        rounded_25 = round_up_to_nearest_quarter(unit_cost * 1.25)
+        rounded_30 = round_up_to_nearest_quarter(unit_cost * 1.30)
+        rounded_35 = round_up_to_nearest_quarter(unit_cost * 1.35)
+        rounded_40 = round_up_to_nearest_quarter(unit_cost * 1.40)
+        rounded_45 = round_up_to_nearest_quarter(unit_cost * 1.45)
+
+        # Append data for this item
+        item_data.append({
+            'name': item.name,
+            'code': item.code,
+            'case_weight': item.case_weight,
+            'total_cost': most_recent_cost.total_cost,
+            'ranch_cost': most_recent_cost.ranch_cost,
+            'cost_per_lb': cost_per_lb,
+            'cost_per_oz': cost_per_oz,
+            'labor_cost': labor_cost,
+            'packaging_cost': packaging_cost,
+            'unit_cost': unit_cost,
+            'rounded_25': rounded_25,
+            'rounded_30': rounded_30,
+            'rounded_35': rounded_35,
+            'rounded_40': rounded_40,
+            'rounded_45': rounded_45,
+        })
+
+    # Create PDF
+    pdf = FPDF(orientation='L', unit='mm', format='A4')  # Landscape orientation
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 14)
+    
+    # Title without background box
+    pdf.set_text_color(0, 0, 0)  # Black text
+    pdf.cell(0, 10, f'Item Pricing Report - {company.name}', 0, 1, 'C')
+    
+    if q:
+        pdf.set_font('Arial', 'I', 9)
+        pdf.set_text_color(100, 100, 100)  # Gray text
+        pdf.cell(0, 5, f'Filtered by: "{q}"', 0, 1, 'C')
+        pdf.set_text_color(0, 0, 0)  # Reset to black
+    
+    # Add date
+    pdf.set_font('Arial', '', 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, f'Generated: {datetime.datetime.now().strftime("%B %d, %Y at %I:%M %p")}', 0, 1, 'C')
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(3)
+    
+    # Table headers with background
+    pdf.set_font('Arial', 'B', 7)
+    pdf.set_fill_color(52, 73, 94)  # Dark blue-gray
+    pdf.set_text_color(255, 255, 255)  # White text
+    
+    # Adjusted column widths - made item name much wider (80mm)
+    col_widths = [80, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
+    headers = ['Item Name', 'Code', 'Weight', 'Total', 'Cost/LB', 'Cost/Oz', 'Labor', 
+               'Pkg', 'Ranch', 'Unit', '25%', '30%', '35%', '40%', '45%']
+    
+    # Calculate table width and center it
+    table_width = sum(col_widths)
+    page_width = 297  # A4 landscape width in mm
+    left_margin = (page_width - table_width) / 2
+    pdf.set_left_margin(left_margin)
+    pdf.set_x(left_margin)
+    
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 7, header, 1, 0, 'C', 1)
+    pdf.ln()
+    pdf.set_text_color(0, 0, 0)  # Reset to black
+    
+    # Table data with alternating row colors
+    pdf.set_font('Arial', '', 7)
+    for idx, item in enumerate(item_data):
+        # Set X position to center the table
+        pdf.set_x(left_margin)
+        
+        # Alternate row colors
+        if idx % 2 == 0:
+            pdf.set_fill_color(245, 245, 245)  # Light gray
+            fill = 1
+        else:
+            fill = 0
+        
+        # Truncate item name if too long (now fits more characters with wider column)
+        item_name = item['name'][:95] + '...' if len(item['name']) > 95 else item['name']
+        
+        pdf.cell(col_widths[0], 6, item_name, 1, 0, 'L', fill)
+        pdf.cell(col_widths[1], 6, str(item['code']), 1, 0, 'C', fill)
+        pdf.cell(col_widths[2], 6, f"{item['case_weight']:.1f}", 1, 0, 'C', fill)
+        pdf.cell(col_widths[3], 6, f"${item['total_cost']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[4], 6, f"${item['cost_per_lb']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[5], 6, f"${item['cost_per_oz']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[6], 6, f"${item['labor_cost']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[7], 6, f"${item['packaging_cost']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[8], 6, f"${item['ranch_cost']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[9], 6, f"${item['unit_cost']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[10], 6, f"${item['rounded_25']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[11], 6, f"${item['rounded_30']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[12], 6, f"${item['rounded_35']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[13], 6, f"${item['rounded_40']:.2f}", 1, 0, 'R', fill)
+        pdf.cell(col_widths[14], 6, f"${item['rounded_45']:.2f}", 1, 0, 'R', fill)
+        pdf.ln()
+    
+    # Footer with item count
+    pdf.ln(2)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, f'Total Items: {len(item_data)}', 0, 1, 'R')
+    
+    # Generate PDF output
+    pdf_output = bytes(pdf.output(dest='S'))
+    
+    # Create response
+    response = make_response(pdf_output)
+    response.headers['Content-Type'] = 'application/pdf'
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'item_pricing_{timestamp}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
 
 # page to add labor cost
 @main.route('/add_labor_cost', methods=['GET', 'POST'])

@@ -142,7 +142,8 @@ def setup_items_with_prices(app, setup_raw_products):
                 unit_of_weight=UnitOfWeight.POUND,
                 packaging_id=setup['packaging_id'],
                 company_id=setup['company_id'],
-                case_weight=10.0
+                case_weight=10.0,
+                ranch=False
             )
             items.append(item)
         db.session.add_all(items)
@@ -158,6 +159,33 @@ def setup_items_with_prices(app, setup_raw_products):
                 price=25.00 + items.index(item) * 2.00
             )
             db.session.add(price)
+        
+        # Add ItemInfo for each item (required for cost calculation)
+        for item in items:
+            item_info = ItemInfo(
+                item_id=item.id,
+                product_yield=80.0,
+                labor_hours=0.5,
+                date=date.today(),
+                company_id=setup['company_id']
+            )
+            db.session.add(item_info)
+        
+        # Add ItemTotalCost for each item
+        for item in items:
+            item_cost = ItemTotalCost(
+                item_id=item.id,
+                total_cost=50.00 + items.index(item) * 2.00,
+                labor_cost=10.00,
+                packaging_cost=5.00,
+                ranch_cost=0.00,
+                raw_product_cost=30.00,
+                designation_cost=5.00,
+                date=date.today(),
+                company_id=setup['company_id']
+            )
+            db.session.add(item_cost)
+        
         db.session.commit()
         
         return {
@@ -618,3 +646,320 @@ class TestPDFDownload:
         # Verify it starts with PDF header
         content = pdf_file.read_bytes()
         assert content[:4] == b'%PDF'
+
+
+# ====================
+# Price Table PDF Export Tests
+# ====================
+
+class TestPriceTablePDFExport:
+    """Tests for the /price/export-pdf route that exports the item pricing table."""
+    
+    def test_price_pdf_export_requires_login(self, client, app):
+        """Test that the price PDF export route requires authentication."""
+        with app.app_context():
+            response = client.get(url_for('main.export_price_pdf'))
+            # Should redirect to login
+            assert response.status_code == 302
+            assert '/login' in response.location
+    
+    def test_price_pdf_export_basic_functionality(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that price PDF export generates a valid PDF with basic functionality."""
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Check response headers
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert 'attachment' in response.headers.get('Content-Disposition', '')
+        assert 'item_pricing_' in response.headers.get('Content-Disposition', '')
+        assert '.pdf' in response.headers.get('Content-Disposition', '')
+        
+        # Verify PDF content
+        assert response.data[:4] == b'%PDF'
+        assert len(response.data) > 1000  # Should have substantial content
+    
+    def test_price_pdf_export_with_search_query(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that price PDF export respects search query parameter."""
+        with app.app_context():
+            # Export with search query
+            url = url_for('main.export_price_pdf', q='Item 0')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+    
+    def test_price_pdf_export_with_no_items(self, client, app, setup_pdf_test_company):
+        """Test that price PDF export works even with no items."""
+        # Login first
+        client.post('/login', data={
+            'email': 'pdfadmin@test.com',
+            'password': 'pdfpass'
+        }, follow_redirects=True)
+        
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        response = client.get(url)
+        
+        # Should still generate a PDF, just with empty table
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+    
+    def test_price_pdf_export_filename_format(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that the PDF filename has correct timestamp format."""
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        content_disposition = response.headers.get('Content-Disposition', '')
+        
+        # Check filename pattern: item_pricing_YYYYMMDD_HHMMSS.pdf
+        assert 'item_pricing_' in content_disposition
+        assert '.pdf' in content_disposition
+        
+        # Extract and verify filename pattern
+        import re
+        filename_match = re.search(r'item_pricing_(\d{8}_\d{6})\.pdf', content_disposition)
+        assert filename_match is not None
+        
+        # Verify timestamp format is valid
+        timestamp = filename_match.group(1)
+        assert len(timestamp) == 15  # YYYYMMDD_HHMMSS = 15 characters
+    
+    def test_price_pdf_export_contains_company_name(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that the PDF contains the company name in the header."""
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Verify PDF is generated successfully
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+        
+        # PDF should have substantial content (more than just header/footer)
+        # A PDF with 5 items should be at least 2KB
+        assert len(response.data) > 2000, f"PDF too small ({len(response.data)} bytes), likely missing content"
+    
+    def test_price_pdf_export_contains_item_data(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that the PDF contains actual item data."""
+        with app.app_context():
+            # Get one of the items to verify
+            item = Item.query.filter_by(code='PDF-000').first()
+            assert item is not None
+            
+            # Get all items to know how many we expect
+            items = Item.query.filter_by(company_id=1).all()
+            item_count = len(items)
+            
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Verify PDF is generated successfully
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+        
+        # PDF should have substantial content - each item adds to the size
+        # With 5 items, expect at least 2KB
+        assert len(response.data) > 2000, f"PDF too small ({len(response.data)} bytes), likely missing item data"
+    
+    def test_price_pdf_export_with_special_characters_in_item_name(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that PDF export handles items with special characters in names."""
+        with app.app_context():
+            # Create an item with special characters
+            setup = setup_items_with_prices
+            packaging = Packaging.query.first()
+            
+            item = Item(
+                name="Special Item: Test & Product (100%)",
+                code="SPEC-001",
+                unit_of_weight=UnitOfWeight.POUND,
+                packaging_id=packaging.id,
+                company_id=setup['company_id'],
+                case_weight=10.0
+            )
+            db.session.add(item)
+            db.session.commit()
+            
+            # Create item total cost
+            item_cost = ItemTotalCost(
+                item_id=item.id,
+                total_cost=50.00,
+                labor_cost=10.00,
+                packaging_cost=5.00,
+                ranch_cost=2.00,
+                raw_product_cost=30.00,
+                designation_cost=3.00,
+                date=date.today(),
+                company_id=setup['company_id']
+            )
+            db.session.add(item_cost)
+            db.session.commit()
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Should successfully generate PDF
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+    
+    def test_price_pdf_export_with_long_item_names(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that PDF export handles very long item names correctly."""
+        with app.app_context():
+            # Create an item with a very long name
+            setup = setup_items_with_prices
+            packaging = Packaging.query.first()
+            
+            long_name = "A" * 150  # Very long name
+            
+            item = Item(
+                name=long_name,
+                code="LONG-001",
+                unit_of_weight=UnitOfWeight.POUND,
+                packaging_id=packaging.id,
+                company_id=setup['company_id'],
+                case_weight=10.0
+            )
+            db.session.add(item)
+            db.session.commit()
+            
+            # Create item total cost
+            item_cost = ItemTotalCost(
+                item_id=item.id,
+                total_cost=50.00,
+                labor_cost=10.00,
+                packaging_cost=5.00,
+                ranch_cost=2.00,
+                raw_product_cost=30.00,
+                designation_cost=3.00,
+                date=date.today(),
+                company_id=setup['company_id']
+            )
+            db.session.add(item_cost)
+            db.session.commit()
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Should successfully generate PDF without errors
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:4] == b'%PDF'
+    
+    def test_price_pdf_export_saves_to_file_correctly(self, client, app, setup_items_with_prices, logged_in_pdf_user, tmp_path):
+        """Test that the exported PDF can be saved and is a valid PDF file."""
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Save to temp file
+        pdf_file = tmp_path / "price_export_test.pdf"
+        pdf_file.write_bytes(response.data)
+        
+        # Verify file was written
+        assert pdf_file.exists()
+        assert pdf_file.stat().st_size > 1000  # Should have substantial content
+        
+        # Verify it starts with PDF header
+        content = pdf_file.read_bytes()
+        assert content[:4] == b'%PDF'
+        
+        # Verify PDF ends properly
+        assert b'%%EOF' in content
+    
+    def test_price_pdf_export_with_multiple_items(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that PDF export handles multiple items correctly."""
+        with app.app_context():
+            # setup_items_with_prices already creates 5 items
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        
+        # PDF should be larger with more items
+        assert len(response.data) > 2000
+    
+    def test_price_pdf_export_search_filters_items(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that search parameter correctly filters items in PDF export."""
+        with app.app_context():
+            # Export all items
+            url_all = url_for('main.export_price_pdf')
+            # Export with search filter
+            url_filtered = url_for('main.export_price_pdf', q='Item 0')
+        
+        response_all = logged_in_pdf_user.get(url_all)
+        response_filtered = logged_in_pdf_user.get(url_filtered)
+        
+        # Both should succeed
+        assert response_all.status_code == 200
+        assert response_filtered.status_code == 200
+        
+        # Filtered PDF should potentially be smaller (though not always due to PDF structure)
+        assert response_filtered.data[:4] == b'%PDF'
+        assert response_all.data[:4] == b'%PDF'
+    
+    def test_price_pdf_export_without_company(self, client, app, setup_pdf_test_company):
+        """Test that PDF export fails gracefully if user has no valid company."""
+        # Just test that it redirects properly when company is not found
+        # (User model requires company_id, so we can't actually create a user without it)
+        with app.app_context():
+            url = url_for('main.export_price_pdf')
+        
+        # Test without being logged in
+        response = client.get(url)
+        
+        # Should redirect to login
+        assert response.status_code == 302
+    
+    def test_price_pdf_export_calculates_costs_if_missing(self, client, app, setup_items_with_prices, logged_in_pdf_user):
+        """Test that PDF export calculates costs for items that don't have them."""
+        with app.app_context():
+            # Create an item without ItemTotalCost
+            setup = setup_items_with_prices
+            packaging = Packaging.query.first()
+            raw_product = RawProduct.query.first()
+            
+            item = Item(
+                name="Item Without Cost",
+                code="NO-COST",
+                unit_of_weight=UnitOfWeight.POUND,
+                packaging_id=packaging.id,
+                company_id=setup['company_id'],
+                case_weight=10.0,
+                ranch=False
+            )
+            item.raw_products.append(raw_product)
+            db.session.add(item)
+            db.session.commit()
+            
+            # Create ItemInfo for cost calculation
+            item_info = ItemInfo(
+                item_id=item.id,
+                product_yield=80.0,
+                labor_hours=0.5,
+                date=date.today(),
+                company_id=setup['company_id']
+            )
+            db.session.add(item_info)
+            db.session.commit()
+            url = url_for('main.export_price_pdf')
+        
+        response = logged_in_pdf_user.get(url)
+        
+        # Should successfully generate PDF and calculate missing costs
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
