@@ -1,0 +1,7 @@
+.venv/
+.env
+.env/
+.flaskenv
+site.db
+instance/site.db__pycache__/
+*.pyc

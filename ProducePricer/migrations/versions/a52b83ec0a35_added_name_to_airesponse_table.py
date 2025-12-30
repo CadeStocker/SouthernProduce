@@ -18,6 +18,7 @@ depends_on = None
 
 def upgrade():
     # Create new table with correct PK
+    op.execute("DROP TABLE IF EXISTS item_total_cost_new")
     op.execute("""
     CREATE TABLE item_total_cost_new (
         id INTEGER PRIMARY KEY,
@@ -37,10 +38,10 @@ def upgrade():
     
     # Copy data
     op.execute("""
-    INSERT INTO item_total_cost_new (id, item_id, date, ranch_cost, total_cost, 
+    INSERT INTO item_total_cost_new (id, item_id, date, total_cost, 
                                     packaging_cost, raw_product_cost, labor_cost, 
                                     designation_cost, company_id)
-    SELECT id, item_id, date, ranch_cost, total_cost, 
+    SELECT id, item_id, date, total_cost, 
            packaging_cost, raw_product_cost, labor_cost, 
            designation_cost, company_id 
     FROM item_total_cost
