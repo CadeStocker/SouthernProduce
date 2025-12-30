@@ -44,11 +44,18 @@ def create_app(db_uri=None):
     if os.path.exists(render_data_dir):
         # If on Render, use the persistent disk path
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+        # Use persistent disk for images, outside of static folder
+        app.config['RECEIVING_IMAGES_DIR'] = os.path.join(render_data_dir, 'receiving_images')
     else:
         # Otherwise, use the local instance folder for development
         local_db_path = os.path.join(app.instance_path, 'site.db')
         os.makedirs(app.instance_path, exist_ok=True)
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{local_db_path}'
+        # Use instance folder for local development images
+        app.config['RECEIVING_IMAGES_DIR'] = os.path.join(app.instance_path, 'receiving_images')
+    
+    # Ensure the image directory exists
+    os.makedirs(app.config['RECEIVING_IMAGES_DIR'], exist_ok=True)
     # --- END: Production Database Configuration ---
 
     # Configuration

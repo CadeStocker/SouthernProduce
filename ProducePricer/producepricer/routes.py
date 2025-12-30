@@ -22,7 +22,8 @@ from flask import (
     flash,
     make_response,
     Blueprint,
-    current_app
+    current_app,
+    send_from_directory
 )
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
@@ -46,7 +47,8 @@ from producepricer.models import (
     User, 
     Company, 
     Packaging,
-    PendingUser
+    PendingUser,
+    ReceivingImage
 )
 from producepricer.forms import(
     AddCustomer,
@@ -89,6 +91,11 @@ import tempfile
 from sqlalchemy import func
 
 main = Blueprint('main', __name__)
+
+@main.route('/receiving_images/<path:filename>')
+@login_required
+def get_receiving_image(filename):
+    return send_from_directory(current_app.config['RECEIVING_IMAGES_DIR'], filename)
 
 # Utility function to extract text from PDF
 @main.route('/api/parse_price_pdf', methods=['POST'])
@@ -722,7 +729,7 @@ def raw_price_sheet():
     customers = Customer.query.filter_by(company_id=current_user.company_id).order_by(Customer.name).all()
 
     # build a mapping of latest cost + date for each raw product
-    # need to show 1st and second most recent costs
+    # need to show 1st and 2nd most recent costs
     recent = {}
     previous = {}
 
@@ -3278,6 +3285,7 @@ def price_quoter():
         # compute the rounded values
         r25 = total * 1.25
         r30 = total * 1.30
+        r30 = total * 1.30
         r35 = total * 1.35
         r40 = total * 1.40
         r45 = total * 1.45
@@ -3596,35 +3604,6 @@ def edit_price_sheet(sheet_id):
       recent_prices=recent_prices,
       available_items=available_items
     )
-# MADE A NEW VERSION OF THIS FUNCTION USING EMAIL TEMPLATE MODEL
-# @main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
-# @login_required
-# def email_price_sheet(sheet_id):
-#     sheet = PriceSheet.query.filter_by(
-#         id=sheet_id,
-#         company_id=current_user.company_id
-#     ).first_or_404()
-
-#     # Generate PDF bytes using the helper function
-#     pdf_bytes = _generate_price_sheet_pdf_bytes(sheet)
-
-#     # Get recipient email from form
-#     recipient = request.form.get('recipient')
-#     if not recipient:
-#         flash('Recipient email required.', 'danger')
-#         return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
-
-#     # Send email
-#     msg = EmailMessage(
-#         subject=f'Price Sheet: {sheet.name}',
-#         body='Attached is your requested price sheet PDF.',
-#         to=[recipient]
-#     )
-#     msg.attach(f'price_sheet_{sheet.name}.pdf', pdf_bytes, 'application/pdf')
-#     msg.send()
-
-#     flash(f'Price sheet emailed to {recipient}.', 'success')
-#     return redirect(url_for('main.view_price_sheet', sheet_id=sheet.id))
 
 @main.route('/view_price_sheet/<int:sheet_id>/export_pdf')
 @login_required
@@ -3724,9 +3703,7 @@ def edit_email_template(template_id):
         db.session.commit()
         flash('Template updated.', 'success')
         return redirect(url_for('main.email_templates'))
-    return render_template('email_template_edit.html', form=form, template=tpl, title='Edit Email Template')
 
-# delete a template
 @main.route('/email_template/<int:template_id>/delete', methods=['POST'])
 @login_required
 def delete_email_template(template_id):

@@ -1,0 +1,7 @@
+{
+    "python.testing.pytestArgs": [
+        "ProducePricer"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}

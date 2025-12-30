@@ -42,7 +42,7 @@ def get_receiving_logs():
             'country_of_origin': log.country_of_origin,
             'received_by': log.received_by,
             'returned': log.returned,
-            'images': [url_for('static', filename=f'receiving_images/{img.filename}', _external=True) for img in log.images]
+            'images': [url_for('main.get_receiving_image', filename=img.filename, _external=True) for img in log.images]
         })
     
     return jsonify(logs_data)
@@ -119,7 +119,7 @@ def upload_receiving_images(log_id):
     uploaded_images = []
     
     # Ensure directory exists
-    upload_dir = os.path.join(current_app.root_path, 'static', 'receiving_images')
+    upload_dir = current_app.config['RECEIVING_IMAGES_DIR']
     os.makedirs(upload_dir, exist_ok=True)
     
     for file in files:
@@ -142,5 +142,5 @@ def upload_receiving_images(log_id):
     
     return jsonify({
         'message': f'{len(uploaded_images)} images uploaded successfully',
-        'images': [url_for('static', filename=f'receiving_images/{img}', _external=True) for img in uploaded_images]
+        'images': [url_for('main.get_receiving_image', filename=img, _external=True) for img in uploaded_images]
     }), 201
