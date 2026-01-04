@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app, url_for
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+from pydantic import ValidationError
 import os
 from producepricer.models import (
     ReceivingLog,
@@ -11,6 +12,7 @@ from producepricer.models import (
     GrowerOrDistributor,
     db
 )
+from producepricer.schemas import ReceivingLogCreateSchema, validate_foreign_key_exists
 from datetime import datetime
 
 api = Blueprint('api', __name__)
@@ -50,24 +52,69 @@ def get_receiving_logs():
 @api.route('/api/receiving_logs', methods=['POST'])
 @login_required
 def create_receiving_log():
-    data = request.get_json()
-    
+    """Create a new receiving log with input validation."""
     try:
+        # Get and validate input data using Pydantic schema
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate input schema and types
+        try:
+            validated_data = ReceivingLogCreateSchema(**raw_data)
+        except ValidationError as e:
+            # Return validation errors in a user-friendly format
+            errors = {}
+            for error in e.errors():
+                field = '.'.join(str(loc) for loc in error['loc'])
+                errors[field] = error['msg']
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+        
+        # Validate foreign keys exist and belong to user's company
+        try:
+            validate_foreign_key_exists(
+                RawProduct, 
+                validated_data.raw_product_id, 
+                current_user.company_id,
+                'raw_product_id'
+            )
+            validate_foreign_key_exists(
+                BrandName, 
+                validated_data.brand_name_id, 
+                current_user.company_id,
+                'brand_name_id'
+            )
+            validate_foreign_key_exists(
+                Seller, 
+                validated_data.seller_id, 
+                current_user.company_id,
+                'seller_id'
+            )
+            validate_foreign_key_exists(
+                GrowerOrDistributor, 
+                validated_data.grower_or_distributor_id, 
+                current_user.company_id,
+                'grower_or_distributor_id'
+            )
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        
+        # Create the receiving log with validated data
         new_log = ReceivingLog(
-            raw_product_id=data['raw_product_id'],
-            pack_size_unit=data['pack_size_unit'],
-            pack_size=data['pack_size'],
-            brand_name_id=data['brand_name_id'],
-            quantity_received=data['quantity_received'],
-            seller_id=data['seller_id'],
-            temperature=data['temperature'],
-            hold_or_used=data['hold_or_used'],
-            grower_or_distributor_id=data['grower_or_distributor_id'],
-            country_of_origin=data['country_of_origin'],
-            received_by=data.get('received_by', f"{current_user.first_name} {current_user.last_name}"),
+            raw_product_id=validated_data.raw_product_id,
+            pack_size_unit=validated_data.pack_size_unit,
+            pack_size=validated_data.pack_size,
+            brand_name_id=validated_data.brand_name_id,
+            quantity_received=validated_data.quantity_received,
+            seller_id=validated_data.seller_id,
+            temperature=validated_data.temperature,
+            hold_or_used=validated_data.hold_or_used,
+            grower_or_distributor_id=validated_data.grower_or_distributor_id,
+            country_of_origin=validated_data.country_of_origin,
+            received_by=validated_data.received_by or f"{current_user.first_name} {current_user.last_name}",
             company_id=current_user.company_id,
-            returned=data.get('returned'),
-            date_time=datetime.fromisoformat(data['datetime']) if 'datetime' in data else None
+            returned=validated_data.returned,
+            date_time=validated_data.datetime
         )
         
         db.session.add(new_log)
@@ -75,10 +122,11 @@ def create_receiving_log():
         
         return jsonify({'message': 'Receiving log created successfully', 'id': new_log.id}), 201
         
-    except KeyError as e:
-        return jsonify({'error': f'Missing required field: {str(e)}'}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        # Don't expose internal error details to users
+        current_app.logger.error(f"Error creating receiving log: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the receiving log'}), 500
 
 @api.route('/api/raw_products', methods=['GET'])
 @login_required
