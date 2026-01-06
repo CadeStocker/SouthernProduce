@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app, url_for
+from flask import Blueprint, jsonify, request, current_app, url_for, g
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from pydantic import ValidationError
@@ -13,19 +13,50 @@ from producepricer.models import (
     db
 )
 from producepricer.schemas import ReceivingLogCreateSchema, validate_foreign_key_exists
+from producepricer.auth_utils import require_api_key, optional_api_key_or_login
 from datetime import datetime
 
 api = Blueprint('api', __name__)
 
+# Test endpoint for API key authentication
+@api.route('/api/test', methods=['GET'])
+@require_api_key
+def test_api_key():
+    """Simple endpoint to test if your API key is working.
+    
+    This endpoint requires a valid API key and returns information
+    about the authenticated device and company.
+    """
+    return jsonify({
+        'success': True,
+        'message': 'API key is valid and working!',
+        'device_name': g.device_name,
+        'company_id': g.company_id,
+        'authenticated': True,
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200
+
+
 @api.before_request
 def require_login():
+    # Skip authentication for the test endpoint (it has its own decorator)
+    if request.endpoint == 'api.test_api_key':
+        return None
+    
+    # Skip if API key authentication is already set up by decorator
+    if hasattr(g, 'company_id'):
+        return None
+    
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
 
 @api.route('/api/receiving_logs', methods=['GET'])
-@login_required
+@optional_api_key_or_login
 def get_receiving_logs():
-    logs = ReceivingLog.query.filter_by(company_id=current_user.company_id).order_by(ReceivingLog.datetime.desc()).all()
+    # Get company_id from either API key (g.company_id) or logged-in user
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    
+    logs = ReceivingLog.query.filter_by(company_id=company_id).order_by(ReceivingLog.datetime.desc()).all()
     
     logs_data = []
     for log in logs:
@@ -50,10 +81,19 @@ def get_receiving_logs():
     return jsonify(logs_data)
 
 @api.route('/api/receiving_logs', methods=['POST'])
-@login_required
+@optional_api_key_or_login
 def create_receiving_log():
     """Create a new receiving log with input validation."""
     try:
+        # Get company_id from either API key or logged-in user
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        # Get received_by from device_name (API key) or user name
+        if hasattr(g, 'device_name'):
+            received_by_default = g.device_name
+        else:
+            received_by_default = f"{current_user.first_name} {current_user.last_name}"
+        
         # Get and validate input data using Pydantic schema
         raw_data = request.get_json()
         if not raw_data:
@@ -75,25 +115,25 @@ def create_receiving_log():
             validate_foreign_key_exists(
                 RawProduct, 
                 validated_data.raw_product_id, 
-                current_user.company_id,
+                company_id,
                 'raw_product_id'
             )
             validate_foreign_key_exists(
                 BrandName, 
                 validated_data.brand_name_id, 
-                current_user.company_id,
+                company_id,
                 'brand_name_id'
             )
             validate_foreign_key_exists(
                 Seller, 
                 validated_data.seller_id, 
-                current_user.company_id,
+                company_id,
                 'seller_id'
             )
             validate_foreign_key_exists(
                 GrowerOrDistributor, 
                 validated_data.grower_or_distributor_id, 
-                current_user.company_id,
+                company_id,
                 'grower_or_distributor_id'
             )
         except ValueError as e:
@@ -111,8 +151,8 @@ def create_receiving_log():
             hold_or_used=validated_data.hold_or_used,
             grower_or_distributor_id=validated_data.grower_or_distributor_id,
             country_of_origin=validated_data.country_of_origin,
-            received_by=validated_data.received_by or f"{current_user.first_name} {current_user.last_name}",
-            company_id=current_user.company_id,
+            received_by=validated_data.received_by or received_by_default,
+            company_id=company_id,
             returned=validated_data.returned,
             date_time=validated_data.datetime
         )
@@ -129,35 +169,41 @@ def create_receiving_log():
         return jsonify({'error': 'An error occurred while creating the receiving log'}), 500
 
 @api.route('/api/raw_products', methods=['GET'])
-@login_required
+@optional_api_key_or_login
 def get_raw_products():
-    products = RawProduct.query.filter_by(company_id=current_user.company_id).all()
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    products = RawProduct.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': p.id, 'name': p.name} for p in products])
 
 @api.route('/api/brand_names', methods=['GET'])
-@login_required
+@optional_api_key_or_login
 def get_brand_names():
-    brands = BrandName.query.filter_by(company_id=current_user.company_id).all()
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    brands = BrandName.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': b.id, 'name': b.name} for b in brands])
 
 @api.route('/api/sellers', methods=['GET'])
-@login_required
+@optional_api_key_or_login
 def get_sellers():
-    sellers = Seller.query.filter_by(company_id=current_user.company_id).all()
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    sellers = Seller.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': s.id, 'name': s.name} for s in sellers])
 
 @api.route('/api/growers_distributors', methods=['GET'])
-@login_required
+@optional_api_key_or_login
 def get_growers_distributors():
-    growers = GrowerOrDistributor.query.filter_by(company_id=current_user.company_id).all()
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    growers = GrowerOrDistributor.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': g.id, 'name': g.name, 'city': g.city, 'state': g.state} for g in growers])
 
 @api.route('/api/receiving_logs/<int:log_id>/images', methods=['POST'])
-@login_required
+@optional_api_key_or_login
 def upload_receiving_images(log_id):
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    
     log = ReceivingLog.query.get_or_404(log_id)
     
-    if log.company_id != current_user.company_id:
+    if log.company_id != company_id:
         return jsonify({'error': 'Unauthorized'}), 403
         
     if 'images' not in request.files:
@@ -181,7 +227,7 @@ def upload_receiving_images(log_id):
             new_image = ReceivingImage(
                 filename=filename,
                 receiving_log_id=log.id,
-                company_id=current_user.company_id
+                company_id=company_id
             )
             db.session.add(new_image)
             uploaded_images.append(filename)

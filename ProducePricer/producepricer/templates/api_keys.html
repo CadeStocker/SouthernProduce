@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">API Keys Management</h1>
+    
+    <p class="text-muted">
+        API keys allow your iPad devices to access the API without requiring user login. 
+        Each device should have its own unique API key for security purposes.
+    </p>
+
+    <!-- Display newly created API key (only shown once) -->
+    {% if session.get('new_api_key') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <h5 class="alert-heading">🎉 API Key Created Successfully!</h5>
+        <p><strong>Device:</strong> {{ session.get('new_api_key_device') }}</p>
+        
+        <!-- QR Code Display -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <p><strong>API Key:</strong></p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="newApiKey" value="{{ session.get('new_api_key') }}" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('newApiKey')">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <p><strong>📱 Scan with iPad:</strong></p>
+                <img src="{{ session.get('new_api_key_qr') }}" alt="API Key QR Code" class="img-fluid" style="max-width: 250px; border: 2px solid #28a745; border-radius: 8px; padding: 10px; background: white;">
+                <br>
+                <small class="text-muted">Scan this QR code with your iPad camera</small>
+            </div>
+        </div>
+        
+        <hr>
+        <div class="alert alert-info">
+            <h6><i class="fas fa-qrcode"></i> How to use the QR code:</h6>
+            <ol class="mb-0">
+                <li>Open your iPad camera or QR code scanner</li>
+                <li>Point the camera at the QR code above</li>
+                <li>Your iPad app will automatically configure itself</li>
+                <li>Or manually copy the API key into your app settings</li>
+            </ol>
+        </div>
+        
+        <hr>
+        <p class="mb-0">
+            <strong>⚠️ Important:</strong> Save this API key or QR code now! For security reasons, you won't be able to see them again.
+        </p>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% set _ = session.pop('new_api_key', None) %}
+    {% set _ = session.pop('new_api_key_device', None) %}
+    {% set _ = session.pop('new_api_key_qr', None) %}
+    {% set _ = session.pop('new_api_key_id', None) %}
+    {% endif %}
+
+    <!-- Create New API Key Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Create New API Key</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.create_api_key') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="device_name">Device Name</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="device_name" 
+                           name="device_name" 
+                           placeholder="e.g., iPad Pro - Warehouse" 
+                           required
+                           maxlength="100">
+                    <small class="form-text text-muted">
+                        Give this device a descriptive name to help you identify it later.
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-key"></i> Generate API Key
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing API Keys -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Existing API Keys</h5>
+        </div>
+        <div class="card-body">
+            {% if api_keys %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Last Used</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key in api_keys %}
+                            <tr>
+                                <td>
+                                    <strong>{{ key.device_name }}</strong>
+                                </td>
+                                <td>
+                                    {% if key.is_active %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Revoked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ key.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </td>
+                                <td>
+                                    {% if key.last_used_at %}
+                                        <small>{{ key.last_used_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% else %}
+                                        <small class="text-muted">Never</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ key.created_by.first_name }} {{ key.created_by.last_name }}</small>
+                                </td>
+                                <td>
+                                    {% if key.is_active %}
+                                        <!-- Revoke button -->
+                                        <form method="POST" 
+                                              action="{{ url_for('main.revoke_api_key', key_id=key.id) }}" 
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Are you sure you want to revoke this API key? The device will no longer be able to access the API.');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-warning" title="Revoke">
+                                                <i class="fas fa-ban"></i> Revoke
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <!-- Activate button -->
+                                        <form method="POST" 
+                                              action="{{ url_for('main.activate_api_key', key_id=key.id) }}" 
+                                              style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Reactivate">
+                                                <i class="fas fa-check"></i> Activate
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <!-- Download QR Code button -->
+                                    <a href="{{ url_for('main.download_api_key_qr', key_id=key.id) }}" 
+                                       class="btn btn-sm btn-info" 
+                                       title="Download QR Code"
+                                       download>
+                                        <i class="fas fa-qrcode"></i> QR Code
+                                    </a>
+                                    
+                                    <!-- Delete button -->
+                                    <form method="POST" 
+                                          action="{{ url_for('main.delete_api_key', key_id=key.id) }}" 
+                                          style="display:inline;"
+                                          onsubmit="return confirm('Are you sure you want to permanently delete this API key? This action cannot be undone.');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No API keys have been created yet.</p>
+                <p>Create your first API key above to allow iPad devices to access the API.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>How to Use API Keys</h5>
+        </div>
+        <div class="card-body">
+            <h6><i class="fas fa-qrcode"></i> Quick Setup with QR Code (Recommended)</h6>
+            <ol>
+                <li><strong>Create an API Key:</strong> Enter a descriptive device name and click "Generate API Key".</li>
+                <li><strong>Scan the QR Code:</strong> Use your iPad camera to scan the displayed QR code.</li>
+                <li><strong>Auto-Configure:</strong> Your iPad app will automatically configure itself with the API key and server URL.</li>
+                <li><strong>Start Using:</strong> Your iPad is ready to access the API!</li>
+            </ol>
+            
+            <h6 class="mt-3"><i class="fas fa-keyboard"></i> Manual Setup</h6>
+            <ol>
+                <li><strong>Create an API Key:</strong> Enter a descriptive device name and click "Generate API Key".</li>
+                <li><strong>Copy the Key:</strong> The API key will be displayed once. Copy it immediately.</li>
+                <li><strong>Configure Your iPad App:</strong> Enter the API key in your iPad app settings.</li>
+                <li><strong>Test the Connection:</strong> Your iPad app should now be able to access the API.</li>
+            </ol>
+            
+            <h6 class="mt-3"><i class="fas fa-cog"></i> Managing Keys</h6>
+            <ul>
+                <li><strong>Download QR Code:</strong> Click the "QR Code" button to download a QR code for any existing key.</li>
+                <li><strong>Revoke Keys:</strong> Revoke keys if a device is lost or stolen.</li>
+                <li><strong>Delete Keys:</strong> Permanently remove unused keys.</li>
+            </ul>
+            
+            <h6 class="mt-3">API Usage</h6>
+            <p>Your iPad app should include the API key in the request header:</p>
+            <pre class="bg-light p-2"><code>X-API-Key: your-api-key-here</code></pre>
+            
+            <h6 class="mt-3">QR Code Format</h6>
+            <p>The QR code contains a JSON configuration:</p>
+            <pre class="bg-light p-2"><code>{
+  "type": "api_key",
+  "key": "your-api-key",
+  "device_name": "iPad Pro 1",
+  "api_url": "https://your-domain.com"
+}</code></pre>
+            
+            <h6 class="mt-3">Security Best Practices</h6>
+            <ul>
+                <li>Each device should have its own unique API key</li>
+                <li>Never share API keys or QR codes between devices</li>
+                <li>Revoke keys immediately if a device is lost or stolen</li>
+                <li>Regularly review and remove unused API keys</li>
+                <li>Monitor the "Last Used" column to identify inactive keys</li>
+                <li>Store QR codes securely or regenerate them when needed</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    var copyText = document.getElementById(elementId);
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        alert('API key copied to clipboard!');
+    } catch (err) {
+        alert('Failed to copy. Please copy manually.');
+    }
+}
+</script>
+
+<!-- Add Font Awesome for icons if not already included -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% endblock %}

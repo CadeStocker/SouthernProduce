@@ -612,3 +612,49 @@ class ReceivingImage(db.Model):
 
     def __repr__(self):
         return f"ReceivingImage('{self.filename}', '{self.receiving_log_id}')"
+
+class APIKey(db.Model):
+    """Model for storing API keys for device authentication."""
+    __tablename__ = 'api_key'
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    device_name = db.Column(db.String(100), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relationships
+    company = db.relationship('Company', backref='api_keys')
+    created_by = db.relationship('User', backref='created_api_keys')
+
+    def __init__(self, key, device_name, company_id, created_by_user_id):
+        self.key = key
+        self.device_name = device_name
+        self.company_id = company_id
+        self.created_by_user_id = created_by_user_id
+
+    def __repr__(self):
+        return f"APIKey('{self.device_name}', active={self.is_active})"
+    
+    @staticmethod
+    def generate_key():
+        """Generate a secure random API key."""
+        import secrets
+        return secrets.token_urlsafe(48)
+    
+    def update_last_used(self):
+        """Update the last_used_at timestamp."""
+        self.last_used_at = datetime.utcnow()
+        db.session.commit()
+    
+    def revoke(self):
+        """Deactivate this API key."""
+        self.is_active = False
+        db.session.commit()
+    
+    def activate(self):
+        """Reactivate this API key."""
+        self.is_active = True
+        db.session.commit()
