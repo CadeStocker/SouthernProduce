@@ -126,6 +126,17 @@ def create_app(db_uri=None):
     app.register_blueprint(main)
     app.register_blueprint(api)
     
+    # Add custom Jinja2 filter to convert newlines to <br> tags
+    @app.template_filter('nl2br')
+    def nl2br_filter(text):
+        """Convert newlines to HTML <br> tags for email templates"""
+        if not text:
+            return text
+        # Replace \r\n, \r, and \n with <br> tags
+        from markupsafe import Markup
+        text = text.replace('\r\n', '<br>').replace('\r', '<br>').replace('\n', '<br>')
+        return Markup(text)
+    
     # Commented out until we create the AI routes
     # from producepricer.routes.ai import ai_bp
     # app.register_blueprint(ai_bp, url_prefix='/ai')

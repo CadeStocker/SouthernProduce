@@ -30,11 +30,13 @@ from itsdangerous import BadSignature, Serializer, SignatureExpired
 from producepricer.models import (
     AIResponse,
     APIKey,
+    BrandName,
     CostHistory, 
     Customer,
     CustomerEmail,
     DesignationCost,
-    EmailTemplate, 
+    EmailTemplate,
+    GrowerOrDistributor,
     Item,
     ItemDesignation, 
     ItemInfo, 
@@ -45,24 +47,28 @@ from producepricer.models import (
     PriceSheet, 
     RanchPrice, 
     RawProduct,
+    ReceivingImage,
+    ReceivingLog,
+    Seller,
     UnitOfWeight, 
     User, 
     Company, 
     Packaging,
-    PendingUser,
-    ReceivingImage,
-    ReceivingLog
+    PendingUser
 )
 from producepricer.forms import(
+    AddBrandName,
     AddCustomer,
     AddCustomerEmail,
-    AddDesignationCost, 
+    AddDesignationCost,
+    AddGrowerOrDistributor,
     AddItem, 
     AddLaborCost, 
     AddPackagingCost, 
     AddRanchPrice, 
     AddRawProduct, 
-    AddRawProductCost, 
+    AddRawProductCost,
+    AddSeller,
     CreatePackage,
     DeleteForm, 
     EditItem,
@@ -1406,11 +1412,26 @@ def view_raw_product(raw_product_id):
     # find the items that use this raw product
     items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
 
+    # Get all receiving logs for this raw product
+    receiving_logs = ReceivingLog.query.filter_by(
+        raw_product_id=raw_product_id,
+        company_id=current_user.company_id
+    ).order_by(ReceivingLog.datetime.desc()).all()
+
     cost_form = AddRawProductCost()
     edit_form = EditRawProduct()
     edit_form.name.data = raw_product.name  # Pre-populate with current name
 
-    return render_template('view_raw_product.html', items_using_raw_product=items_using_raw_product, title='View Raw Product', cost_form=cost_form, edit_form=edit_form, raw_product=raw_product, cost_history=cost_history)
+    return render_template(
+        'view_raw_product.html',
+        items_using_raw_product=items_using_raw_product,
+        title='View Raw Product',
+        cost_form=cost_form,
+        edit_form=edit_form,
+        raw_product=raw_product,
+        cost_history=cost_history,
+        receiving_logs=receiving_logs
+    )
 
 # delete a raw product cost
 @main.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
@@ -1885,6 +1906,198 @@ def receiving_logs():
         pagination=pagination,
         use_pagination=use_pagination
     )
+
+# Brand Names - display and manage brand names
+@main.route('/brand_names')
+@login_required
+def brand_names():
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+
+    base_query = BrandName.query.filter_by(company_id=current_user.company_id)
+    
+    if q:
+        base_query = base_query.filter(BrandName.name.ilike(f'%{q}%'))
+    
+    if use_pagination:
+        pagination = base_query.order_by(BrandName.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        brands = pagination.items
+    else:
+        brands = base_query.order_by(BrandName.name.asc()).all()
+        pagination = None
+
+    form = AddBrandName()
+    delete_form = DeleteForm()
+
+    return render_template(
+        'brand_names.html',
+        title='Brand Names',
+        brands=brands,
+        form=form,
+        delete_form=delete_form,
+        q=q,
+        pagination=pagination,
+        use_pagination=use_pagination
+    )
+
+@main.route('/add_brand_name', methods=['POST'])
+@login_required
+def add_brand_name():
+    form = AddBrandName()
+    if form.validate_on_submit():
+        brand = BrandName(name=form.name.data, company_id=current_user.company_id)
+        db.session.add(brand)
+        db.session.commit()
+        flash(f'Brand name "{form.name.data}" has been added successfully!', 'success')
+    else:
+        flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('main.brand_names'))
+
+@main.route('/delete_brand_name/<int:brand_id>', methods=['POST'])
+@login_required
+def delete_brand_name(brand_id):
+    brand = BrandName.query.filter_by(id=brand_id, company_id=current_user.company_id).first()
+    if not brand:
+        flash('Brand name not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.brand_names'))
+    
+    db.session.delete(brand)
+    db.session.commit()
+    flash(f'Brand name "{brand.name}" has been deleted.', 'success')
+    return redirect(url_for('main.brand_names'))
+
+# Sellers - display and manage sellers
+@main.route('/sellers')
+@login_required
+def sellers():
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+
+    base_query = Seller.query.filter_by(company_id=current_user.company_id)
+    
+    if q:
+        base_query = base_query.filter(Seller.name.ilike(f'%{q}%'))
+    
+    if use_pagination:
+        pagination = base_query.order_by(Seller.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        sellers_list = pagination.items
+    else:
+        sellers_list = base_query.order_by(Seller.name.asc()).all()
+        pagination = None
+
+    form = AddSeller()
+    delete_form = DeleteForm()
+
+    return render_template(
+        'sellers.html',
+        title='Sellers',
+        sellers=sellers_list,
+        form=form,
+        delete_form=delete_form,
+        q=q,
+        pagination=pagination,
+        use_pagination=use_pagination
+    )
+
+@main.route('/add_seller', methods=['POST'])
+@login_required
+def add_seller():
+    form = AddSeller()
+    if form.validate_on_submit():
+        seller = Seller(name=form.name.data, company_id=current_user.company_id)
+        db.session.add(seller)
+        db.session.commit()
+        flash(f'Seller "{form.name.data}" has been added successfully!', 'success')
+    else:
+        flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('main.sellers'))
+
+@main.route('/delete_seller/<int:seller_id>', methods=['POST'])
+@login_required
+def delete_seller(seller_id):
+    seller = Seller.query.filter_by(id=seller_id, company_id=current_user.company_id).first()
+    if not seller:
+        flash('Seller not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.sellers'))
+    
+    db.session.delete(seller)
+    db.session.commit()
+    flash(f'Seller "{seller.name}" has been deleted.', 'success')
+    return redirect(url_for('main.sellers'))
+
+# Growers/Distributors - display and manage growers/distributors
+@main.route('/growers_distributors')
+@login_required
+def growers_distributors():
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+
+    base_query = GrowerOrDistributor.query.filter_by(company_id=current_user.company_id)
+    
+    if q:
+        base_query = base_query.filter(
+            (GrowerOrDistributor.name.ilike(f'%{q}%')) |
+            (GrowerOrDistributor.city.ilike(f'%{q}%')) |
+            (GrowerOrDistributor.state.ilike(f'%{q}%'))
+        )
+    
+    if use_pagination:
+        pagination = base_query.order_by(GrowerOrDistributor.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+        growers = pagination.items
+    else:
+        growers = base_query.order_by(GrowerOrDistributor.name.asc()).all()
+        pagination = None
+
+    form = AddGrowerOrDistributor()
+    delete_form = DeleteForm()
+
+    return render_template(
+        'growers_distributors.html',
+        title='Growers/Distributors',
+        growers=growers,
+        form=form,
+        delete_form=delete_form,
+        q=q,
+        pagination=pagination,
+        use_pagination=use_pagination
+    )
+
+@main.route('/add_grower_distributor', methods=['POST'])
+@login_required
+def add_grower_distributor():
+    form = AddGrowerOrDistributor()
+    if form.validate_on_submit():
+        grower = GrowerOrDistributor(
+            name=form.name.data,
+            city=form.city.data,
+            state=form.state.data,
+            company_id=current_user.company_id
+        )
+        db.session.add(grower)
+        db.session.commit()
+        flash(f'Grower/Distributor "{form.name.data}" has been added successfully!', 'success')
+    else:
+        flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('main.growers_distributors'))
+
+@main.route('/delete_grower_distributor/<int:grower_id>', methods=['POST'])
+@login_required
+def delete_grower_distributor(grower_id):
+    grower = GrowerOrDistributor.query.filter_by(id=grower_id, company_id=current_user.company_id).first()
+    if not grower:
+        flash('Grower/Distributor not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.growers_distributors'))
+    
+    db.session.delete(grower)
+    db.session.commit()
+    flash(f'Grower/Distributor "{grower.name}" has been deleted.', 'success')
+    return redirect(url_for('main.growers_distributors'))
 
 # view an individual item
 @main.route('/item/<int:item_id>')
@@ -4074,6 +4287,9 @@ def edit_email_template(template_id):
         db.session.commit()
         flash('Template updated.', 'success')
         return redirect(url_for('main.email_templates'))
+    
+    # Render the edit form template
+    return render_template('email_template_edit.html', title='Edit Email Template', form=form, template=tpl)
 
 @main.route('/email_template/<int:template_id>/delete', methods=['POST'])
 @login_required
@@ -4141,7 +4357,10 @@ def email_price_sheet(sheet_id):
     if tpl:
         try:
             subject = render_template_string(tpl.subject, **context)
-            body = render_template_string(tpl.body, **context)
+            # Apply nl2br filter to convert newlines to <br> tags
+            body_text = render_template_string(tpl.body, **context)
+            # Convert newlines to <br> tags for HTML email
+            body = body_text.replace('\r\n', '<br>').replace('\r', '<br>').replace('\n', '<br>')
         except Exception as e:
             # if template rendering fails, fallback and notify
             print(f"Template render error: {e}")

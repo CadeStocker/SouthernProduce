@@ -221,3 +221,16 @@ class EmailTemplateForm(FlaskForm):
     body = TextAreaField('Body (Jinja syntax)', validators=[DataRequired()])
     is_default = BooleanField('Set as default')
     submit = SubmitField('Save Template')
+class AddBrandName(FlaskForm):
+    name = StringField('Brand Name', validators=[DataRequired(), Length(max=100)])
+    submit = SubmitField('Add Brand Name')
+
+class AddSeller(FlaskForm):
+    name = StringField('Seller Name', validators=[DataRequired(), Length(max=100)])
+    submit = SubmitField('Add Seller')
+
+class AddGrowerOrDistributor(FlaskForm):
+    name = StringField('Grower/Distributor Name', validators=[DataRequired(), Length(max=100)])
+    city = StringField('City', validators=[DataRequired(), Length(max=100)])
+    state = StringField('State', validators=[DataRequired(), Length(max=100)])
+    submit = SubmitField('Add Grower/Distributor')
