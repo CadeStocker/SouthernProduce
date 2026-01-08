@@ -13,7 +13,7 @@ from producepricer.models import (
     db
 )
 from producepricer.schemas import ReceivingLogCreateSchema, validate_foreign_key_exists
-from producepricer.auth_utils import require_api_key, optional_api_key_or_login
+from producepricer.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
 from datetime import datetime
 
 api = Blueprint('api', __name__)
@@ -46,6 +46,19 @@ def require_login():
     # Skip if API key authentication is already set up by decorator
     if hasattr(g, 'company_id'):
         return None
+        
+    # Check for API key in request
+    api_key_string = get_api_key_from_request()
+    if api_key_string:
+        api_key = validate_api_key(api_key_string)
+        if api_key:
+            # Set global context variables
+            api_key.update_last_used()
+            g.company_id = api_key.company_id
+            g.api_key = api_key
+            g.device_name = api_key.device_name
+            g.auth_method = 'api_key'
+            return None
     
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -104,6 +117,7 @@ def create_receiving_log():
             validated_data = ReceivingLogCreateSchema(**raw_data)
         except ValidationError as e:
             # Return validation errors in a user-friendly format
+            print(f"DEBUG: Validation Error: {e}")
             errors = {}
             for error in e.errors():
                 field = '.'.join(str(loc) for loc in error['loc'])
@@ -175,12 +189,92 @@ def get_raw_products():
     products = RawProduct.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': p.id, 'name': p.name} for p in products])
 
+@api.route('/api/raw_products', methods=['POST'])
+@optional_api_key_or_login
+def create_raw_product():
+    """Create a new raw product."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Product name is required'}), 400
+        
+        name = data['name'].strip()
+        if not name:
+            return jsonify({'error': 'Product name cannot be empty'}), 400
+        
+        # Check if product already exists for this company
+        existing = RawProduct.query.filter_by(company_id=company_id, name=name).first()
+        if existing:
+            return jsonify({'error': 'A product with this name already exists', 'id': existing.id}), 409
+        
+        # Create new product
+        new_product = RawProduct(
+            name=name,
+            company_id=company_id
+        )
+        
+        db.session.add(new_product)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Raw product created successfully',
+            'id': new_product.id,
+            'name': new_product.name
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating raw product: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the product'}), 500
+
 @api.route('/api/brand_names', methods=['GET'])
 @optional_api_key_or_login
 def get_brand_names():
     company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
     brands = BrandName.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': b.id, 'name': b.name} for b in brands])
+
+@api.route('/api/brand_names', methods=['POST'])
+@optional_api_key_or_login
+def create_brand_name():
+    """Create a new brand name."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Brand name is required'}), 400
+        
+        name = data['name'].strip()
+        if not name:
+            return jsonify({'error': 'Brand name cannot be empty'}), 400
+        
+        # Check if brand already exists for this company
+        existing = BrandName.query.filter_by(company_id=company_id, name=name).first()
+        if existing:
+            return jsonify({'error': 'A brand with this name already exists', 'id': existing.id}), 409
+        
+        # Create new brand
+        new_brand = BrandName(
+            name=name,
+            company_id=company_id
+        )
+        
+        db.session.add(new_brand)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Brand name created successfully',
+            'id': new_brand.id,
+            'name': new_brand.name
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating brand name: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the brand'}), 500
 
 @api.route('/api/sellers', methods=['GET'])
 @optional_api_key_or_login
@@ -189,12 +283,112 @@ def get_sellers():
     sellers = Seller.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': s.id, 'name': s.name} for s in sellers])
 
+@api.route('/api/sellers', methods=['POST'])
+@optional_api_key_or_login
+def create_seller():
+    """Create a new seller."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Seller name is required'}), 400
+        
+        name = data['name'].strip()
+        if not name:
+            return jsonify({'error': 'Seller name cannot be empty'}), 400
+        
+        # Check if seller already exists for this company
+        existing = Seller.query.filter_by(company_id=company_id, name=name).first()
+        if existing:
+            return jsonify({'error': 'A seller with this name already exists', 'id': existing.id}), 409
+        
+        # Create new seller
+        new_seller = Seller(
+            name=name,
+            company_id=company_id
+        )
+        
+        db.session.add(new_seller)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Seller created successfully',
+            'id': new_seller.id,
+            'name': new_seller.name
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating seller: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the seller'}), 500
+
 @api.route('/api/growers_distributors', methods=['GET'])
 @optional_api_key_or_login
 def get_growers_distributors():
     company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
     growers = GrowerOrDistributor.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': g.id, 'name': g.name, 'city': g.city, 'state': g.state} for g in growers])
+
+@api.route('/api/growers_distributors', methods=['POST'])
+@optional_api_key_or_login
+def create_grower_distributor():
+    """Create a new grower or distributor."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
+        
+        # Validate required fields
+        name = data.get('name', '').strip()
+        city = data.get('city', '').strip()
+        state = data.get('state', '').strip()
+        
+        if not name:
+            return jsonify({'error': 'Name is required'}), 400
+        if not city:
+            return jsonify({'error': 'City is required'}), 400
+        if not state:
+            return jsonify({'error': 'State is required'}), 400
+        
+        # Check if grower/distributor already exists for this company
+        existing = GrowerOrDistributor.query.filter_by(
+            company_id=company_id,
+            name=name,
+            city=city,
+            state=state
+        ).first()
+        if existing:
+            return jsonify({
+                'error': 'A grower/distributor with this name, city, and state already exists',
+                'id': existing.id
+            }), 409
+        
+        # Create new grower/distributor
+        new_grower = GrowerOrDistributor(
+            name=name,
+            city=city,
+            state=state,
+            company_id=company_id
+        )
+        
+        db.session.add(new_grower)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Grower/distributor created successfully',
+            'id': new_grower.id,
+            'name': new_grower.name,
+            'city': new_grower.city,
+            'state': new_grower.state
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating grower/distributor: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the grower/distributor'}), 500
 
 @api.route('/api/receiving_logs/<int:log_id>/images', methods=['POST'])
 @optional_api_key_or_login

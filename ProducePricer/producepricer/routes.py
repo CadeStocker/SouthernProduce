@@ -9,6 +9,7 @@ from fpdf import FPDF
 import matplotlib
 
 from producepricer.utils.matching import best_match
+from producepricer.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
 from producepricer.utils.parsing import coerce_iso_date, parse_price_list_with_openai
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
@@ -49,7 +50,8 @@ from producepricer.models import (
     Company, 
     Packaging,
     PendingUser,
-    ReceivingImage
+    ReceivingImage,
+    ReceivingLog
 )
 from producepricer.forms import(
     AddCustomer,
@@ -95,7 +97,7 @@ from sqlalchemy import func
 main = Blueprint('main', __name__)
 
 @main.route('/receiving_images/<path:filename>')
-@login_required
+@optional_api_key_or_login
 def get_receiving_image(filename):
     return send_from_directory(current_app.config['RECEIVING_IMAGES_DIR'], filename)
 
@@ -1848,6 +1850,42 @@ def update_item(item_id):
     flash('Invalid data submitted.', 'danger')
     return render_template('update_item.html', title='Update Item', form=form, item=item)
 
+# Receiving Logs - display all receiving log entries
+@main.route('/receiving_logs')
+@login_required
+def receiving_logs():
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Number of logs per page
+    use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+
+    base_query = ReceivingLog.query.filter_by(company_id=current_user.company_id)
+    
+    # Apply search filter if provided (search by raw product name, received_by, or country_of_origin)
+    if q:
+        base_query = base_query.join(RawProduct).filter(
+            (RawProduct.name.ilike(f'%{q}%')) | 
+            (ReceivingLog.received_by.ilike(f'%{q}%')) |
+            (ReceivingLog.country_of_origin.ilike(f'%{q}%'))
+        )
+    
+    if use_pagination:
+        pagination = base_query.order_by(ReceivingLog.datetime.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        logs = pagination.items
+    else:
+        # return all results without pagination
+        logs = base_query.order_by(ReceivingLog.datetime.desc()).all()
+        pagination = None
+
+    return render_template(
+        'receiving_logs.html',
+        title='Receiving Logs',
+        logs=logs,
+        q=q,
+        pagination=pagination,
+        use_pagination=use_pagination
+    )
+
 # view an individual item
 @main.route('/item/<int:item_id>')
 @login_required
@@ -2245,7 +2283,7 @@ def upload_item_csv():
                 item_info = ItemInfo(
                     product_yield=yield_value,
                     item_id=item.id,
-                    labor_hours=labor,  # Assuming a default labor hours
+                    labor_hours=labor,
                     date=pd.Timestamp.now().date(),
                     company_id=current_user.company_id
                 )

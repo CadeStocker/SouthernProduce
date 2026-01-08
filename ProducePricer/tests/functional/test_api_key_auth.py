@@ -223,6 +223,9 @@ class TestAPIKeyAuthentication:
                 headers=headers
             )
             
+            if response.status_code == 400:
+                print(f"DEBUG: 400 Response Body: {response.get_json()}")
+            
             # Will be 401 until decorator is implemented
             # After implementation, should be 201
             assert response.status_code in [201, 401]

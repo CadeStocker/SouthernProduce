@@ -17,7 +17,7 @@ except ImportError:
 class ReceivingLogCreateSchema(BaseModel):
     """Schema for creating a receiving log with strict validation."""
     
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
     
     # Required fields with type validation
     raw_product_id: int = Field(..., gt=0, description="ID must be a positive integer")
