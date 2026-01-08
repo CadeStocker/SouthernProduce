@@ -47,6 +47,7 @@
                 <th style="min-width: 120px;">Received By</th>
                 <th style="min-width: 100px;">Returned</th>
                 <th style="min-width: 80px;">Images</th>
+                <th style="min-width: 100px;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -102,6 +103,11 @@
                   {% else %}
                     -
                   {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('main.view_receiving_log', log_id=log.id) }}" class="btn btn-sm btn-primary">
+                    View Details
+                  </a>
                 </td>
               </tr>
               {% endfor %}

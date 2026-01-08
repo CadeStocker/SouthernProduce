@@ -1907,6 +1907,230 @@ def receiving_logs():
         use_pagination=use_pagination
     )
 
+# View individual receiving log
+@main.route('/receiving_log/<int:log_id>')
+@login_required
+def view_receiving_log(log_id):
+    log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
+    
+    return render_template(
+        'view_receiving_log.html',
+        title=f'Receiving Log - {log.raw_product.name if log.raw_product else "Log"}',
+        log=log,
+        now=datetime.datetime.utcnow()
+    )
+
+# Email receiving log
+@main.route('/email_receiving_log/<int:log_id>', methods=['POST'])
+@login_required
+def email_receiving_log(log_id):
+    log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
+    
+    recipient = request.form.get('recipient', '').strip()
+    subject = request.form.get('subject', '').strip()
+    additional_message = request.form.get('message', '').strip()
+    
+    if not recipient:
+        flash('Recipient email address is required.', 'danger')
+        return redirect(url_for('main.view_receiving_log', log_id=log_id))
+    
+    # Set default subject if not provided
+    if not subject:
+        product_name = log.raw_product.name if log.raw_product else 'Product'
+        date_str = log.datetime.strftime('%Y-%m-%d') if log.datetime else ''
+        subject = f'Receiving Log - {product_name} - {date_str}'
+    
+    # Build email body
+    body_parts = []
+    
+    if additional_message:
+        body_parts.append(additional_message)
+        body_parts.append('<br><br><hr><br>')
+    
+    # Add log details
+    body_parts.append(f'<h2>Receiving Log Details</h2>')
+    body_parts.append(f'<p><strong>Log ID:</strong> #{log.id}</p>')
+    body_parts.append(f'<p><strong>Date & Time:</strong> {log.datetime.strftime("%Y-%m-%d %H:%M") if log.datetime else "N/A"}</p>')
+    body_parts.append('<br>')
+    
+    body_parts.append('<h3>Product Information</h3>')
+    body_parts.append(f'<p><strong>Raw Product:</strong> {log.raw_product.name if log.raw_product else "N/A"}</p>')
+    body_parts.append(f'<p><strong>Brand Name:</strong> {log.brand_name.name if log.brand_name else "N/A"}</p>')
+    body_parts.append(f'<p><strong>Pack Size:</strong> {log.pack_size} {log.pack_size_unit}</p>')
+    body_parts.append(f'<p><strong>Quantity Received:</strong> {log.quantity_received} units</p>')
+    body_parts.append(f'<p><strong>Total:</strong> {log.quantity_received * log.pack_size:.2f} {log.pack_size_unit}</p>')
+    body_parts.append('<br>')
+    
+    body_parts.append('<h3>Quality & Status</h3>')
+    body_parts.append(f'<p><strong>Temperature:</strong> {log.temperature:.1f}°F</p>')
+    body_parts.append(f'<p><strong>Status:</strong> {log.hold_or_used.upper()}</p>')
+    body_parts.append(f'<p><strong>Country of Origin:</strong> {log.country_of_origin}</p>')
+    if log.returned:
+        body_parts.append(f'<p><strong>Returned By:</strong> {log.returned}</p>')
+    body_parts.append('<br>')
+    
+    body_parts.append('<h3>Source Information</h3>')
+    body_parts.append(f'<p><strong>Seller:</strong> {log.seller.name if log.seller else "N/A"}</p>')
+    body_parts.append(f'<p><strong>Grower/Distributor:</strong> {log.grower_or_distributor.name if log.grower_or_distributor else "N/A"}</p>')
+    if log.grower_or_distributor and (log.grower_or_distributor.city or log.grower_or_distributor.state):
+        location_parts = []
+        if log.grower_or_distributor.city:
+            location_parts.append(log.grower_or_distributor.city)
+        if log.grower_or_distributor.state:
+            location_parts.append(log.grower_or_distributor.state)
+        body_parts.append(f'<p><strong>Location:</strong> {", ".join(location_parts)}</p>')
+    body_parts.append('<br>')
+    
+    body_parts.append('<h3>Receiving Details</h3>')
+    body_parts.append(f'<p><strong>Received By:</strong> {log.received_by}</p>')
+    
+    if log.images:
+        body_parts.append('<br>')
+        body_parts.append(f'<p><em>Note: This log includes {len(log.images)} image(s). Please view the log online to see the images.</em></p>')
+        body_parts.append(f'<p><a href="{url_for("main.view_receiving_log", log_id=log.id, _external=True)}">View Full Log with Images</a></p>')
+    
+    body = ''.join(body_parts)
+    
+    # Send email
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('EMAIL_USER')
+    
+    msg = EmailMessage(
+        subject=subject,
+        body=body,
+        to=[recipient],
+        from_email=sender
+    )
+    msg.content_subtype = 'html'
+    
+    try:
+        msg.send()
+        flash(f'Receiving log emailed to {recipient}.', 'success')
+    except Exception as e:
+        flash(f'Failed to send email: {str(e)}', 'danger')
+    
+    return redirect(url_for('main.view_receiving_log', log_id=log_id))
+
+# Generate and download receiving log as PDF
+@main.route('/receiving_log/<int:log_id>/pdf')
+@login_required
+def download_receiving_log_pdf(log_id):
+    log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
+    
+    # Generate PDF
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.add_page()
+    
+    # Company header
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Southern Produce Processors Inc.", ln=1, align="C")
+    
+    # Title
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Receiving Log", ln=1, align="C")
+    
+    # Date generated
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"Generated: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M')}", ln=1, align="C")
+    pdf.ln(5)
+    
+    # Log header info
+    pdf.set_font("Arial", "B", 12)
+    product_name = log.raw_product.name if log.raw_product else 'N/A'
+    pdf.cell(0, 8, product_name, ln=1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, f"Received: {log.datetime.strftime('%B %d, %Y at %I:%M %p') if log.datetime else 'N/A'}", ln=1)
+    pdf.cell(0, 6, f"Log ID: #{log.id}", ln=1)
+    pdf.ln(5)
+    
+    # Column widths for the table
+    col1_width = 70  # Label column
+    col2_width = 110  # Value column
+    table_width = col1_width + col2_width  # Total table width: 180mm
+    row_height = 8
+    
+    # Helper function to add a table row
+    def add_table_row(label, value, border=1):
+        pdf.set_font("Arial", "B", 10)
+        pdf.cell(col1_width, row_height, label, border=border, align="L")
+        pdf.set_font("Arial", "", 10)
+        pdf.cell(col2_width, row_height, value, border=border, align="L", ln=1)
+    
+    # Product Information Section
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_fill_color(200, 220, 255)  # Light blue background
+    pdf.cell(table_width, row_height, "Product Information", border=1, ln=1, align="L", fill=True)
+    
+    add_table_row("Raw Product", product_name)
+    add_table_row("Brand Name", log.brand_name.name if log.brand_name else 'N/A')
+    add_table_row("Pack Size", f"{log.pack_size} {log.pack_size_unit}")
+    add_table_row("Quantity Received", f"{log.quantity_received} units")
+    add_table_row("Total Weight/Count", f"{log.quantity_received * log.pack_size:.2f} {log.pack_size_unit}")
+    
+    pdf.ln(3)
+    
+    # Quality & Status Section
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(table_width, row_height, "Quality & Status", border=1, ln=1, align="L", fill=True)
+    
+    add_table_row("Temperature", f"{log.temperature:.1f} degrees F")
+    add_table_row("Status", log.hold_or_used.upper())
+    add_table_row("Country of Origin", log.country_of_origin)
+    if log.returned:
+        add_table_row("Returned By", log.returned)
+    
+    pdf.ln(3)
+    
+    # Source Information Section
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(table_width, row_height, "Source Information", border=1, ln=1, align="L", fill=True)
+    
+    add_table_row("Seller", log.seller.name if log.seller else 'N/A')
+    
+    grower_name = log.grower_or_distributor.name if log.grower_or_distributor else 'N/A'
+    add_table_row("Grower/Distributor", grower_name)
+    
+    if log.grower_or_distributor and (log.grower_or_distributor.city or log.grower_or_distributor.state):
+        location_parts = []
+        if log.grower_or_distributor.city:
+            location_parts.append(log.grower_or_distributor.city)
+        if log.grower_or_distributor.state:
+            location_parts.append(log.grower_or_distributor.state)
+        add_table_row("Location", ", ".join(location_parts))
+    
+    pdf.ln(3)
+    
+    # Receiving Details Section
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(table_width, row_height, "Receiving Details", border=1, ln=1, align="L", fill=True)
+    
+    add_table_row("Received By", log.received_by)
+    add_table_row("Date & Time", log.datetime.strftime('%Y-%m-%d %H:%M') if log.datetime else 'N/A')
+    
+    pdf.ln(5)
+    
+    # Images note
+    if log.images:
+        pdf.set_font("Arial", "I", 9)
+        pdf.multi_cell(0, 5, f"Note: This log includes {len(log.images)} image(s). Images are not included in this PDF. Please view the log online to see the images.")
+    
+    # Generate PDF bytes
+    pdf_bytes = bytes(pdf.output(dest='S'))
+    
+    # Create response
+    resp = make_response(pdf_bytes)
+    resp.headers['Content-Type'] = 'application/pdf'
+    
+    # Generate filename
+    product_name_safe = ''.join(c for c in product_name if c.isalnum() or c in (' ', '-', '_')).strip()
+    date_str = log.datetime.strftime('%Y%m%d') if log.datetime else 'unknown'
+    filename = f"receiving_log_{product_name_safe}_{date_str}.pdf"
+    resp.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return resp
+
 # Brand Names - display and manage brand names
 @main.route('/brand_names')
 @login_required

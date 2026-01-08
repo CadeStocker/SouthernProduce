@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Receiving Log - {{ log.raw_product.name if log.raw_product else 'Log' }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Print Styles */
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        nav, .navbar, .btn, button {
+            display: none !important;
+        }
+        
+        body {
+            background: white !important;
+        }
+        
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+        
+        .receiving-image-print {
+            max-width: 45%;
+            height: auto;
+            display: inline-block;
+            margin: 10px;
+            page-break-inside: avoid;
+        }
+    }
+    
+    /* Screen Styles */
+    @media screen {
+        .receiving-image-screen {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 15px;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Header and Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <h1 class="mb-0">Receiving Log Details</h1>
+        <div>
+            <a href="{{ url_for('main.receiving_logs') }}" class="btn btn-secondary">← Back to Logs</a>
+            <a href="{{ url_for('main.download_receiving_log_pdf', log_id=log.id) }}" class="btn btn-primary">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
+            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#emailModal">
+                <i class="fas fa-envelope"></i> Email
+            </button>
+        </div>
+    </div>
+
+    <!-- Print Header (only visible when printing) -->
+    <div class="d-none d-print-block mb-4">
+        <h1>Receiving Log</h1>
+        <p class="text-muted">Generated on {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <!-- Log Details Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">{{ log.raw_product.name if log.raw_product else 'N/A' }}</h4>
+            <small>Received on {{ log.datetime.strftime('%B %d, %Y at %I:%M %p') if log.datetime else 'N/A' }}</small>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Product Information</h5>
+                    <p><strong>Raw Product:</strong> 
+                        {% if log.raw_product %}
+                            <a href="{{ url_for('main.view_raw_product', raw_product_id=log.raw_product.id) }}" class="no-print">
+                                {{ log.raw_product.name }}
+                            </a>
+                            <span class="d-none d-print-inline">{{ log.raw_product.name }}</span>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <p><strong>Brand Name:</strong> {{ log.brand_name.name if log.brand_name else 'N/A' }}</p>
+                    <p><strong>Pack Size:</strong> {{ log.pack_size }} {{ log.pack_size_unit }}</p>
+                    <p><strong>Quantity Received:</strong> {{ log.quantity_received }} units</p>
+                    <p><strong>Total Weight/Count:</strong> {{ (log.quantity_received * log.pack_size)|round(2) }} {{ log.pack_size_unit }}</p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Quality & Status</h5>
+                    <p><strong>Temperature:</strong> {{ log.temperature|round(1) }}°F</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge badge-{{ 'warning' if log.hold_or_used == 'hold' else 'success' }}">
+                            {{ log.hold_or_used|upper }}
+                        </span>
+                    </p>
+                    <p><strong>Country of Origin:</strong> {{ log.country_of_origin }}</p>
+                    {% if log.returned %}
+                        <p><strong>Returned By:</strong> {{ log.returned }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <hr>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Source Information</h5>
+                    <p><strong>Seller:</strong> {{ log.seller.name if log.seller else 'N/A' }}</p>
+                    <p><strong>Grower/Distributor:</strong> 
+                        {{ log.grower_or_distributor.name if log.grower_or_distributor else 'N/A' }}
+                    </p>
+                    {% if log.grower_or_distributor %}
+                        <p><strong>Location:</strong> 
+                            {% if log.grower_or_distributor.city %}{{ log.grower_or_distributor.city }}{% endif %}
+                            {% if log.grower_or_distributor.state %}
+                                {% if log.grower_or_distributor.city %}, {% endif %}
+                                {{ log.grower_or_distributor.state }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2 mb-3">Receiving Details</h5>
+                    <p><strong>Received By:</strong> {{ log.received_by }}</p>
+                    <p><strong>Date & Time:</strong> {{ log.datetime.strftime('%Y-%m-%d %H:%M') if log.datetime else 'N/A' }}</p>
+                    <p><strong>Log ID:</strong> #{{ log.id }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Images Section -->
+    {% if log.images %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Product Images ({{ log.images|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for image in log.images %}
+                <div class="col-md-6 mb-3">
+                    <img src="{{ url_for('main.get_receiving_image', filename=image.filename) }}" 
+                         class="receiving-image-screen receiving-image-print img-fluid border" 
+                         alt="Receiving Image {{ loop.index }}"
+                         style="max-width: 100%; height: auto;">
+                    <p class="text-muted small mt-1 no-print">
+                        Uploaded: {{ image.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mb-4">
+        <div class="card-body text-center text-muted">
+            <i class="fas fa-image fa-3x mb-2"></i>
+            <p>No images available for this receiving log.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" role="dialog" aria-labelledby="emailModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailModalLabel">Email Receiving Log</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('main.email_receiving_log', log_id=log.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="recipient_email">Recipient Email Address:</label>
+                        <input type="email" class="form-control" name="recipient" id="recipient_email" 
+                               placeholder="recipient@example.com" required>
+                        <small class="form-text text-muted">
+                            Enter the email address to send this receiving log to.
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email_subject">Subject (optional):</label>
+                        <input type="text" class="form-control" name="subject" id="email_subject" 
+                               value="Receiving Log - {{ log.raw_product.name if log.raw_product else 'Product' }} - {{ log.datetime.strftime('%Y-%m-%d') if log.datetime else '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email_message">Additional Message (optional):</label>
+                        <textarea class="form-control" name="message" id="email_message" rows="3" 
+                                  placeholder="Add any additional notes or comments..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-envelope"></i> Send Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
