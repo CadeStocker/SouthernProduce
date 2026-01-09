@@ -2075,17 +2075,6 @@ def email_receiving_log(log_id):
     # Add price information if available
     if log.price_paid:
         body_parts.append(f'<p><strong>Price Paid:</strong> ${log.price_paid:.2f} per {log.pack_size_unit}</p>')
-        comparison = log.get_price_comparison()
-        if comparison and comparison.get('master_price'):
-            body_parts.append(f'<p><strong>Market Price:</strong> ${comparison["master_price"]:.2f}</p>')
-            if comparison['status'] == 'above_market':
-                body_parts.append(f'<p><strong>Price vs Market:</strong> <span style="color: red;">Above by ${comparison["difference"]:.2f} ({comparison["percentage"]:.1f}%)</span></p>')
-            elif comparison['status'] == 'below_market':
-                body_parts.append(f'<p><strong>Price vs Market:</strong> <span style="color: green;">Below by ${-comparison["difference"]:.2f} ({-comparison["percentage"]:.1f}%)</span></p>')
-            elif comparison['status'] == 'at_market':
-                body_parts.append(f'<p><strong>Price vs Market:</strong> At Market Price</p>')
-        elif comparison and comparison['status'] == 'no_market_data':
-            body_parts.append(f'<p><em>No market price data available for comparison week</em></p>')
     
     body_parts.append('<br>')
     
@@ -2197,15 +2186,6 @@ def download_receiving_log_pdf(log_id):
     # Add price information if available
     if log.price_paid:
         add_table_row("Price Paid", f"${log.price_paid:.2f} per {log.pack_size_unit}")
-        comparison = log.get_price_comparison()
-        if comparison and comparison.get('master_price'):
-            add_table_row("Market Price", f"${comparison['master_price']:.2f}")
-            if comparison['status'] == 'above_market':
-                add_table_row("Price vs Market", f"Above by ${comparison['difference']:.2f} ({comparison['percentage']:.1f}%)")
-            elif comparison['status'] == 'below_market':
-                add_table_row("Price vs Market", f"Below by ${-comparison['difference']:.2f} ({-comparison['percentage']:.1f}%)")
-            elif comparison['status'] == 'at_market':
-                add_table_row("Price vs Market", "At Market Price")
     
     pdf.ln(3)
     
