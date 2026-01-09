@@ -143,19 +143,40 @@ def logged_in_user(client, app):
         db.session.add(user)
         db.session.commit()
         
-        # Store user ID for later retrieval
+        # Store user data
         user_id = user.id
+        company_id = company.id
+        login_url = url_for('main.login')
     
     # Log in the user
     client.post(
-        url_for('main.login'),
+        login_url,
         data={'email': 'user@test.com', 'password': 'password'},
         follow_redirects=True
     )
     
-    # Return a fresh user object to avoid detached instance errors
-    with app.app_context():
-        return db.session.get(User, user_id)
+    # Return a helper object
+    class LoggedInUserHelper:
+        def __init__(self, user_id, company_id, app):
+            self.id = user_id
+            self.company_id = company_id
+            self._app = app
+            self.email = "user@test.com"
+            self.first_name = "Test"
+            self.last_name = "User"
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
+            
+        def get_id(self):
+            """Flask-Login required method."""
+            return str(self.id)
+            
+        def get_user(self):
+            with self._app.app_context():
+                return db.session.get(User, self.id)
+    
+    return LoggedInUserHelper(user_id, company_id, app)
     
 # Create a separate test class for delete operations
 class TestDeleteItem:
@@ -249,15 +270,37 @@ def logged_in_user(client, app):
         db.session.add(user)
         db.session.commit()
         user_id = user.id
+        company_id = company.id
+        login_url = url_for('main.login')
     
     client.post(
-        url_for('main.login'),
+        login_url,
         data={'email': 'user@test.com', 'password': 'password'},
         follow_redirects=True
     )
     
-    with app.app_context():
-        return db.session.get(User, user_id)
+    # Return a helper object
+    class LoggedInUserHelper:
+        def __init__(self, user_id, company_id, app):
+            self.id = user_id
+            self.company_id = company_id
+            self._app = app
+            self.email = "user@test.com"
+            self.first_name = "Test"
+            self.last_name = "User"
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
+            
+        def get_id(self):
+            """Flask-Login required method."""
+            return str(self.id)
+            
+        def get_user(self):
+            with self._app.app_context():
+                return db.session.get(User, self.id)
+    
+    return LoggedInUserHelper(user_id, company_id, app)
 
 class TestViewItemCost:
     def test_view_item_cost_success(self, client, app, logged_in_user):

@@ -80,15 +80,36 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
     
+    def check_password(self, password: str) -> bool:
+        """Verify a password against the hash.
+        
+        Supports both bcrypt hashed passwords and legacy plain text passwords.
+        This allows gradual migration to encrypted passwords.
+        """
+        from producepricer import bcrypt
+        
+        # Try bcrypt verification first (for hashed passwords)
+        try:
+            if self.password.startswith('$2b$') or self.password.startswith('$2a$'):
+                # This is a bcrypt hash
+                return bcrypt.check_password_hash(self.password, password)
+        except (ValueError, AttributeError):
+            pass
+        
+        # Fall back to plain text comparison for legacy accounts
+        # TODO: Remove this after all passwords are migrated to bcrypt
+        return self.password == password
+    
+    def set_password(self, password: str):
+        """Set the user's password (hashed with bcrypt)."""
+        from producepricer import bcrypt
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
+    
     def generate_reset_password_token(self):
         #self.password_hash = self.password  # Store the password hash for token generation
 
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         return serializer.dumps(self.email, salt=self.password)
-    
-    def set_password(self, password: str):
-        """Set the user's password."""
-        self.password = password
 
     @staticmethod
     def verify_reset_password_token(token: str, user_id: int):
@@ -723,3 +744,29 @@ class APIKey(db.Model):
         """Reactivate this API key."""
         self.is_active = True
         db.session.commit()
+
+class ItemInventory(db.Model):
+    """Model for tracking inventory counts of items from the iPad app."""
+    __tablename__ = 'inventory_count'
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    count_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    counted_by = db.Column(db.String(200), nullable=True)  # Name of person who counted
+    notes = db.Column(db.String(500), nullable=True)  # Optional notes about the count
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    
+    # Relationships
+    item = db.relationship('Item', backref='inventory_counts')
+    
+    def __init__(self, item_id, quantity, company_id, count_date=None, counted_by=None, notes=None):
+        self.item_id = item_id
+        self.quantity = quantity
+        self.company_id = company_id
+        self.counted_by = counted_by
+        self.notes = notes
+        if count_date:
+            self.count_date = count_date
+    
+    def __repr__(self):
+        return f"ItemInventory(item_id={self.item_id}, quantity={self.quantity}, date={self.count_date})"

@@ -425,9 +425,9 @@ class TestPasswordReset:
             assert response.status_code == 200
             assert b'password has been reset' in response.data or b'Login' in response.data
             
-            # Verify password was changed
+            # Verify password was changed - use check_password since passwords are hashed
             updated_user = User.query.get(user_id)
-            assert updated_user.password == 'newpassword1'
+            assert updated_user.check_password('newpassword1')
 
     def test_reset_password_mismatched_confirmation(self, client, app):
         """Test password reset with mismatched password confirmation."""

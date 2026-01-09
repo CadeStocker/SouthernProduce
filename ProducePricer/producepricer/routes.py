@@ -484,11 +484,13 @@ def signup():
 
         # if they are the company owner, auto-approve
         if form.email.data == company.admin_email:
-            user = User( first_name=form.first_name.data,
-                        last_name=form.last_name.data,
-                        email=form.email.data,
-                        password=form.password.data,
-                        company_id=company.id )
+            user = User(
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                email=form.email.data,
+                password=bcrypt.generate_password_hash(form.password.data).decode('utf-8'),
+                company_id=company.id
+            )
             # add to db
             db.session.add(user)
             db.session.commit()
@@ -502,7 +504,7 @@ def signup():
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,
-            password=form.password.data,  # you might want to hash this
+            password=bcrypt.generate_password_hash(form.password.data).decode('utf-8'),
             company_id=company.id
         )
         # add to db
@@ -824,7 +826,7 @@ def login():
     if form.validate_on_submit():
         # check if the user exists
         user = User.query.filter_by(email=form.email.data).first()
-        if user and user.password == form.password.data:
+        if user and user.check_password(form.password.data):
             # log the user in
             login_user(user, remember=form.remember.data)
             # flash a message to the user

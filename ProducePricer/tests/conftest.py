@@ -15,53 +15,29 @@ def app():
     app = create_app('sqlite:///:memory:')
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
-    app.config['SERVER_NAME'] = 'localhost'  # For url_for outside request
+    app.config['SERVER_NAME'] = 'localhost.localdomain'  # Required for url_for with _external=True
+    app.config['APPLICATION_ROOT'] = '/'
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
+    app.config['SECRET_KEY'] = 'test-secret-key-for-sessions'  # Ensure sessions work
     
-    # Create tables but don't leave context open
+    # Create tables
     with app.app_context():
         db.create_all()
     
-        # Yield the app without an active context
-        yield app
-        
+    yield app
+    
+    with app.app_context():
         db.drop_all()
 
 @pytest.fixture
 def client(app):
-    """Create a test client for the app."""
-    with app.test_client() as client:
-        # Add a more robust method to get CSRF tokens
-        def get_csrf_token():
-            with app.app_context():
-                response = client.get('/signup')
-                html = response.data.decode('utf-8')
-                
-                # Look for the CSRF token in different possible formats
-                # First try the standard Flask-WTF format
-                import re
-                csrf_token_match = re.search(r'name="csrf_token" value="([^"]+)"', html)
-                if csrf_token_match:
-                    return csrf_token_match.group(1)
-                    
-                # Try alternative format (hidden input)
-                csrf_token_match = re.search(r'<input[^>]*name="csrf_token"[^>]*value="([^"]+)"', html)
-                if csrf_token_match:
-                    return csrf_token_match.group(1)
-                    
-                # If we still can't find it, check the response for debugging
-                print("CSRF token not found in HTML:")
-                print(f"Response status: {response.status_code}")
-                print(f"Response length: {len(html)}")
-                print(f"First 200 chars: {html[:200]}")
-                
-                # Return a placeholder if WTF_CSRF_ENABLED is False in testing
-                if not app.config.get('WTF_CSRF_ENABLED', True):
-                    return "testing-csrf-token"
-                    
-                raise ValueError("Could not find CSRF token in the response HTML")
-                
-        client.get_csrf_token = get_csrf_token
-        yield client
+    """Create a test client for the app with request context.
+    
+    This pushes a request context which allows url_for() to work
+    without explicit app.app_context() blocks in tests.
+    """
+    with app.test_request_context():
+        yield app.test_client()
 
 @pytest.fixture
 def bcrypt():
@@ -86,12 +62,43 @@ def logged_in_user(client, app):
         )
         db.session.add(user)
         db.session.commit()
-        user_id = user.id
+        
+        # Store necessary attributes before leaving context
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'company_id': user.company_id,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
         
     client.post('/login', data={
         'email': 'test@example.com',
         'password': 'password'
     }, follow_redirects=True)
     
-    with app.app_context():
-        return db.session.get(User, user_id)
+    # Return a helper object that allows accessing user data
+    class LoggedInUserHelper:
+        def __init__(self, user_data, app):
+            self._data = user_data
+            self._app = app
+            # Add Flask-Login required attributes
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
+            
+        def __getattr__(self, name):
+            if name in self._data:
+                return self._data[name]
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        
+        def get_id(self):
+            """Flask-Login required method to get user ID as string."""
+            return str(self._data['id'])
+        
+        def get_user(self):
+            """Get the actual User object within an app context."""
+            with self._app.app_context():
+                return db.session.get(User, self._data['id'])
+    
+    return LoggedInUserHelper(user_data, app)

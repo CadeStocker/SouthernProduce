@@ -626,19 +626,39 @@ def logged_in_user(client, app):
         db.session.add(user)
         db.session.commit()
         
-        # Store the user ID for later retrieval
+        # Store the user ID and company ID for later retrieval
         user_id = user.id
+        company_id = company.id
+        login_url = url_for('main.login')
     
-    # Log in the user
+    # Log in the user (outside app context is fine for client.post)
     client.post(
-        url_for('main.login'),
+        login_url,
         data={'email': 'user@test.com', 'password': 'password'},
         follow_redirects=True
     )
     
-    # Return the user
-    def get_user():
-        with app.app_context():
-            return db.session.get(User, user_id)
+    # Return a helper object similar to conftest.py
+    class LoggedInUserHelper:
+        def __init__(self, user_id, company_id, app):
+            self.id = user_id
+            self.company_id = company_id
+            self._app = app
+            self.email = "user@test.com"
+            self.first_name = "Test"
+            self.last_name = "User"
+            # Add Flask-Login required attributes
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
             
-    return get_user()
+        def get_id(self):
+            """Flask-Login required method."""
+            return str(self.id)
+            
+        def get_user(self):
+            """Get the actual User object within an app context."""
+            with self._app.app_context():
+                return db.session.get(User, self.id)
+    
+    return LoggedInUserHelper(user_id, company_id, app)

@@ -10,6 +10,8 @@ from producepricer.models import (
     BrandName,
     Seller,
     GrowerOrDistributor,
+    Item,
+    ItemInventory,
     db
 )
 from producepricer.schemas import ReceivingLogCreateSchema, validate_foreign_key_exists
@@ -197,7 +199,12 @@ def create_raw_product():
     try:
         company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
         
-        data = request.get_json()
+        # Handle JSON parsing errors
+        try:
+            data = request.get_json()
+        except Exception as json_err:
+            return jsonify({'error': f'Invalid JSON: {str(json_err)}'}), 400
+            
         if not data or 'name' not in data:
             return jsonify({'error': 'Product name is required'}), 400
         
@@ -433,3 +440,211 @@ def upload_receiving_images(log_id):
         'message': f'{len(uploaded_images)} images uploaded successfully',
         'images': [url_for('main.get_receiving_image', filename=img, _external=True) for img in uploaded_images]
     }), 201
+
+
+# ============================================================================
+# ITEM INVENTORY ENDPOINTS
+# ============================================================================
+
+@api.route('/api/items', methods=['GET'])
+@optional_api_key_or_login
+def get_items():
+    """Get all items for inventory taking.
+    
+    Returns a list of all items in the company for the iPad app to display
+    for inventory counting. Includes item details like name, code, and current
+    inventory if available.
+    
+    Returns:
+        JSON array of items with id, name, code, alternate_code, case_weight, etc.
+    """
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    
+    items = Item.query.filter_by(company_id=company_id).order_by(Item.name).all()
+    
+    items_data = []
+    for item in items:
+        # Get the most recent inventory count if available
+        latest_count = ItemInventory.query.filter_by(
+            item_id=item.id,
+            company_id=company_id
+        ).order_by(ItemInventory.count_date.desc()).first()
+        
+        items_data.append({
+            'id': item.id,
+            'name': item.name,
+            'code': item.code,
+            'alternate_code': item.alternate_code,
+            'case_weight': item.case_weight,
+            'unit_of_weight': item.unit_of_weight.value if item.unit_of_weight else None,
+            'item_designation': item.item_designation.value if item.item_designation else None,
+            'last_count': {
+                'quantity': latest_count.quantity,
+                'date': latest_count.count_date.isoformat(),
+                'counted_by': latest_count.counted_by
+            } if latest_count else None
+        })
+    
+    return jsonify(items_data), 200
+
+
+@api.route('/api/inventory_counts', methods=['POST'])
+@optional_api_key_or_login
+def create_inventory_count():
+    """Submit an inventory count from the iPad app.
+    
+    Creates a new inventory count record for an item. This is used when
+    staff take physical inventory and want to record the counts.
+    
+    Request JSON:
+        {
+            "item_id": 123,
+            "quantity": 45,
+            "counted_by": "John Doe",  # optional
+            "notes": "Found extra in back cooler",  # optional
+            "count_date": "2026-01-09T14:30:00"  # optional, defaults to now
+        }
+    
+    Returns:
+        JSON with success message and created inventory count details
+    """
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        
+        # Handle JSON parsing errors
+        try:
+            data = request.get_json()
+        except Exception as json_err:
+            return jsonify({'error': f'Invalid JSON: {str(json_err)}'}), 400
+        
+        # Validate required fields
+        if not data:
+            return jsonify({'error': 'Request body is required'}), 400
+        
+        if 'item_id' not in data:
+            return jsonify({'error': 'item_id is required'}), 400
+        
+        if 'quantity' not in data:
+            return jsonify({'error': 'quantity is required'}), 400
+        
+        item_id = data['item_id']
+        quantity = data['quantity']
+        
+        # Validate item exists and belongs to company
+        item = Item.query.filter_by(id=item_id, company_id=company_id).first()
+        if not item:
+            return jsonify({'error': f'Item with id {item_id} not found or does not belong to your company'}), 404
+        
+        # Validate quantity is a non-negative integer
+        try:
+            quantity = int(quantity)
+            if quantity < 0:
+                return jsonify({'error': 'quantity must be non-negative'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'quantity must be a valid integer'}), 400
+        
+        # Parse optional count_date
+        count_date = None
+        if 'count_date' in data and data['count_date']:
+            try:
+                count_date = datetime.fromisoformat(data['count_date'].replace('Z', '+00:00'))
+            except (ValueError, AttributeError) as e:
+                return jsonify({'error': f'Invalid count_date format. Use ISO format: {str(e)}'}), 400
+        
+        # Create inventory count
+        inventory_count = ItemInventory(
+            item_id=item_id,
+            quantity=quantity,
+            company_id=company_id,
+            counted_by=data.get('counted_by'),
+            notes=data.get('notes'),
+            count_date=count_date
+        )
+        
+        db.session.add(inventory_count)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Inventory count recorded successfully',
+            'inventory_count': {
+                'id': inventory_count.id,
+                'item_id': inventory_count.item_id,
+                'item_name': item.name,
+                'quantity': inventory_count.quantity,
+                'count_date': inventory_count.count_date.isoformat(),
+                'counted_by': inventory_count.counted_by,
+                'notes': inventory_count.notes
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating inventory count: {str(e)}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+
+@api.route('/api/inventory_counts', methods=['GET'])
+@optional_api_key_or_login
+def get_inventory_counts():
+    """Get inventory count history.
+    
+    Returns all inventory counts for the company, with optional filtering.
+    
+    Query parameters:
+        item_id: Filter by item ID
+        start_date: Filter counts after this date (ISO format)
+        end_date: Filter counts before this date (ISO format)
+        limit: Maximum number of results (default 100)
+    
+    Returns:
+        JSON array of inventory counts with item details
+    """
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    
+    # Build query
+    query = ItemInventory.query.filter_by(company_id=company_id)
+    
+    # Apply filters
+    item_id = request.args.get('item_id', type=int)
+    if item_id:
+        query = query.filter_by(item_id=item_id)
+    
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            query = query.filter(ItemInventory.count_date >= start_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format'}), 400
+    
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            query = query.filter(ItemInventory.count_date <= end_dt)
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format'}), 400
+    
+    # Apply limit
+    limit = request.args.get('limit', default=100, type=int)
+    if limit > 1000:
+        limit = 1000  # Cap at 1000 for performance
+    
+    # Execute query with order
+    counts = query.order_by(ItemInventory.count_date.desc()).limit(limit).all()
+    
+    counts_data = []
+    for count in counts:
+        counts_data.append({
+            'id': count.id,
+            'item_id': count.item_id,
+            'item_name': count.item.name if count.item else None,
+            'item_code': count.item.code if count.item else None,
+            'quantity': count.quantity,
+            'count_date': count.count_date.isoformat(),
+            'counted_by': count.counted_by,
+            'notes': count.notes
+        })
+    
+    return jsonify(counts_data), 200

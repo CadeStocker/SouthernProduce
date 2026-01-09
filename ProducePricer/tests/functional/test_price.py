@@ -38,11 +38,33 @@ def logged_in_user_with_data(client, app):
         db.session.commit()
         
         user_id = user.id
+        company_id = company.id
+        login_url = url_for('main.login')
 
-    client.post(url_for('main.login'), data={'email': 'price@test.com', 'password': 'pw'}, follow_redirects=True)
+    client.post(login_url, data={'email': 'price@test.com', 'password': 'pw'}, follow_redirects=True)
     
-    with app.app_context():
-        return db.session.get(User, user_id)
+    # Return a helper object
+    class LoggedInUserHelper:
+        def __init__(self, user_id, company_id, app):
+            self.id = user_id
+            self.company_id = company_id
+            self._app = app
+            self.email = "price@test.com"
+            self.first_name = "Price"
+            self.last_name = "Tester"
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
+            
+        def get_id(self):
+            """Flask-Login required method."""
+            return str(self.id)
+            
+        def get_user(self):
+            with self._app.app_context():
+                return db.session.get(User, self.id)
+    
+    return LoggedInUserHelper(user_id, company_id, app)
 
 class TestPricePage:
     def test_price_page_loads_successfully(self, client, logged_in_user_with_data):

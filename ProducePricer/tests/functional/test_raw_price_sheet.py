@@ -24,21 +24,40 @@ def logged_in_user(client, app):
         db.session.add(user)
         db.session.commit()
         
-        # Store the user ID for later retrieval
+        # Store necessary data
         user_id = user.id
+        company_id = company.id
+        login_url = url_for('main.login')
     
     # Log in the user
     client.post(
-        url_for('main.login'),
+        login_url,
         data={'email': 'user@test.com', 'password': 'password'},
         follow_redirects=True
     )
     
-    # Return the user object (detached from session, but useful for ID access)
-    # In a real scenario we might want to re-query, but for setup it's fine.
-    # However, to be safe and consistent with the other test file:
-    with app.app_context():
-        return db.session.get(User, user_id)
+    # Return a helper object
+    class LoggedInUserHelper:
+        def __init__(self, user_id, company_id, app):
+            self.id = user_id
+            self.company_id = company_id
+            self._app = app
+            self.email = "user@test.com"
+            self.first_name = "Test"
+            self.last_name = "User"
+            self.is_active = True
+            self.is_authenticated = True
+            self.is_anonymous = False
+            
+        def get_id(self):
+            """Flask-Login required method."""
+            return str(self.id)
+            
+        def get_user(self):
+            with self._app.app_context():
+                return db.session.get(User, self.id)
+    
+    return LoggedInUserHelper(user_id, company_id, app)
 
 def test_raw_price_sheet_page(client, app, logged_in_user):
     """Test the raw price sheet page loads correctly with data."""
