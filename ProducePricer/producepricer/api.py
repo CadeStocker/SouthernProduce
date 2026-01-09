@@ -168,7 +168,8 @@ def create_receiving_log():
             received_by=validated_data.received_by or received_by_default,
             company_id=company_id,
             returned=validated_data.returned,
-            date_time=validated_data.datetime
+            date_time=validated_data.datetime,
+            price_paid=validated_data.price_paid
         )
         
         db.session.add(new_log)

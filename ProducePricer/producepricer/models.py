@@ -569,6 +569,7 @@ class ReceivingLog(db.Model):
     received_by = db.Column(db.String(100), nullable=False) # employee's name who made the log entry
     returned = db.Column(db.String(100), nullable=True) # this doesn't appear in most entries, and when it does it's an employee's name
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    price_paid = db.Column(db.Float, nullable=True) # price paid for the product received (per unit of pack_size)
 
     # Relationships
     raw_product = db.relationship('RawProduct', backref='receiving_logs')
@@ -577,7 +578,7 @@ class ReceivingLog(db.Model):
     grower_or_distributor = db.relationship('GrowerOrDistributor', backref='receiving_logs')
     images = db.relationship('ReceivingImage', backref='receiving_log', lazy=True, cascade='all, delete-orphan')
     
-    def __init__(self, raw_product_id, pack_size_unit, pack_size, brand_name_id, quantity_received, seller_id, temperature, hold_or_used, grower_or_distributor_id, country_of_origin, received_by, company_id, returned=None, date_time=None):
+    def __init__(self, raw_product_id, pack_size_unit, pack_size, brand_name_id, quantity_received, seller_id, temperature, hold_or_used, grower_or_distributor_id, country_of_origin, received_by, company_id, returned=None, date_time=None, price_paid=None):
         self.raw_product_id = raw_product_id
         self.pack_size_unit = pack_size_unit
         self.pack_size = pack_size
@@ -591,8 +592,72 @@ class ReceivingLog(db.Model):
         self.received_by = received_by
         self.company_id = company_id
         self.returned = returned
+        self.price_paid = price_paid
         if date_time:
             self.datetime = date_time
+    
+    def get_master_customer_price(self):
+        """Get the market cost for this raw product around the time of this receiving log.
+        This looks at the most recent cost entry in CostHistory for comparison.
+        Returns a tuple of (cost, date) or None if no cost found."""
+        from datetime import timedelta
+        from sqlalchemy import and_
+        
+        # Calculate the date of this receiving log
+        log_date = self.datetime.date() if self.datetime else None
+        if not log_date:
+            return None
+        
+        # Look for the most recent cost entry for this raw product on or before the receiving log date
+        # We'll search within a 30-day window before the log date to find recent market cost
+        search_start = log_date - timedelta(days=30)
+        
+        cost_entry = CostHistory.query.filter(
+            and_(
+                CostHistory.raw_product_id == self.raw_product_id,
+                CostHistory.company_id == self.company_id,
+                CostHistory.date <= log_date,
+                CostHistory.date >= search_start
+            )
+        ).order_by(CostHistory.date.desc()).first()
+        
+        return (cost_entry.cost, cost_entry.date) if cost_entry else None
+    
+    def get_price_comparison(self):
+        """Compare the price paid to the market cost and return a dict with comparison info."""
+        if self.price_paid is None:
+            return None
+        
+        market_data = self.get_master_customer_price()
+        if market_data is None:
+            return {
+                'price_paid': self.price_paid,
+                'master_price': None,
+                'market_date': None,
+                'difference': None,
+                'percentage': None,
+                'status': 'no_market_data'
+            }
+        
+        market_cost, market_date = market_data
+        difference = self.price_paid - market_cost
+        percentage = (difference / market_cost * 100) if market_cost > 0 else 0
+        
+        if abs(difference) < 0.01:  # Within 1 cent
+            status = 'at_market'
+        elif difference > 0:
+            status = 'above_market'
+        else:
+            status = 'below_market'
+        
+        return {
+            'price_paid': self.price_paid,
+            'master_price': market_cost,  # This is actually the market cost from CostHistory
+            'market_date': market_date,
+            'difference': difference,
+            'percentage': percentage,
+            'status': status
+        }
         
     def __repr__(self):
         return f"ReceivingLog('{self.datetime}', '{self.raw_product_id}', '{self.quantity_received}')"

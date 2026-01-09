@@ -1871,6 +1871,82 @@ def update_item(item_id):
     flash('Invalid data submitted.', 'danger')
     return render_template('update_item.html', title='Update Item', form=form, item=item)
 
+# Debug route to check market price data
+@main.route('/debug_receiving_log/<int:log_id>')
+@login_required
+def debug_receiving_log(log_id):
+    """Debug route to check why market cost comparison isn't working."""
+    from datetime import timedelta
+    from sqlalchemy import and_
+    
+    log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
+    
+    debug_info = {
+        'log_id': log.id,
+        'raw_product': log.raw_product.name if log.raw_product else None,
+        'raw_product_id': log.raw_product_id,
+        'price_paid': log.price_paid,
+        'log_date': log.datetime.strftime('%Y-%m-%d') if log.datetime else None,
+    }
+    
+    # Check for cost history
+    if log.datetime:
+        log_date = log.datetime.date()
+        search_start = log_date - timedelta(days=30)
+        
+        debug_info['search_window_start'] = search_start.strftime('%Y-%m-%d')
+        debug_info['search_window_end'] = log_date.strftime('%Y-%m-%d')
+        
+        # Get all cost history for this raw product
+        all_costs = CostHistory.query.filter(
+            and_(
+                CostHistory.raw_product_id == log.raw_product_id,
+                CostHistory.company_id == current_user.company_id
+            )
+        ).order_by(CostHistory.date.desc()).limit(10).all()
+        
+        debug_info['all_cost_history'] = [
+            {
+                'cost': float(ch.cost),
+                'date': ch.date.strftime('%Y-%m-%d')
+            }
+            for ch in all_costs
+        ]
+        
+        # Get cost history within the search window
+        relevant_costs = CostHistory.query.filter(
+            and_(
+                CostHistory.raw_product_id == log.raw_product_id,
+                CostHistory.company_id == current_user.company_id,
+                CostHistory.date <= log_date,
+                CostHistory.date >= search_start
+            )
+        ).order_by(CostHistory.date.desc()).all()
+        
+        debug_info['relevant_cost_history'] = [
+            {
+                'cost': float(ch.cost),
+                'date': ch.date.strftime('%Y-%m-%d'),
+                'days_before_log': (log_date - ch.date).days
+            }
+            for ch in relevant_costs
+        ]
+        
+        # Get the actual market cost that would be used
+        market_data = log.get_master_customer_price()
+        if market_data:
+            debug_info['market_cost_used'] = float(market_data[0])
+            debug_info['market_cost_date'] = market_data[1].strftime('%Y-%m-%d')
+        else:
+            debug_info['market_cost_used'] = None
+            debug_info['market_cost_date'] = None
+        
+        # Get the comparison
+        comparison = log.get_price_comparison()
+        debug_info['comparison'] = comparison if comparison else None
+    
+    return jsonify(debug_info)
+
 # Receiving Logs - display all receiving log entries
 @main.route('/receiving_logs')
 @login_required
@@ -1913,12 +1989,48 @@ def receiving_logs():
 def view_receiving_log(log_id):
     log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
     
+    # Get master customer price even if no price_paid is set yet
+    # This allows the modal to show market reference
+    market_data = log.get_master_customer_price()
+    master_price = market_data[0] if market_data else None
+    master_price_date = market_data[1] if market_data else None
+    
     return render_template(
         'view_receiving_log.html',
         title=f'Receiving Log - {log.raw_product.name if log.raw_product else "Log"}',
         log=log,
+        master_price=master_price,
+        master_price_date=master_price_date,
         now=datetime.datetime.utcnow()
     )
+
+# Edit receiving log (for adding price paid by management)
+@main.route('/edit_receiving_log/<int:log_id>', methods=['POST'])
+@login_required
+def edit_receiving_log(log_id):
+    log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
+    
+    # Get price_paid from form
+    price_paid_str = request.form.get('price_paid', '').strip()
+    
+    # Validate and convert price_paid
+    if price_paid_str:
+        try:
+            price_paid = float(price_paid_str)
+            if price_paid < 0:
+                flash('Price paid must be a positive number.', 'danger')
+                return redirect(url_for('main.view_receiving_log', log_id=log_id))
+            log.price_paid = price_paid
+        except ValueError:
+            flash('Invalid price format. Please enter a valid number.', 'danger')
+            return redirect(url_for('main.view_receiving_log', log_id=log_id))
+    else:
+        # If empty, set to None to remove price
+        log.price_paid = None
+    
+    db.session.commit()
+    flash('Receiving log updated successfully!', 'success')
+    return redirect(url_for('main.view_receiving_log', log_id=log_id))
 
 # Email receiving log
 @main.route('/email_receiving_log/<int:log_id>', methods=['POST'])
@@ -1959,6 +2071,22 @@ def email_receiving_log(log_id):
     body_parts.append(f'<p><strong>Pack Size:</strong> {log.pack_size} {log.pack_size_unit}</p>')
     body_parts.append(f'<p><strong>Quantity Received:</strong> {log.quantity_received} units</p>')
     body_parts.append(f'<p><strong>Total:</strong> {log.quantity_received * log.pack_size:.2f} {log.pack_size_unit}</p>')
+    
+    # Add price information if available
+    if log.price_paid:
+        body_parts.append(f'<p><strong>Price Paid:</strong> ${log.price_paid:.2f} per {log.pack_size_unit}</p>')
+        comparison = log.get_price_comparison()
+        if comparison and comparison.get('master_price'):
+            body_parts.append(f'<p><strong>Market Price:</strong> ${comparison["master_price"]:.2f}</p>')
+            if comparison['status'] == 'above_market':
+                body_parts.append(f'<p><strong>Price vs Market:</strong> <span style="color: red;">Above by ${comparison["difference"]:.2f} ({comparison["percentage"]:.1f}%)</span></p>')
+            elif comparison['status'] == 'below_market':
+                body_parts.append(f'<p><strong>Price vs Market:</strong> <span style="color: green;">Below by ${-comparison["difference"]:.2f} ({-comparison["percentage"]:.1f}%)</span></p>')
+            elif comparison['status'] == 'at_market':
+                body_parts.append(f'<p><strong>Price vs Market:</strong> At Market Price</p>')
+        elif comparison and comparison['status'] == 'no_market_data':
+            body_parts.append(f'<p><em>No market price data available for comparison week</em></p>')
+    
     body_parts.append('<br>')
     
     body_parts.append('<h3>Quality & Status</h3>')
@@ -2065,6 +2193,19 @@ def download_receiving_log_pdf(log_id):
     add_table_row("Pack Size", f"{log.pack_size} {log.pack_size_unit}")
     add_table_row("Quantity Received", f"{log.quantity_received} units")
     add_table_row("Total Weight/Count", f"{log.quantity_received * log.pack_size:.2f} {log.pack_size_unit}")
+    
+    # Add price information if available
+    if log.price_paid:
+        add_table_row("Price Paid", f"${log.price_paid:.2f} per {log.pack_size_unit}")
+        comparison = log.get_price_comparison()
+        if comparison and comparison.get('master_price'):
+            add_table_row("Market Price", f"${comparison['master_price']:.2f}")
+            if comparison['status'] == 'above_market':
+                add_table_row("Price vs Market", f"Above by ${comparison['difference']:.2f} ({comparison['percentage']:.1f}%)")
+            elif comparison['status'] == 'below_market':
+                add_table_row("Price vs Market", f"Below by ${-comparison['difference']:.2f} ({-comparison['percentage']:.1f}%)")
+            elif comparison['status'] == 'at_market':
+                add_table_row("Price vs Market", "At Market Price")
     
     pdf.ln(3)
     

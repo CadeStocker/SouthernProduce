@@ -33,6 +33,7 @@ class ReceivingLogCreateSchema(BaseModel):
     received_by: Optional[str] = Field(None, max_length=200)
     returned: Optional[str] = Field(None, max_length=500)
     datetime: Optional[dt_type] = None
+    price_paid: Optional[float] = Field(None, ge=0, description="Price paid per unit (optional)")
     
     @field_validator('pack_size_unit', 'country_of_origin', 'received_by', 'returned')
     @classmethod
