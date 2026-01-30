@@ -4393,7 +4393,9 @@ def price_sheet():
         # create new sheet
         sheet = PriceSheet(
             name        = form.name.data,
-            date        = form.date.data,
+            date        = form.valid_from.data,  # Use valid_from as the date
+            valid_from  = form.valid_from.data,
+            valid_to    = form.valid_to.data,
             company_id  = current_user.company_id,
             customer_id = form.customer.data
         )

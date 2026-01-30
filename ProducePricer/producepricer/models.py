@@ -343,7 +343,9 @@ class PriceSheet(db.Model):
     __tablename__ = 'price_sheet'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.Date, nullable=False)  # Keep for backwards compatibility, or can deprecate later
+    valid_from = db.Column(db.Date, nullable=True)  # Start date of price sheet validity
+    valid_to = db.Column(db.Date, nullable=True)    # End date of price sheet validity
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #item_ids = db.relationship('Item', secondary='price_sheet_items', backref=db.backref('price_sheets', lazy='dynamic'))
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
@@ -354,15 +356,32 @@ class PriceSheet(db.Model):
         lazy='subquery'
     )
 
-    def __init__(self, name, date, company_id, customer_id):
+    def __init__(self, name, date, company_id, customer_id, valid_from=None, valid_to=None):
         self.name = name
         self.date = date
+        self.valid_from = valid_from if valid_from else date  # Default to date if not provided
+        self.valid_to = valid_to
         self.company_id = company_id
         self.customer_id = customer_id
         #self.item_ids = items  # list of Item objects
 
     def __repr__(self):
+        if self.valid_from and self.valid_to:
+            return f"PriceSheet('{self.name}', valid: {self.valid_from} to {self.valid_to})"
         return f"PriceSheet('{self.name}', '{self.date}')"
+    
+    def is_valid_on_date(self, check_date):
+        """Check if this price sheet is valid on a given date."""
+        if not self.valid_from:
+            # If no validity range set, use the single date field
+            return self.date == check_date
+        
+        # Check if date is within the validity range
+        if self.valid_to:
+            return self.valid_from <= check_date <= self.valid_to
+        else:
+            # If no end date, valid from start date onwards
+            return check_date >= self.valid_from
 
 # table to hold each raw product's information
 class RawProduct(db.Model):

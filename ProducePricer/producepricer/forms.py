@@ -205,15 +205,20 @@ class AddDesignationCost(FlaskForm):
 class PriceSheetForm(FlaskForm):
     # items that are on the price sheet
     items = SelectMultipleField('Items', coerce=int, validators=[DataRequired()])
-    date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
     customer = SelectField('Customer', coerce=int, validators=[DataRequired()])
-    date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
     name = StringField('Price Sheet Name', validators=[DataRequired()])
+    date = DateField('Date', format='%Y-%m-%d', validators=[Optional()])  # Made optional since we use valid_from
+    valid_from = DateField('Valid From', format='%Y-%m-%d', validators=[DataRequired()])  # Now required
+    valid_to = DateField('Valid To', format='%Y-%m-%d', validators=[Optional()])
     submit = SubmitField('Generate Price Sheet')
 
     def validate_items(self, items):
         if not items.data:
             raise ValidationError('Please select at least one item.')
+    
+    def validate_valid_to(self, valid_to):
+        if valid_to.data and self.valid_from.data and valid_to.data < self.valid_from.data:
+            raise ValidationError('Valid To date must be after Valid From date.')
         
 class EmailTemplateForm(FlaskForm):
     name = StringField('Template Name', validators=[DataRequired(), Length(max=120)])
