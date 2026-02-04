@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, TextAreaField, ValidationError
-from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional, InputRequired
 from producepricer.models import UnitOfWeight, User, Company
 
 class SignUp(FlaskForm):
@@ -50,10 +50,10 @@ class CreatePackage(FlaskForm):
 
 class AddPackagingCost(FlaskForm):
     date = DateField('Date', validators=[DataRequired()])
-    box_cost = FloatField('Box Cost', validators=[DataRequired()])
-    bag_cost = FloatField('Bag Cost', validators=[DataRequired()])
-    tray_andor_chemical_cost = FloatField('Tray and/or Chemical Cost', validators=[DataRequired()])
-    label_andor_tape_cost = FloatField('Label and/or Tape Cost', validators=[DataRequired()])
+    box_cost = FloatField('Box Cost', validators=[InputRequired()])
+    bag_cost = FloatField('Bag Cost', validators=[InputRequired()])
+    tray_andor_chemical_cost = FloatField('Tray and/or Chemical Cost', validators=[InputRequired()])
+    label_andor_tape_cost = FloatField('Label and/or Tape Cost', validators=[InputRequired()])
     submit = SubmitField('Add Packaging Cost')
 
 class DeleteForm(FlaskForm):

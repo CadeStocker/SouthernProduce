@@ -213,7 +213,7 @@ class TestParsing:
         
         # Invalid/None returns today
         d3 = coerce_iso_date(None)
-        assert d3 == datetime.utcnow().date()
+        assert d3 == datetime.now().date()
         
         d4 = coerce_iso_date("Not a date")
-        assert d4 == datetime.utcnow().date()
+        assert d4 == datetime.now().date()
