@@ -1,18 +1,54 @@
-<!-- filepath: producepricer/templates/edit_price_sheet.html -->
 {% extends "base.html" %}
 {% block title %}Price Sheet – {{ sheet.name }}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-  <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary mb-4">← Back</a>
+  <!-- Header with Title, Date Info, and Actions -->
+  <div class="d-flex justify-content-between align-items-end mb-3 border-bottom pb-2">
+    <div>
+      <h2 class="mb-1">{{ sheet.name }}</h2>
+      <div class="text-muted small">
+        <span class="mr-2">
+          <strong>Valid:</strong> 
+          {{ sheet.valid_from.strftime('%Y-%m-%d') if sheet.valid_from else '?' }} 
+          &ndash; 
+          {{ sheet.valid_to.strftime('%Y-%m-%d') if sheet.valid_to else 'Open' }}
+        </span>
+        <a href="#" class="text-primary" data-toggle="collapse" data-target="#sheetDetailsCollapse">
+          (Edit Dates)
+        </a>
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('main.price_sheet') }}" class="btn btn-outline-secondary btn-sm mr-2">← Back</a>
+      <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addItemsModal">
+        + Add Items
+      </button>
+    </div>
+  </div>
 
-  <!-- Button to open “Add Items” modal -->
-  <button type="button"
-          class="btn btn-secondary mb-4"
-          data-toggle="modal"
-          data-target="#addItemsModal">
-    Add Items
-  </button>
+  <!-- Collapsible Date Editor -->
+  <div id="sheetDetailsCollapse" class="collapse mb-4">
+    <div class="card card-body bg-light border-0">
+      <form method="POST" class="form-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="update_dates" value="1">
+        
+        <label for="valid_from" class="mr-2 font-weight-bold">Valid From:</label>
+        <input type="date" name="valid_from" id="valid_from"
+               class="form-control mb-2 mr-3"
+               value="{{ sheet.valid_from.strftime('%Y-%m-%d') if sheet.valid_from else '' }}"
+               required>
+
+        <label for="valid_to" class="mr-2 font-weight-bold">Valid To:</label>
+        <input type="date" name="valid_to" id="valid_to"
+               class="form-control mb-2 mr-3"
+               value="{{ sheet.valid_to.strftime('%Y-%m-%d') if sheet.valid_to else '' }}">
+
+        <button type="submit" class="btn btn-primary mb-2">Update Dates</button>
+      </form>
+    </div>
+  </div>
 
   <!-- Quick‐fill buttons -->
   <div class="d-flex align-items-center mb-4">

@@ -239,3 +239,12 @@ class AddGrowerOrDistributor(FlaskForm):
     city = StringField('City', validators=[DataRequired(), Length(max=100)])
     state = StringField('State', validators=[DataRequired(), Length(max=100)])
     submit = SubmitField('Add Grower/Distributor')
+
+class EditPriceSheetForm(FlaskForm):
+    valid_from = DateField('Valid From', format='%Y-%m-%d', validators=[DataRequired()])
+    valid_to = DateField('Valid To', format='%Y-%m-%d', validators=[Optional()])
+    submit = SubmitField('Update Dates')
+
+    def validate_valid_to(self, valid_to):
+        if valid_to.data and self.valid_from.data and valid_to.data < self.valid_from.data:
+            raise ValidationError('Valid To date must be after Valid From date.')

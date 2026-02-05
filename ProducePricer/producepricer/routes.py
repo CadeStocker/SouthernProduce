@@ -3762,27 +3762,38 @@ def _generate_price_sheet_pdf_bytes(sheet):
     # Create PDF
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Center on page
+    col_widths = [90, 20, 20]
+    total_width = sum(col_widths)
+    left_margin = (210 - total_width) / 2
+    pdf.set_left_margin(left_margin)
+    pdf.set_right_margin(left_margin)
+
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("Arial", "B", 12)
     
     # Sanitize the sheet name before rendering
     sanitized_sheet_name = sanitize_text(sheet.name)
-    pdf.cell(0, 10, f"Price Sheet: {sanitized_sheet_name}", ln=1)
+    pdf.cell(0, 8, f"Price Sheet: {sanitized_sheet_name}", ln=1, align='C')
     
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 8, f"Date: {sheet.date.strftime('%Y-%m-%d')}", ln=1)
+    pdf.set_font("Arial", "", 10)
+    
+    v_start = sheet.valid_from.strftime('%Y-%m-%d') if sheet.valid_from else '?'
+    v_end   = sheet.valid_to.strftime('%Y-%m-%d')   if sheet.valid_to   else '?'
+    pdf.cell(0, 6, f"Valid: {v_start} to {v_end}", ln=1, align='C')
     pdf.ln(4)
 
     # Table header
-    pdf.set_font("Arial", "B", 11)
-    col_widths = [120, 35, 35]
+    pdf.set_font("Arial", "B", 9)
+    # col_widths defined above
     headers = ["Product", "Price", "Changed"]
     for i, header in enumerate(headers):
-        pdf.cell(col_widths[i], 8, header, border=1, align="C")
+        pdf.cell(col_widths[i], 6, header, border=1, align="C")
     pdf.ln()
 
     # Table rows
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Arial", "", 8)
 
     for item in sheet.items:
         info = recent.get(item.id, {})
@@ -3803,10 +3814,10 @@ def _generate_price_sheet_pdf_bytes(sheet):
 
         # Sanitize the item name before rendering
         sanitized_item_name = sanitize_text(item.name)
-        pdf.cell(col_widths[0], 8, sanitized_item_name, border=1)
+        pdf.cell(col_widths[0], 6, sanitized_item_name, border=1)
         
-        pdf.cell(col_widths[1], 8, price_str, border=1, align="C")
-        pdf.cell(col_widths[2], 8, changed_char, border=1, align="C")
+        pdf.cell(col_widths[1], 6, price_str, border=1, align="C")
+        pdf.cell(col_widths[2], 6, changed_char, border=1, align="C")
         pdf.ln()
 
     return bytes(pdf.output(dest='S'))
@@ -4438,6 +4449,38 @@ def edit_price_sheet(sheet_id):
 
     # on save…
     if request.method=='POST':
+        # Check if this is a date update
+        if 'update_dates' in request.form:
+            valid_from_str = request.form.get('valid_from')
+            valid_to_str = request.form.get('valid_to')
+
+            try:
+                # Convert strings to date objects
+                v_from = datetime.datetime.strptime(valid_from_str, '%Y-%m-%d').date()
+                if valid_to_str:
+                    v_to = datetime.datetime.strptime(valid_to_str, '%Y-%m-%d').date()
+                else:
+                    v_to = None
+                
+                # Check 1: validate valid_to >= valid_from
+                if v_to and v_to < v_from:
+                    flash('Error: Valid To date cannot be before Valid From date.', 'danger')
+                    return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
+
+                # Update the sheet
+                sheet.valid_from = v_from
+                sheet.valid_to = v_to
+                # Also sync sheet.date to valid_from if useful, or keep separate
+                sheet.date = v_from 
+
+                db.session.commit()
+                flash('Price Sheet dates updated successfully!', 'success')
+            except ValueError:
+                flash('Invalid date format provided.', 'danger')
+            
+            return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
+
+        # Otherwise, saving prices
         for item in sheet.items:
             sel = request.form.get(f'price_select_{item.id}')
             inp = request.form.get(f'price_input_{item.id}')
