@@ -3000,6 +3000,7 @@ def calculate_item_cost(item_id):
             flash(f'No ranch cost found for item "{item.name}".', 'warning')
 
     # get the (raw price/yield) for each raw product
+    raw_products_with_cost_count = 0
     for raw_product in item.raw_products:
         most_recent_cost = (
             CostHistory.query
@@ -3010,8 +3011,20 @@ def calculate_item_cost(item_id):
         if most_recent_cost:
             # calculate the cost per unit of yield
             cost_per_unit_yield = most_recent_cost.cost / (itemInfo.product_yield or 1)  # Avoid division by zero
-            total_cost += (cost_per_unit_yield * item.case_weight)
+            #total_cost += (cost_per_unit_yield * item.case_weight)
             raw_product_cost += (cost_per_unit_yield * item.case_weight)
+            raw_products_with_cost_count += 1
+        else:
+            print(f"Skipping raw product {raw_product.name} (id {raw_product.id}) - no cost found")
+
+    # If it is a combo, average the raw product cost
+    if item.item_designation == ItemDesignation.COMBO:
+        if raw_products_with_cost_count > 0:
+            raw_product_cost = raw_product_cost / raw_products_with_cost_count
+        else:
+            raw_product_cost = 0.0
+            
+    total_cost += raw_product_cost
 
     # get the packaging cost for the item
     packaging_costs = PackagingCost.query.filter_by(packaging_id=item.packaging_id).order_by(PackagingCost.date.desc()).all()
@@ -3083,6 +3096,7 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
             flash('No ranch cost found.', 'warning')
 
     # get the (raw price/yield) for each raw product
+    raw_products_with_cost_count = 0
     for raw_product in raw_products:
         most_recent_cost = (
             CostHistory.query
@@ -3093,8 +3107,18 @@ def calculate_item_cost_with_info(packaging_id, product_yield, labor_hours, case
         if most_recent_cost:
             # calculate the cost per unit of yield
             cost_per_unit_yield = most_recent_cost.cost / (product_yield or 1)  # Avoid division by zero
-            total_cost += (cost_per_unit_yield * case_weight)
+            #total_cost += (cost_per_unit_yield * case_weight)
             raw_product_cost += (cost_per_unit_yield * case_weight)
+            raw_products_with_cost_count += 1
+
+    # If it is a combo, average the raw product cost
+    if item_designation == ItemDesignation.COMBO or item_designation == 'combo':
+        if raw_products_with_cost_count > 0:
+            raw_product_cost = raw_product_cost / raw_products_with_cost_count
+        else:
+            raw_product_cost = 0.0
+
+    total_cost += raw_product_cost
 
     # get the packaging cost for the item
     packaging_costs = PackagingCost.query.filter_by(packaging_id=packaging_id).order_by(PackagingCost.date.desc()).all()

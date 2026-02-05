@@ -44,7 +44,9 @@
             <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'N/A' }}</p>
             <p><strong>Raw Products:</strong> 
                 {% if raw_products %}
-                    {{ raw_products|map(attribute='name')|join(', ') }}
+                    {% for rp in raw_products %}
+                        <a href="{{ url_for('main.view_raw_product', raw_product_id=rp.id) }}">{{ rp.name }}</a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
                 {% else %}
                     None
                 {% endif %}

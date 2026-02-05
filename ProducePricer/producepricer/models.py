@@ -18,6 +18,7 @@ class ItemDesignation(Enum):
     SNAKPAK = 'snakpak'
     RETAIL = 'retail'
     FOODSERVICE = 'foodservice'
+    COMBO = 'combo'
 
 # table of companies
 class Company(db.Model):

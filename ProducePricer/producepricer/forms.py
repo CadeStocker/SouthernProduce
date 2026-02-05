@@ -96,7 +96,7 @@ class AddItem(FlaskForm):
     raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
     ranch = BooleanField('Ranch', default=False)
     case_weight = FloatField('Case Weight', default=0.0)
-    item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service')], validators=[DataRequired()])
+    item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service'), ('COMBO', 'Combo')], validators=[DataRequired()])
     submit = SubmitField('Add Item')
 
 class UpdateItemInfo(FlaskForm):
@@ -137,7 +137,7 @@ class EditItem(FlaskForm):
     ranch = BooleanField('Ranch', default=False)
     case_weight = FloatField('Case Weight', default=0.0)
     alternate_code = StringField('Customer\'s Code For Item')
-    item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service')], validators=[DataRequired()])
+    item_designation = SelectField('Item Designation', choices=[('SNAKPAK', 'SnakPak'), ('RETAIL', 'Retail'), ('FOODSERVICE', 'Food Service'), ('COMBO', 'Combo')], validators=[DataRequired()])
     submit = SubmitField('Update Item')
 
 class AddRanchPrice(FlaskForm):
@@ -170,7 +170,8 @@ class PriceQuoterForm(FlaskForm):
     item_designation = SelectField('Item Designation', 
         choices=[('SNAKPAK', 'SnakPak'), 
                  ('RETAIL', 'Retail'), 
-                 ('FOODSERVICE', 'Food Service')],
+                 ('FOODSERVICE', 'Food Service'),
+                 ('COMBO', 'Combo')],
         validators=[DataRequired()]
     )
     case_weight = FloatField('Case Weight')
@@ -187,7 +188,8 @@ class AddDesignationCost(FlaskForm):
         choices=[
             ('SNAKPAK','SNAKPAK'),
             ('RETAIL','RETAIL'),
-            ('FOODSERVICE','FOODSERVICE')
+            ('FOODSERVICE','FOODSERVICE'),
+            ('COMBO','COMBO')
         ],
         validators=[DataRequired()]
     )
