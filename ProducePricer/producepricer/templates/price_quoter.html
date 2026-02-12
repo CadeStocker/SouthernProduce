@@ -25,9 +25,28 @@
               {{ form.packaging.label(class="form-label") }}
               {{ form.packaging(class="form-control") }}
             </div>
+
+            <div class="form-group">
+              <label for="raw_product_search" class="form-label">Search Raw Products</label>
+              <input type="text"
+                     id="raw_product_search"
+                     class="form-control"
+                     placeholder="Type to filter raw products..."
+                     autocomplete="off">
+            </div>
             <div class="form-group">
               {{ form.raw_products.label(class="form-label") }}
-              {{ form.raw_products(class="form-control", multiple=true, size=5) }}
+              {{ form.raw_products(class="form-control", multiple=true, size=5, id="raw_products") }}
+            </div>
+            <div class="form-group">
+              {{ form.raw_product_cost.label(class="form-label") }}
+              {{ form.raw_product_cost(class="form-control", readonly=true, id="raw-product-cost", value=form.raw_product_cost.data if form.raw_product_cost.data is not none else '') }}
+              <div id="raw_average_notice" class="alert alert-info mt-2" role="alert" style="display:none;">
+                You have selected multiple raw products. The calculated value above is the average cost of those ingredients.
+              </div>
+              <small class="form-text text-muted">
+                This value is auto-filled from the selected raw products but can be adjusted if needed.
+              </small>
             </div>
             <div class="form-group form-check">
               {{ form.ranch(class="form-check-input", id="ranch") }}
@@ -183,4 +202,64 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const rawProductCosts = {{ raw_cost_lookup|tojson }};
+document.addEventListener('DOMContentLoaded', () => {
+  const rawProductsSelect = document.getElementById('raw_products');
+  const rawProductCostField = document.getElementById('raw-product-cost');
+  const rawProductSearch = document.getElementById('raw_product_search');
+  const rawAverageNotice = document.getElementById('raw_average_notice');
+
+  if (!rawProductsSelect) {
+    return;
+  }
+
+  const updateRawCost = () => {
+    const selectedValues = Array.from(rawProductsSelect.selectedOptions).map(option => option.value);
+    if (selectedValues.length === 0) {
+      rawProductCostField.value = '';
+      if (rawAverageNotice) {
+        rawAverageNotice.style.display = 'none';
+      }
+      return;
+    }
+
+    const costs = selectedValues
+      .map(value => parseFloat(rawProductCosts[value]) || 0)
+      .filter(cost => !Number.isNaN(cost));
+
+    if (costs.length === 0) {
+      rawProductCostField.value = '';
+      if (rawAverageNotice) {
+        rawAverageNotice.style.display = 'none';
+      }
+      return;
+    }
+
+    const sum = costs.reduce((total, cost) => total + cost, 0);
+    const average = sum / costs.length;
+    rawProductCostField.value = average.toFixed(2);
+    if (rawAverageNotice) {
+      rawAverageNotice.style.display = costs.length > 1 ? 'block' : 'none';
+    }
+  };
+
+  const filterRawProducts = () => {
+    const term = rawProductSearch.value.toLowerCase();
+    Array.from(rawProductsSelect.options).forEach(option => {
+      const matches = option.text.toLowerCase().includes(term);
+      option.hidden = !matches;
+      option.style.display = matches ? 'block' : 'none';
+    });
+  };
+
+  rawProductsSelect.addEventListener('change', updateRawCost);
+  rawProductSearch.addEventListener('input', filterRawProducts);
+
+  updateRawCost();
+});
+</script>
 {% endblock %}

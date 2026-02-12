@@ -384,6 +384,46 @@ class PriceSheet(db.Model):
             # If no end date, valid from start date onwards
             return check_date >= self.valid_from
 
+# association table for PriceSheetBackup ↔ Item
+price_sheet_backup_items = db.Table(
+    'price_sheet_backup_items',
+    db.Column('price_sheet_backup_id', db.Integer, db.ForeignKey('price_sheet_backup.id'), primary_key=True),
+    db.Column('item_id',               db.Integer, db.ForeignKey('item.id'),              primary_key=True)
+)
+
+# backup of a price sheet
+class PriceSheetBackup(db.Model):
+    __tablename__ = 'price_sheet_backup'
+    id = db.Column(db.Integer, primary_key=True)
+    original_price_sheet_id = db.Column(db.Integer, db.ForeignKey('price_sheet.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    valid_from = db.Column(db.Date, nullable=True)
+    valid_to = db.Column(db.Date, nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    backup_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    items = db.relationship('Item', 
+        secondary=price_sheet_backup_items,
+        backref=db.backref('price_sheet_backups', lazy='dynamic'),
+        lazy='subquery'
+    )
+
+    def __init__(self, original_price_sheet_id, name, date, company_id, customer_id, items, valid_from=None, valid_to=None):
+        self.original_price_sheet_id = original_price_sheet_id
+        self.name = name
+        self.date = date
+        self.valid_from = valid_from
+        self.valid_to = valid_to
+        self.company_id = company_id
+        self.customer_id = customer_id
+        self.items = items
+        self.backup_date = datetime.utcnow()
+
+    def __repr__(self):
+        return f"PriceSheetBackup('{self.name}', archived: {self.backup_date})"
+
 # table to hold each raw product's information
 class RawProduct(db.Model):
     __tablename__ = 'raw_product'

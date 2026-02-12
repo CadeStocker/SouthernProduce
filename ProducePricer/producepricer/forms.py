@@ -177,6 +177,7 @@ class PriceQuoterForm(FlaskForm):
     case_weight = FloatField('Case Weight')
     packaging    = SelectField('Packaging', coerce=int, validators=[DataRequired()])
     raw_products = SelectMultipleField('Raw Products', coerce=int, validators=[DataRequired()])
+    raw_product_cost = FloatField('Cost of Raw Product(s)', validators=[DataRequired()])
     ranch       = BooleanField('Ranch', default=False)
     product_yield= FloatField('Yield (lbs)', validators=[DataRequired(), NumberRange(min=0)])
     labor_hours  = FloatField('Labor Hours', validators=[DataRequired(), NumberRange(min=0)])

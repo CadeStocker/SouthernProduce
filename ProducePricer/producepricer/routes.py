@@ -11,6 +11,7 @@ import matplotlib
 from producepricer.utils.matching import best_match
 from producepricer.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
 from producepricer.utils.parsing import coerce_iso_date, parse_price_list_with_openai
+from producepricer.utils.price_sheet_utils import create_price_sheet_backup
 matplotlib.use('Agg')  # Use 'Agg' backend for rendering without a display
 import matplotlib.pyplot as plt
 from flask import (
@@ -161,7 +162,7 @@ def parse_price_pdf():
         company_id = current_user.company_id
         all_products = db.session.query(RawProduct.id, RawProduct.name).filter(RawProduct.company_id == company_id).all()
         name_map = {name: rid for (rid, name) in all_products}
-        candidate_names = list(name_map.keys())
+        candidate_names = list(name_map.keys());
 
         # Initialize empty lists
         matched_items, skipped_items = [], []
@@ -606,7 +607,7 @@ def company():
     admin_email = company.admin_email if company else None
     admin = User.query.filter_by(email=admin_email).first() if admin_email else None
     if not admin:
-        flash('Admin user not found for this company.', 'danger')
+        flash('Admin user')
         return redirect(url_for('main.index'))
 
     return render_template('company.html',
@@ -1327,7 +1328,7 @@ def upload_packaging_csv():
                     box_cost=box_cost,
                     bag_cost=bag_cost,
                     tray_andor_chemical_cost=tray_andor_chemical_cost,
-                    label_andor_tape_cost=label_andor_tape_cost,
+                    label_andor_tape_cost=form.label_andor_tape_cost.data,
                     packaging_id=packaging.id,
                     company_id=current_user.company_id
                 )
@@ -1957,6 +1958,7 @@ def receiving_logs():
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Number of logs per page
     use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+    pagination = None
 
     base_query = ReceivingLog.query.filter_by(company_id=current_user.company_id)
     
@@ -1974,7 +1976,6 @@ def receiving_logs():
     else:
         # return all results without pagination
         logs = base_query.order_by(ReceivingLog.datetime.desc()).all()
-        pagination = None
 
     return render_template(
         'receiving_logs.html',
@@ -4169,6 +4170,15 @@ def price_quoter():
     raws = RawProduct.query.filter_by(company_id=current_user.company_id).all()
     form.raw_products.choices = [(r.id, r.name) for r in raws]
 
+    # Keep a lookup of the most recent cost for each raw product so the UI can auto-fill
+    raw_cost_lookup = {}
+    for raw in raws:
+        latest_cost = (CostHistory.query
+                       .filter_by(raw_product_id=raw.id, company_id=current_user.company_id)
+                       .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+                       .first())
+        raw_cost_lookup[str(raw.id)] = float(latest_cost.cost) if latest_cost and latest_cost.cost is not None else 0.0
+
     # Initialize the result variable
     result = None
 
@@ -4177,7 +4187,6 @@ def price_quoter():
     if item_id and not form.is_submitted():
         item = Item.query.filter_by(id=item_id, company_id=current_user.company_id).first()
         if item:
-            form.item.data = item.id
             form.packaging.data = item.packaging_id
             form.raw_products.data = [r.id for r in item.raw_products]
 
@@ -4189,6 +4198,16 @@ def price_quoter():
             if info:
                 form.product_yield.data = info.product_yield
                 form.labor_hours.data   = info.labor_hours
+            raw_cost_values = []
+            for raw_product in item.raw_products:
+                raw_cost_entry = (CostHistory.query
+                                  .filter_by(raw_product_id=raw_product.id, company_id=current_user.company_id)
+                                  .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+                                  .first())
+                if raw_cost_entry and raw_cost_entry.cost is not None:
+                    raw_cost_values.append(float(raw_cost_entry.cost))
+            if raw_cost_values:
+                form.raw_product_cost.data = sum(raw_cost_values) / len(raw_cost_values)
 
     # When the user submits the variables, do the calculation
     if form.validate_on_submit():
@@ -4330,6 +4349,7 @@ def price_quoter():
         form=form,
         result=result,
         #selected_item_id=item_id
+        raw_cost_lookup=raw_cost_lookup
     )
 
 # get the most recently dated cost for the given item designation
