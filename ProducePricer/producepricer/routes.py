@@ -4232,13 +4232,19 @@ def price_quoter():
 
         # get the total cost of the selected raw products
         total_raw = 0
-        for r in selected_raws:
-            rh = (CostHistory.query
-                     .filter_by(raw_product_id=r.id)
-                     .order_by(CostHistory.date.desc(), CostHistory.id.desc())
-                     .first())
-            if rh:
-                total_raw += rh.cost
+
+        # If the user provided an override (average cost), use that.
+        # The form field holds the average cost of selected items.
+        if form.raw_product_cost.data is not None and len(selected_raws) > 0:
+            total_raw = form.raw_product_cost.data
+        else:
+            for r in selected_raws:
+                rh = (CostHistory.query
+                        .filter_by(raw_product_id=r.id)
+                        .order_by(CostHistory.date.desc(), CostHistory.id.desc())
+                        .first())
+                if rh:
+                    total_raw += rh.cost
 
         # ranch cost
         ranch_cost = 0
@@ -4253,7 +4259,10 @@ def price_quoter():
         # designation cost
         designation_cost = 0
         item_designation = form.item_designation.data
-        designation_cost += DesignationCost.query.filter_by(item_designation=item_designation, company_id=current_user.company_id).first().cost if item_designation else 0
+        if item_designation:
+            dc = DesignationCost.query.filter_by(item_designation=item_designation, company_id=current_user.company_id).first()
+            if dc:
+                designation_cost += dc.cost
 
         # get the most recent labor cost
         lc = (LaborCost.query

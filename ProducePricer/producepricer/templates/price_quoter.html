@@ -40,7 +40,7 @@
             </div>
             <div class="form-group">
               {{ form.raw_product_cost.label(class="form-label") }}
-              {{ form.raw_product_cost(class="form-control", readonly=true, id="raw-product-cost", value=form.raw_product_cost.data if form.raw_product_cost.data is not none else '') }}
+              {{ form.raw_product_cost(class="form-control", id="raw-product-cost", value=form.raw_product_cost.data if form.raw_product_cost.data is not none else '') }}
               <div id="raw_average_notice" class="alert alert-info mt-2" role="alert" style="display:none;">
                 You have selected multiple raw products. The calculated value above is the average cost of those ingredients.
               </div>
@@ -217,10 +217,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  const updateRawCost = () => {
+  const updateRawCost = (event) => {
     const selectedValues = Array.from(rawProductsSelect.selectedOptions).map(option => option.value);
+    const shouldUpdate = event || rawProductCostField.value.trim() === '';
+
     if (selectedValues.length === 0) {
-      rawProductCostField.value = '';
+      if (shouldUpdate) rawProductCostField.value = '';
       if (rawAverageNotice) {
         rawAverageNotice.style.display = 'none';
       }
@@ -232,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(cost => !Number.isNaN(cost));
 
     if (costs.length === 0) {
-      rawProductCostField.value = '';
+      if (shouldUpdate) rawProductCostField.value = '';
       if (rawAverageNotice) {
         rawAverageNotice.style.display = 'none';
       }
@@ -241,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const sum = costs.reduce((total, cost) => total + cost, 0);
     const average = sum / costs.length;
-    rawProductCostField.value = average.toFixed(2);
+    if (shouldUpdate) rawProductCostField.value = average.toFixed(2);
     if (rawAverageNotice) {
       rawAverageNotice.style.display = costs.length > 1 ? 'block' : 'none';
     }
