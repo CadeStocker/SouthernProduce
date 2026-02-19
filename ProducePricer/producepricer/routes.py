@@ -890,8 +890,10 @@ def raw_price_sheet():
 
     # build a mapping of latest cost + date for each raw product
     # need to show 1st and 2nd most recent costs
-    recent = {}
+    # also make a mapping of average costs
+    recent   = {}
     previous = {}
+    average  = {}
 
     for rp in raw_products:
         ch = (CostHistory.query
@@ -916,7 +918,12 @@ def raw_price_sheet():
             'date': ch_prev.date.strftime('%Y-%m-%d') if ch_prev and ch_prev.date else None
         }
 
-    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous, customers=customers)
+        average[rp.id] = db.session.query(func.avg(CostHistory.cost)).filter(
+            CostHistory.raw_product_id == rp.id,
+            CostHistory.company_id == current_user.company_id
+        ).scalar()
+
+    return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous, customers=customers, average=average)
 
 def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=None, hide_previous=False, sheet_name="Raw Product Price Sheet"):
     """

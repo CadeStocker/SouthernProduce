@@ -148,3 +148,111 @@ def test_raw_price_sheet_requires_login(client):
     response = client.get(url_for('main.raw_price_sheet'), follow_redirects=True)
     # Should redirect to login page
     assert "Login" in response.data.decode('utf-8')
+
+
+def test_average_cost_multiple_entries(client, app, logged_in_user):
+    """Average cost column should show the mean of all cost history entries."""
+    with app.app_context():
+        rp = RawProduct(name="Tomatoes", company_id=logged_in_user.company_id)
+        db.session.add(rp)
+        db.session.commit()
+
+        # Three cost entries: 3.00 + 6.00 + 9.00 → average = 6.00
+        for cost, d in [(3.00, date(2024, 1, 1)), (6.00, date(2024, 2, 1)), (9.00, date(2024, 3, 1))]:
+            db.session.add(CostHistory(
+                cost=cost,
+                date=d,
+                raw_product_id=rp.id,
+                company_id=logged_in_user.company_id
+            ))
+        db.session.commit()
+        url = url_for('main.raw_price_sheet')
+
+    response = client.get(url)
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+
+    assert "Tomatoes" in html
+    assert "$6.00" in html  # average
+
+
+def test_average_cost_single_entry(client, app, logged_in_user):
+    """Average of a single entry should equal that entry's cost."""
+    with app.app_context():
+        rp = RawProduct(name="Onions", company_id=logged_in_user.company_id)
+        db.session.add(rp)
+        db.session.commit()
+
+        db.session.add(CostHistory(
+            cost=4.50,
+            date=date(2024, 6, 1),
+            raw_product_id=rp.id,
+            company_id=logged_in_user.company_id
+        ))
+        db.session.commit()
+        url = url_for('main.raw_price_sheet')
+
+    response = client.get(url)
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+
+    assert "Onions" in html
+    assert "$4.50" in html  # average == only entry
+
+
+def test_average_cost_no_history(client, app, logged_in_user):
+    """A raw product with no cost history should show a dash in the average column."""
+    with app.app_context():
+        rp = RawProduct(name="Peppers", company_id=logged_in_user.company_id)
+        db.session.add(rp)
+        db.session.commit()
+        url = url_for('main.raw_price_sheet')
+
+    response = client.get(url)
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+
+    assert "Peppers" in html
+    # No average value — the template renders an em-dash for None
+    assert "—" in html
+
+
+def test_average_cost_isolated_per_product(client, app, logged_in_user):
+    """Each product's average should only reflect its own cost history, not other products'."""
+    with app.app_context():
+        rp_a = RawProduct(name="Cabbage", company_id=logged_in_user.company_id)
+        rp_b = RawProduct(name="Spinach", company_id=logged_in_user.company_id)
+        db.session.add_all([rp_a, rp_b])
+        db.session.commit()
+
+        # Cabbage: 2.00 + 4.00 → average = 3.00
+        for cost, d in [(2.00, date(2024, 1, 1)), (4.00, date(2024, 2, 1))]:
+            db.session.add(CostHistory(
+                cost=cost, date=d,
+                raw_product_id=rp_a.id,
+                company_id=logged_in_user.company_id
+            ))
+
+        # Spinach: 10.00 → average = 10.00
+        db.session.add(CostHistory(
+            cost=10.00,
+            date=date(2024, 1, 1),
+            raw_product_id=rp_b.id,
+            company_id=logged_in_user.company_id
+        ))
+        db.session.commit()
+        url = url_for('main.raw_price_sheet')
+
+    response = client.get(url)
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+
+    assert "$3.00" in html   # Cabbage average
+    assert "$10.00" in html  # Spinach average
+
+
+def test_average_cost_header_present(client, app, logged_in_user):
+    """The 'Average Cost' column header should always be present in the table."""
+    response = client.get(url_for('main.raw_price_sheet'))
+    assert response.status_code == 200
+    assert "Average Cost" in response.data.decode('utf-8')
