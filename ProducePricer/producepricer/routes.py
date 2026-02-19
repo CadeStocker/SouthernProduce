@@ -3251,6 +3251,10 @@ def price():
     
     # Process items for display
     item_data = []
+
+    def round_up_to_nearest_quarter(value):
+        return math.ceil(value * 4) / 4
+
     for item in items:
         # Get the most recent total cost for the item
         most_recent_cost = (
@@ -3268,10 +3272,41 @@ def price():
                 .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
                 .first()
             )
+
+        ranch_cost = 0
+        if item.ranch:
+            recent_ranch_cost = (RanchPrice.query
+                          .order_by(RanchPrice.date.desc(), RanchPrice.id.desc())
+                          .first()
+            )
+
+            if recent_ranch_cost:
+                ranch_cost = recent_ranch_cost.cost
+
+        designation_cost = 0
+        if item.item_designation:
+            recent_designation_cost = (DesignationCost.query
+                                .filter_by(item_designation=item.item_designation)
+                                .order_by(DesignationCost.date.desc(), DesignationCost.id.desc())
+                                .first()
+            )
+
+            if recent_designation_cost:
+                designation_cost = recent_designation_cost.cost
         
         # Skip items that still don't have a cost after trying to calculate it
         if not most_recent_cost:
             continue
+
+        recent_item_info = (ItemInfo.query.
+                            filter_by(item_id=item.id)
+                            .order_by(ItemInfo.date.desc(), ItemInfo.id.desc())
+                            .first())
+        
+        if not recent_item_info:
+            product_yield = 0
+        else:
+            product_yield = recent_item_info.product_yield
 
         # Calculate additional values
         cost_per_lb = most_recent_cost.total_cost / item.case_weight if item.case_weight else 0.0
@@ -3279,10 +3314,6 @@ def price():
         labor_cost = most_recent_cost.labor_cost
         packaging_cost = most_recent_cost.packaging_cost
         unit_cost = most_recent_cost.total_cost
-        
-        # Rounded costs (rounded up to the nearest .25)
-        def round_up_to_nearest_quarter(value):
-            return math.ceil(value * 4) / 4
 
         # Calculate rounded prices
         rounded_25 = round_up_to_nearest_quarter(unit_cost * 1.25)
@@ -3347,6 +3378,10 @@ def export_price_pdf():
     
     # Process items for display
     item_data = []
+
+    def round_up_to_nearest_quarter(value):
+        return math.ceil(value * 4) / 4
+
     for item in items:
         # Get the most recent total cost for the item
         most_recent_cost = (
@@ -3375,10 +3410,6 @@ def export_price_pdf():
         labor_cost = most_recent_cost.labor_cost
         packaging_cost = most_recent_cost.packaging_cost
         unit_cost = most_recent_cost.total_cost
-        
-        # Rounded costs (rounded up to the nearest .25)
-        def round_up_to_nearest_quarter(value):
-            return math.ceil(value * 4) / 4
 
         # Calculate rounded prices
         rounded_25 = round_up_to_nearest_quarter(unit_cost * 1.25)
@@ -4233,8 +4264,8 @@ def price_quoter():
         # get the total cost of the selected raw products
         total_raw = 0
 
-        # If the user provided an override (average cost), use that.
-        # The form field holds the average cost of selected items.
+        # The form field holds the total raw cost (sum of selected raw products).
+        # If the user provided a value, use it directly. Otherwise sum from DB.
         if form.raw_product_cost.data is not None and len(selected_raws) > 0:
             total_raw = form.raw_product_cost.data
         else:
@@ -4278,7 +4309,6 @@ def price_quoter():
 
         # compute the rounded values
         r25 = total * 1.25
-        r30 = total * 1.30
         r30 = total * 1.30
         r35 = total * 1.35
         r40 = total * 1.40
