@@ -1822,6 +1822,17 @@ def delete_item(item_id):
     
     # delete all associated ItemInfo entries
     ItemInfo.query.filter_by(item_id=item_id).delete()
+    # Clear price sheet backup association rows directly so SQLAlchemy
+    # doesn't need to query the price_sheet_backup table during flush.
+    try:
+        from producepricer.models import price_sheet_backup_items
+        db.session.execute(
+            price_sheet_backup_items.delete().where(
+                price_sheet_backup_items.c.item_id == item_id
+            )
+        )
+    except Exception:
+        pass
     # delete the item itself
     db.session.delete(item)
     db.session.commit()

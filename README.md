@@ -4,9 +4,6 @@ A full‑stack Flask web application for managing the costs and prices of produc
 
 This project demonstrates my ability to design and build a full-stack production-style application, from database design and authentication to testing and deployment. It highlights my interest in software engineering and applied AI.
 
-This project was created for Southern Produce Processors Inc.
-https://mysouthernproduce.com/
-
 ---
 
 ## Table of contents
@@ -34,8 +31,6 @@ ProducePricer helps produce businesses track:
 - AI summaries for items / raw products / packaging (OpenAI)
 - CSV import/export, PDF parsing for price lists
 - Role‑aware flows (company admin, users)
-
-This project shows full‑stack skills: REST endpoints, server‑side rendering, database modeling, asynchronous considerations for heavy workloads, and test automation.
 
 ---
 
@@ -101,8 +96,6 @@ EMAIL_PASS=your-email-password
 OPENAI_API_KEY=your-api-key
 ```
 
-The app factory accepts an explicit `db_uri` for testing (useful for CI).
-
 ---
 
 ## Database & migrations
@@ -134,9 +127,6 @@ or
 python run.py
 # open http://127.0.0.1:5000
 ```
-
-When working on templates, refresh the browser for changes. For Chart.js charts and CSV uploads, verify static files are served and correct CDN links are present.
-
 ---
 
 ## Running tests
@@ -155,17 +145,3 @@ Tips:
 - To debug failed tests, run a single test with `pytest tests/functional/test_raw_product.py::TestViewRawProduct::test_cost_history_chart -q -k <name>` or open the server and test manually.
 
 ---
-
-
-## License
-
-Include your chosen license (e.g. MIT) or state "All rights reserved" depending on intended use.
-
----
-
-## Contact / portfolio note
-
-This project demonstrates end‑to‑end software engineering: UX for business users, robust server logic, database design, third‑party API integration, and automated tests — a strong example for graduate applications focusing on systems, software engineering, or data‑driven applications.
-
-Deployed at: https://producepricer.onrender.com
-

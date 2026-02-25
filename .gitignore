@@ -5,3 +5,6 @@
 site.db
 instance/site.db__pycache__/
 *.pyc
+
+ProducePricer/instance/receiving_images/*
+instance/receiving_images/*
