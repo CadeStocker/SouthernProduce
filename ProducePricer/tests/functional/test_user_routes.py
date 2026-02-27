@@ -81,7 +81,7 @@ class TestSignupRoute:
             # Form might show error on page
             assert b'already registered' in resp.data or b'Sign Up' in resp.data
     
-    @patch('producepricer.routes.login_user')
+    @patch('producepricer.blueprints.auth.login_user')
     def test_signup_as_company_admin(self, mock_login, client, app):
         """Test signup as the company admin email (auto-approval)."""
         with app.app_context():
@@ -111,7 +111,7 @@ class TestSignupRoute:
             assert user.first_name == 'Admin'
             assert user.company_id == company.id
     
-    @patch('producepricer.routes.send_admin_approval_email')
+    @patch('producepricer.blueprints.auth.send_admin_approval_email')
     def test_regular_signup(self, mock_send_email, client, app):
         """Test regular user signup (requires admin approval)."""
         with app.app_context():

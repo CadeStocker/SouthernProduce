@@ -6,7 +6,7 @@ from producepricer.models import (
     LaborCost, DesignationCost, RanchPrice, CostHistory, 
     ItemDesignation, UnitOfWeight
 )
-from producepricer.routes import calculate_item_cost, calculate_item_cost_with_info
+from producepricer.blueprints.items import calculate_item_cost, calculate_item_cost_with_info
 
 class TestPricingLogic:
 

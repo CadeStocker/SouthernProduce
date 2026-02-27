@@ -5,7 +5,7 @@ from producepricer.models import (
     Company, User, Customer, Item, PriceSheet, PriceHistory, 
     UnitOfWeight, ItemDesignation, RawProduct
 )
-from producepricer.routes import _generate_price_sheet_pdf_bytes
+from producepricer.blueprints.pricing import _generate_price_sheet_pdf_bytes
 from flask_login import login_user
 import pdfplumber
 import io

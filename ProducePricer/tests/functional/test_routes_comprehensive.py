@@ -171,7 +171,7 @@ class TestSignup:
         }, follow_redirects=True)
         assert b'already registered' in response.data or b'Login' in response.data
 
-    @patch('producepricer.routes.send_admin_approval_email')
+    @patch('producepricer.blueprints.auth.send_admin_approval_email')
     def test_signup_creates_pending_user(self, mock_send_email, client, app, setup_company):
         """Test that regular signup creates a pending user."""
         response = client.post('/signup', data={

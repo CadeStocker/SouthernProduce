@@ -147,7 +147,7 @@ def setup_price_sheet_data(app, setup_company_with_admin):
 class TestAdminApprovalEmail:
     """Tests for admin approval email functionality when new users sign up."""
     
-    @patch('producepricer.routes.send_admin_approval_email')
+    @patch('producepricer.blueprints.auth.send_admin_approval_email')
     def test_signup_triggers_admin_email(self, mock_send_email, client, app, setup_company_with_admin):
         """Test that signing up triggers an admin approval email."""
         setup = setup_company_with_admin
@@ -168,10 +168,10 @@ class TestAdminApprovalEmail:
             if pending:  # Pending user created
                 mock_send_email.assert_called_once()
 
-    @patch('producepricer.routes.EmailMessage')
+    @patch('producepricer.blueprints.auth.EmailMessage')
     def test_admin_approval_email_content(self, mock_email_class, app, setup_company_with_admin):
         """Test that admin approval email contains correct content."""
-        from producepricer.routes import send_admin_approval_email
+        from producepricer.blueprints.auth import send_admin_approval_email
         
         with app.app_context():
             setup = setup_company_with_admin
@@ -200,23 +200,23 @@ class TestPasswordResetEmail:
     
     def test_password_reset_request_page_loads(self, client, app):
         """Test that the password reset request page loads."""
-        response = client.get('/reset/_password')
+        response = client.get('/reset_password')
         assert response.status_code == 200
         assert b'Reset' in response.data or b'reset' in response.data
 
-    @patch('producepricer.routes.send_reset_password_email')
+    @patch('producepricer.blueprints.auth.send_reset_password_email')
     def test_password_reset_triggers_email(self, mock_send_email, client, app, setup_company_with_admin):
         """Test that requesting password reset triggers email."""
-        response = client.post('/reset/_password', data={
+        response = client.post('/reset_password', data={
             'email': 'emailadmin@test.com'
         }, follow_redirects=True)
         
         mock_send_email.assert_called_once()
 
-    @patch('producepricer.routes.send_reset_password_email')
+    @patch('producepricer.blueprints.auth.send_reset_password_email')
     def test_password_reset_no_email_for_nonexistent_user(self, mock_send_email, client, app):
         """Test that no email is sent for non-existent users."""
-        response = client.post('/reset/_password', data={
+        response = client.post('/reset_password', data={
             'email': 'nonexistent@test.com'
         }, follow_redirects=True)
         
@@ -468,8 +468,8 @@ class TestEmailTemplateModel:
 class TestPriceSheetEmail:
     """Tests for emailing price sheets to customers."""
     
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_email_price_sheet(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test sending price sheet email."""
         setup = setup_price_sheet_data
@@ -488,8 +488,8 @@ class TestPriceSheetEmail:
         # Should send the message
         mock_msg.send.assert_called_once()
 
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_email_price_sheet_with_template(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test sending price sheet email using a template."""
         setup = setup_price_sheet_data
@@ -535,8 +535,8 @@ class TestPriceSheetEmail:
         })
         assert response.status_code == 404
 
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_email_price_sheet_attaches_pdf(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test that price sheet email attaches PDF."""
         setup = setup_price_sheet_data
@@ -555,8 +555,8 @@ class TestPriceSheetEmail:
         assert call_args[1] == b'fake pdf bytes'  # PDF bytes
         assert call_args[2] == 'application/pdf'  # MIME type
 
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_email_price_sheet_uses_default_template(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test that price sheet email uses default template when no template specified."""
         setup = setup_price_sheet_data
@@ -596,8 +596,8 @@ class TestPriceSheetEmail:
 class TestEmailErrorHandling:
     """Tests for email error handling."""
     
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_email_send_failure_handled(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test that email send failures are handled gracefully."""
         setup = setup_price_sheet_data
@@ -614,8 +614,8 @@ class TestEmailErrorHandling:
         assert response.status_code == 200
         assert b'Failed' in response.data or b'error' in response.data.lower()
 
-    @patch('producepricer.routes.EmailMessage')
-    @patch('producepricer.routes._generate_price_sheet_pdf_bytes')
+    @patch('producepricer.blueprints.pricing.EmailMessage')
+    @patch('producepricer.blueprints.pricing._generate_price_sheet_pdf_bytes')
     def test_template_render_error_falls_back_to_defaults(self, mock_pdf, mock_email_class, logged_in_admin, app, setup_price_sheet_data):
         """Test that template rendering errors fall back to default content."""
         setup = setup_price_sheet_data

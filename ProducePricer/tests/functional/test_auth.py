@@ -262,7 +262,7 @@ class TestPasswordResetRequest:
             # Should redirect (either 302 or return page if already on it)
             assert response.status_code in [200, 302]
 
-    @patch('producepricer.routes.send_reset_password_email')
+    @patch('producepricer.blueprints.auth.send_reset_password_email')
     def test_reset_password_request_valid_email(self, mock_send_email, client, app):
         """Test password reset request with valid email sends email."""
         with app.app_context():

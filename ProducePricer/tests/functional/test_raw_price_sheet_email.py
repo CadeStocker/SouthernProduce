@@ -88,8 +88,8 @@ def setup_raw_products(app, logged_in_user):
 
 def test_email_raw_price_sheet_single_recipient(client, app, logged_in_user, setup_raw_products):
     """Test emailing the raw price sheet to a single recipient."""
-    with patch('producepricer.routes.EmailMessage') as MockEmailMessage, \
-         patch('producepricer.routes._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
+    with patch('producepricer.blueprints.raw_products.EmailMessage') as MockEmailMessage, \
+         patch('producepricer.blueprints.raw_products._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
         
         mock_msg = MockEmailMessage.return_value
         mock_msg.send.return_value = None
@@ -121,8 +121,8 @@ def test_email_raw_price_sheet_single_recipient(client, app, logged_in_user, set
 
 def test_email_raw_price_sheet_multiple_recipients(client, app, logged_in_user, setup_raw_products):
     """Test emailing the raw price sheet to multiple recipients."""
-    with patch('producepricer.routes.EmailMessage') as MockEmailMessage, \
-         patch('producepricer.routes._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
+    with patch('producepricer.blueprints.raw_products.EmailMessage') as MockEmailMessage, \
+         patch('producepricer.blueprints.raw_products._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
         
         mock_msg = MockEmailMessage.return_value
         mock_gen_pdf.return_value = b'fake pdf content'
@@ -163,8 +163,8 @@ def test_email_raw_price_sheet_no_recipient(client, app, logged_in_user, setup_r
 
 def test_email_raw_price_sheet_hide_previous(client, app, logged_in_user, setup_raw_products):
     """Test emailing with hide_previous option."""
-    with patch('producepricer.routes.EmailMessage') as MockEmailMessage, \
-         patch('producepricer.routes._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
+    with patch('producepricer.blueprints.raw_products.EmailMessage') as MockEmailMessage, \
+         patch('producepricer.blueprints.raw_products._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
         
         mock_msg = MockEmailMessage.return_value
         mock_gen_pdf.return_value = b'fake pdf content'
@@ -187,8 +187,8 @@ def test_email_raw_price_sheet_hide_previous(client, app, logged_in_user, setup_
 
 def test_email_raw_price_sheet_send_failure(client, app, logged_in_user, setup_raw_products):
     """Test handling of email send failure."""
-    with patch('producepricer.routes.EmailMessage') as MockEmailMessage, \
-         patch('producepricer.routes._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
+    with patch('producepricer.blueprints.raw_products.EmailMessage') as MockEmailMessage, \
+         patch('producepricer.blueprints.raw_products._generate_raw_price_sheet_pdf_bytes') as mock_gen_pdf:
         
         mock_msg = MockEmailMessage.return_value
         mock_msg.send.side_effect = Exception("SMTP Error")

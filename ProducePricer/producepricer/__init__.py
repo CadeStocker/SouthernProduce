@@ -125,6 +125,9 @@ def create_app(db_uri=None):
     
     app.register_blueprint(main)
     app.register_blueprint(api)
+
+    # Import all sub-modules to register routes on `main`
+    from producepricer.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates
     
     # Add custom Jinja2 filter to convert newlines to <br> tags
     @app.template_filter('nl2br')

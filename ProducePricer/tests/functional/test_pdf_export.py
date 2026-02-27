@@ -268,7 +268,7 @@ class TestRawPriceSheetPDF:
 
     def test_generate_raw_price_sheet_pdf_bytes_function(self, app, setup_raw_products):
         """Test the _generate_raw_price_sheet_pdf_bytes helper function directly."""
-        from producepricer.routes import _generate_raw_price_sheet_pdf_bytes
+        from producepricer.blueprints.raw_products import _generate_raw_price_sheet_pdf_bytes
         
         with app.app_context():
             setup = setup_raw_products
@@ -314,7 +314,7 @@ class TestRawPriceSheetPDF:
 
     def test_raw_price_sheet_pdf_custom_sheet_name(self, app, setup_raw_products):
         """Test that custom sheet name is used in PDF."""
-        from producepricer.routes import _generate_raw_price_sheet_pdf_bytes
+        from producepricer.blueprints.raw_products import _generate_raw_price_sheet_pdf_bytes
         
         with app.app_context():
             setup = setup_raw_products
@@ -569,7 +569,7 @@ class TestPDFHelperFunctions:
     
     def test_raw_pdf_bytes_returns_correct_type(self, app, setup_raw_products):
         """Test that raw PDF bytes returns correct type."""
-        from producepricer.routes import _generate_raw_price_sheet_pdf_bytes
+        from producepricer.blueprints.raw_products import _generate_raw_price_sheet_pdf_bytes
         
         with app.app_context():
             setup = setup_raw_products
@@ -582,7 +582,7 @@ class TestPDFHelperFunctions:
 
     def test_raw_pdf_with_none_values(self, app, setup_pdf_test_company):
         """Test raw PDF generation handles None values gracefully."""
-        from producepricer.routes import _generate_raw_price_sheet_pdf_bytes
+        from producepricer.blueprints.raw_products import _generate_raw_price_sheet_pdf_bytes
         
         with app.app_context():
             setup = setup_pdf_test_company
