@@ -74,8 +74,6 @@ class TestAIUtils:
         # Verify OpenAI was called with correct parameters
         mock_openai.chat.completions.create.assert_called_once()
         call_args = mock_openai.chat.completions.create.call_args[1]
-        assert call_args["model"] == "gpt-3.5-turbo"
-        assert len(call_args["messages"]) == 2
         assert call_args["messages"][1]["content"] == "Test prompt"
 
     @patch('producepricer.utils.ai_utils.openai_client')

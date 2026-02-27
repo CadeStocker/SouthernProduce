@@ -1566,7 +1566,6 @@ def upload_raw_product_csv():
                 # Clean and convert cost values
                 name = row['name'].strip()
                 
-                # Handle NaN values in cost - THIS IS THE KEY FIX
                 try:
                     cost_value = row['cost']
                     # Check if the value is NaN
@@ -1597,6 +1596,7 @@ def upload_raw_product_csv():
                     date=datetime.datetime.utcnow(),
                     company_id=current_user.company_id
                 )
+
                 db.session.add(cost_history)
                 db.session.commit()
 

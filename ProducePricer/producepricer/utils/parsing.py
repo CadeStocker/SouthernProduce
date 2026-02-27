@@ -55,40 +55,48 @@ Return ONLY JSON that matches the provided schema. Infer:
 def parse_price_list_with_openai(pdf_text: str) -> Dict[str, Any]:
     """Sends PDF text to OpenAI and returns structured JSON."""
 
-    MAX_TEXT_LENGTH = 4000  # Reduced to prevent token limit issues
+    MAX_TEXT_LENGTH = 12000  # Allow enough text to capture a full price sheet
 
-    if len(pdf_text) > MAX_TEXT_LENGTH:
-        pdf_text = pdf_text[:MAX_TEXT_LENGTH] + "\n[Text truncated due to length...]"
-
-    # Clean and normalize the text for faster parsing
-    # Remove problematic characters that could break JSON
-    cleaned_text = pdf_text.replace('\n\n', '\n').strip()
-    # Escape any existing quotes and backslashes that could break JSON
-    cleaned_text = cleaned_text.replace('\\', '\\\\').replace('"', '\\"').replace('\r', '\\r').replace('\t', '\\t')
-    # Remove or replace control characters
+    # Clean and normalize the text — do NOT escape quotes/backslashes here,
+    # since the text is passed as a Python string in the messages list, not
+    # embedded raw into a JSON string literal.
+    cleaned_text = pdf_text.replace('\r\n', '\n').replace('\r', '\n')
+    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text).strip()
+    # Strip non-printable control characters (keep newlines and tabs)
     cleaned_text = ''.join(char for char in cleaned_text if ord(char) >= 32 or char in '\n\t')
 
-    # First attempt with full text
+    if len(cleaned_text) > MAX_TEXT_LENGTH:
+        cleaned_text = cleaned_text[:MAX_TEXT_LENGTH] + "\n[Text truncated due to length...]"
+
+    # First attempt with the (possibly truncated) full text
     result = _attempt_parse(cleaned_text)
-    
-    # If we got a truncation error, try with smaller chunks
+
+    # If the API itself reported a context/truncation error, retry with a smaller chunk
     if "error" in result and "truncated" in result.get("error", "").lower():
         print("Attempting with smaller text chunk due to truncation...")
-        smaller_text = cleaned_text[:2000] + "\n[Text further truncated...]"
+        smaller_text = cleaned_text[:cleaned_text.find("\n[Text truncated") if "\n[Text truncated" in cleaned_text else 6000]
+        smaller_text = smaller_text[:6000] + "\n[Text further truncated...]"
         result = _attempt_parse(smaller_text)
-    
+
     return result
 
 def _attempt_parse(cleaned_text: str) -> Dict[str, Any]:
     """Helper function to attempt parsing with given text."""
     try:
         response = get_ai_response(
-            prompt="I am going to give you a text that i would like you to parse into structured JSON.",
-            model="gpt-4-turbo-preview",
+            model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You are an assistant that parses produce price lists into structured data. Extract only what's clearly visible. Always return complete, valid JSON. If the list is very long, prioritize the first items and ensure the JSON structure is properly closed."},
-                {"role": "user", "content": f"Parse this price list into JSON format with vendor, effective_date, and items array with name and price_usd fields. IMPORTANT: Always ensure the JSON is complete and properly closed, even if you need to limit the number of items:\n\n{cleaned_text}"}
+                {"role": "system", "content": (
+                    "You are an assistant that parses produce price lists into structured JSON. "
+                    "Extract ALL items from the list — do not stop early. "
+                    "Return a single JSON object with keys: vendor (string), effective_date (YYYY-MM-DD or null), "
+                    "and items (array). Each item must have: name (string), package (string), unit (string), "
+                    "price_usd (number). Include every line item you can find."
+                )},
+                {"role": "user", "content": (
+                    f"Parse every item from the following produce price list into JSON.\n\n{cleaned_text}"
+                )}
             ]
         )
 

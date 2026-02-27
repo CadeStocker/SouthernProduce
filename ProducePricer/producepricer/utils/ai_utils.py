@@ -7,7 +7,7 @@ from producepricer import db
 
 logger = logging.getLogger(__name__)
 
-def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-3.5-turbo", response_format=None):
+def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-4o-mini", response_format=None):
     """Get a response from OpenAI API with speed optimizations"""
     if system_message is None:
         system_message = "You are a helpful assistant for a produce pricing application."
@@ -19,17 +19,16 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
                 {"role": "user", "content": prompt or ""}
             ]
         
-        # Check if content is too large and truncate
-        max_tokens_per_message = 4000
+        # Check if content is too large and truncate if needed (~16k chars ≈ 4k tokens)
+        max_chars_per_message = 16000
         for msg in messages:
-            if len(msg.get("content", "")) > max_tokens_per_message * 4:
-                msg["content"] = msg["content"][:max_tokens_per_message*4] + "\n[Content truncated]"
+            if len(msg.get("content", "")) > max_chars_per_message:
+                msg["content"] = msg["content"][:max_chars_per_message] + "\n[Content truncated]"
         
         kwargs = {
-            "model": model,  # Using gpt-3.5-turbo instead of gpt-4 (much faster)
+            "model": model,
             "messages": messages,
-            "max_tokens": 4000,  # Increased token limit for longer JSON responses
-            "temperature": 0.1   # Even lower temperature for more consistent JSON structure
+            "max_completion_tokens": 16000  # Enough headroom to return a full item list
         }
         
         if response_format:
