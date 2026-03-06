@@ -805,28 +805,123 @@ class APIKey(db.Model):
         self.is_active = True
         db.session.commit()
 
+class InventorySession(db.Model):
+    """A single inventory-taking event submitted from the iPad.
+
+    Both ItemInventory and SupplyInventory rows point to one of these,
+    so a full count can be viewed, audited, or deleted as a unit.
+    """
+    __tablename__ = 'inventory_session'
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String(200), nullable=True)   # e.g. "Morning count", optional
+    counted_by = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.String(500), nullable=True)
+    submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    # Child rows – cascade delete so removing a session wipes its line items
+    item_counts = db.relationship(
+        'ItemInventory', backref='session', lazy=True, cascade='all, delete-orphan'
+    )
+    supply_counts = db.relationship(
+        'SupplyInventory', backref='session', lazy=True, cascade='all, delete-orphan'
+    )
+
+    def __init__(self, company_id, counted_by=None, label=None, notes=None, submitted_at=None):
+        self.company_id = company_id
+        self.counted_by = counted_by
+        self.label = label
+        self.notes = notes
+        if submitted_at:
+            self.submitted_at = submitted_at
+
+    def __repr__(self):
+        return f"InventorySession(id={self.id}, label='{self.label}', submitted={self.submitted_at})"
+
+
 class ItemInventory(db.Model):
-    """Model for tracking inventory counts of items from the iPad app."""
+    """One line of a finished-goods inventory count, belonging to an InventorySession."""
     __tablename__ = 'inventory_count'
     id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer, db.ForeignKey('inventory_session.id'), nullable=True, index=True
+    )
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     count_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     counted_by = db.Column(db.String(200), nullable=True)  # Name of person who counted
     notes = db.Column(db.String(500), nullable=True)  # Optional notes about the count
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
-    
+
     # Relationships
     item = db.relationship('Item', backref='inventory_counts')
-    
-    def __init__(self, item_id, quantity, company_id, count_date=None, counted_by=None, notes=None):
+
+    def __init__(self, item_id, quantity, company_id, session_id=None,
+                 count_date=None, counted_by=None, notes=None):
         self.item_id = item_id
         self.quantity = quantity
         self.company_id = company_id
+        self.session_id = session_id
         self.counted_by = counted_by
         self.notes = notes
         if count_date:
             self.count_date = count_date
-    
+
     def __repr__(self):
         return f"ItemInventory(item_id={self.item_id}, quantity={self.quantity}, date={self.count_date})"
+
+
+class Supply(db.Model):
+    """Catalog of supplies (boxes, bags, gloves, cleaning products, etc.)."""
+    __tablename__ = 'supply'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    unit = db.Column(db.String(50), nullable=False)   # e.g. "case", "box", "roll", "each"
+    category = db.Column(db.String(100), nullable=True)  # e.g. "Packaging", "Cleaning", "Safety"
+    notes = db.Column(db.String(500), nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    # Relationship back to inventory counts
+    inventory_counts = db.relationship('SupplyInventory', backref='supply', lazy=True,
+                                       cascade='all, delete-orphan')
+
+    def __init__(self, name, unit, company_id, category=None, notes=None, is_active=True):
+        self.name = name
+        self.unit = unit
+        self.company_id = company_id
+        self.category = category
+        self.notes = notes
+        self.is_active = is_active
+
+    def __repr__(self):
+        return f"Supply('{self.name}', unit='{self.unit}', category='{self.category}')"
+
+
+class SupplyInventory(db.Model):
+    """One line of a supply inventory count, belonging to an InventorySession."""
+    __tablename__ = 'supply_inventory_count'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer, db.ForeignKey('inventory_session.id'), nullable=True, index=True
+    )
+    supply_id = db.Column(db.Integer, db.ForeignKey('supply.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)   # float so partial units (e.g. 0.5 roll) are possible
+    count_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    counted_by = db.Column(db.String(200), nullable=True)
+    notes = db.Column(db.String(500), nullable=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    def __init__(self, supply_id, quantity, company_id, session_id=None,
+                 count_date=None, counted_by=None, notes=None):
+        self.supply_id = supply_id
+        self.quantity = quantity
+        self.company_id = company_id
+        self.session_id = session_id
+        self.counted_by = counted_by
+        self.notes = notes
+        if count_date:
+            self.count_date = count_date
+
+    def __repr__(self):
+        return f"SupplyInventory(supply_id={self.supply_id}, quantity={self.quantity}, date={self.count_date})"

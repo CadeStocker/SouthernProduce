@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Inventory Session – {{ session.label or session.submitted_at.strftime('%Y-%m-%d') }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5" style="max-width: 95%;">
+
+  <!-- Back link -->
+  <a href="{{ url_for('main.inventory_sessions') }}" class="btn btn-outline-secondary btn-sm mb-3">
+    &larr; All Sessions
+  </a>
+
+  <!-- Session header card -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">
+        {{ session.label or 'Inventory Session' }}
+      </h4>
+      <form method="POST"
+            action="{{ url_for('main.delete_inventory_session', session_id=session.id) }}"
+            onsubmit="return confirm('Delete this entire inventory session?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">✕ Delete Session</button>
+      </form>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <p class="mb-1"><strong>Submitted:</strong>
+            {{ session.submitted_at.strftime('%B %d, %Y at %I:%M %p') if session.submitted_at else 'N/A' }}
+          </p>
+          <p class="mb-1"><strong>Counted By:</strong> {{ session.counted_by or '—' }}</p>
+        </div>
+        <div class="col-md-4">
+          <p class="mb-1"><strong>Item Lines:</strong> {{ item_counts|length }}</p>
+          <p class="mb-1"><strong>Supply Lines:</strong> {{ supply_counts|length }}</p>
+        </div>
+        <div class="col-md-4">
+          {% if session.notes %}
+            <p class="mb-1"><strong>Notes:</strong></p>
+            <p class="text-muted">{{ session.notes }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Item Counts Table -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Item Counts ({{ item_counts|length }})</strong>
+    </div>
+    {% if item_counts %}
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Counted By</th>
+                <th>Date &amp; Time</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for count in item_counts %}
+              <tr>
+                <td>
+                  {% if count.item %}
+                    <a href="{{ url_for('main.view_item', item_id=count.item.id) }}">
+                      {{ count.item.name }}
+                    </a>
+                  {% else %}
+                    Item #{{ count.item_id }}
+                  {% endif %}
+                </td>
+                <td>{{ count.quantity }}</td>
+                <td>{{ count.counted_by or '—' }}</td>
+                <td>{{ count.count_date.strftime('%Y-%m-%d %H:%M') if count.count_date else '—' }}</td>
+                <td>{{ count.notes or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="card-body">
+        <p class="text-muted mb-0">No item counts in this session.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Supply Counts Table -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Supply Counts ({{ supply_counts|length }})</strong>
+    </div>
+    {% if supply_counts %}
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Supply</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>Counted By</th>
+                <th>Date &amp; Time</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for count in supply_counts %}
+              <tr>
+                <td>{{ count.supply.name if count.supply else 'Supply #' ~ count.supply_id }}</td>
+                <td>{{ count.supply.category if count.supply else '—' }}</td>
+                <td>{{ count.quantity }}</td>
+                <td>{{ count.supply.unit if count.supply else '—' }}</td>
+                <td>{{ count.counted_by or '—' }}</td>
+                <td>{{ count.count_date.strftime('%Y-%m-%d %H:%M') if count.count_date else '—' }}</td>
+                <td>{{ count.notes or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="card-body">
+        <p class="text-muted mb-0">No supply counts in this session.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

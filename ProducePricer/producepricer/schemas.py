@@ -4,7 +4,7 @@ Provides type safety and input sanitization for all API requests.
 """
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime as dt_type
 try:
     import bleach
@@ -58,6 +58,69 @@ class ReceivingLogCreateSchema(BaseModel):
         return v
 
 
+class ItemInventoryCreateSchema(BaseModel):
+    """Schema for submitting a finished-goods inventory count from the iPad."""
+
+    model_config = ConfigDict(strict=False)
+
+    item_id: int = Field(..., gt=0)
+    quantity: int = Field(..., ge=0)
+    counted_by: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=500)
+    count_date: Optional[dt_type] = None
+
+    @field_validator('counted_by', 'notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
+class SupplyCreateSchema(BaseModel):
+    """Schema for creating a new supply catalog entry."""
+
+    model_config = ConfigDict(strict=False)
+
+    name: str = Field(..., min_length=1, max_length=100)
+    unit: str = Field(..., min_length=1, max_length=50)
+    category: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=500)
+    is_active: bool = True
+
+    @field_validator('name', 'unit', 'category', 'notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
+class SupplyInventoryCreateSchema(BaseModel):
+    """Schema for submitting a supply inventory count from the iPad."""
+
+    model_config = ConfigDict(strict=False)
+
+    supply_id: int = Field(..., gt=0)
+    quantity: float = Field(..., ge=0)
+    counted_by: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=500)
+    count_date: Optional[dt_type] = None
+
+    @field_validator('counted_by', 'notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
 def validate_foreign_key_exists(model_class, field_id: int, company_id: int, field_name: str):
     """
     Validate that a foreign key exists and belongs to the user's company.
@@ -83,3 +146,85 @@ def validate_foreign_key_exists(model_class, field_id: int, company_id: int, fie
         raise ValueError(f"Invalid {field_name}: ID {field_id} not found or not accessible")
     
     return instance
+
+
+# ---------------------------------------------------------------------------
+# Inventory session schemas
+# ---------------------------------------------------------------------------
+
+class ItemInventoryLineSchema(BaseModel):
+    """One finished-goods line inside an inventory session submission."""
+
+    model_config = ConfigDict(strict=False)
+
+    item_id: int = Field(..., gt=0)
+    quantity: int = Field(..., ge=0)
+    notes: Optional[str] = Field(None, max_length=500)
+
+    @field_validator('notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
+class SupplyInventoryLineSchema(BaseModel):
+    """One supply line inside an inventory session submission."""
+
+    model_config = ConfigDict(strict=False)
+
+    supply_id: int = Field(..., gt=0)
+    quantity: float = Field(..., ge=0)
+    notes: Optional[str] = Field(None, max_length=500)
+
+    @field_validator('notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
+class InventorySessionCreateSchema(BaseModel):
+    """Full inventory session submitted in one JSON payload from the iPad.
+
+    Example payload::
+
+        {
+            "label": "Morning count",
+            "counted_by": "John",
+            "notes": "Cooler #2 was locked",
+            "submitted_at": "2026-03-06T08:00:00",   // optional
+            "item_counts": [
+                {"item_id": 1, "quantity": 40},
+                {"item_id": 3, "quantity": 12, "notes": "One damaged box"}
+            ],
+            "supply_counts": [
+                {"supply_id": 2, "quantity": 5},
+                {"supply_id": 4, "quantity": 0.5, "notes": "Half roll left"}
+            ]
+        }
+    """
+
+    model_config = ConfigDict(strict=False)
+
+    label: Optional[str] = Field(None, max_length=200)
+    counted_by: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=500)
+    submitted_at: Optional[dt_type] = None
+    item_counts: List[ItemInventoryLineSchema] = Field(default_factory=list)
+    supply_counts: List[SupplyInventoryLineSchema] = Field(default_factory=list)
+
+    @field_validator('label', 'counted_by', 'notes')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)

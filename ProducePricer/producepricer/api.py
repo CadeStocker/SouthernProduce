@@ -12,9 +12,19 @@ from producepricer.models import (
     GrowerOrDistributor,
     Item,
     ItemInventory,
+    InventorySession,
+    Supply,
+    SupplyInventory,
     db
 )
-from producepricer.schemas import ReceivingLogCreateSchema, validate_foreign_key_exists
+from producepricer.schemas import (
+    ReceivingLogCreateSchema,
+    ItemInventoryCreateSchema,
+    SupplyCreateSchema,
+    SupplyInventoryCreateSchema,
+    InventorySessionCreateSchema,
+    validate_foreign_key_exists,
+)
 from producepricer.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
 from datetime import datetime
 
@@ -442,9 +452,7 @@ def upload_receiving_images(log_id):
     }), 201
 
 
-# ============================================================================
 # ITEM INVENTORY ENDPOINTS
-# ============================================================================
 
 @api.route('/api/items', methods=['GET'])
 @optional_api_key_or_login
@@ -648,3 +656,476 @@ def get_inventory_counts():
         })
     
     return jsonify(counts_data), 200
+
+
+# SUPPLY CATALOG ENDPOINTS
+
+@api.route('/api/supplies', methods=['GET'])
+@optional_api_key_or_login
+def get_supplies():
+    """Get all supplies in the company's catalog.
+
+    Query parameters:
+        category: filter by category string (case-insensitive)
+        active_only: if 'true' (default), only return active supplies
+    """
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    query = Supply.query.filter_by(company_id=company_id)
+
+    active_only = request.args.get('active_only', 'true').lower()
+    if active_only != 'false':
+        query = query.filter_by(is_active=True)
+
+    category = request.args.get('category')
+    if category:
+        query = query.filter(Supply.category.ilike(f'%{category}%'))
+
+    supplies = query.order_by(Supply.category, Supply.name).all()
+
+    return jsonify([
+        {
+            'id': s.id,
+            'name': s.name,
+            'unit': s.unit,
+            'category': s.category,
+            'notes': s.notes,
+            'is_active': s.is_active,
+        }
+        for s in supplies
+    ]), 200
+
+
+@api.route('/api/supplies', methods=['POST'])
+@optional_api_key_or_login
+def create_supply():
+    """Create a new supply in the catalog.
+
+    Request JSON:
+        {
+            "name": "Latex Gloves",
+            "unit": "box",
+            "category": "Safety",   // optional
+            "notes": "100 count",   // optional
+            "is_active": true       // optional, defaults to true
+        }
+    """
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = SupplyCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        # Prevent duplicates within the same company
+        existing = Supply.query.filter_by(
+            company_id=company_id, name=data.name
+        ).first()
+        if existing:
+            return jsonify({'error': 'A supply with this name already exists', 'id': existing.id}), 409
+
+        supply = Supply(
+            name=data.name,
+            unit=data.unit,
+            company_id=company_id,
+            category=data.category,
+            notes=data.notes,
+            is_active=data.is_active,
+        )
+        db.session.add(supply)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Supply created successfully',
+            'supply': {
+                'id': supply.id,
+                'name': supply.name,
+                'unit': supply.unit,
+                'category': supply.category,
+                'notes': supply.notes,
+                'is_active': supply.is_active,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating supply: {e}")
+        return jsonify({'error': 'An error occurred while creating the supply'}), 500
+
+
+# SUPPLY INVENTORY COUNT ENDPOINTS
+
+@api.route('/api/supply_inventory_counts', methods=['POST'])
+@optional_api_key_or_login
+def create_supply_inventory_count():
+    """Submit a supply inventory count from the iPad.
+
+    Request JSON:
+        {
+            "supply_id": 7,
+            "quantity": 3.5,
+            "counted_by": "Jane",       // optional
+            "notes": "Half roll left",  // optional
+            "count_date": "2026-03-06T09:00:00"  // optional, defaults to now
+        }
+    """
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+        if hasattr(g, 'device_name'):
+            default_counted_by = g.device_name
+        else:
+            default_counted_by = f"{current_user.first_name} {current_user.last_name}"
+
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = SupplyInventoryCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        # Verify the supply belongs to this company
+        supply = Supply.query.filter_by(id=data.supply_id, company_id=company_id).first()
+        if not supply:
+            return jsonify({'error': f'Supply with id {data.supply_id} not found'}), 404
+
+        count = SupplyInventory(
+            supply_id=data.supply_id,
+            quantity=data.quantity,
+            company_id=company_id,
+            count_date=data.count_date,
+            counted_by=data.counted_by or default_counted_by,
+            notes=data.notes,
+        )
+        db.session.add(count)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Supply inventory count recorded successfully',
+            'supply_inventory_count': {
+                'id': count.id,
+                'supply_id': count.supply_id,
+                'supply_name': supply.name,
+                'supply_unit': supply.unit,
+                'quantity': count.quantity,
+                'count_date': count.count_date.isoformat(),
+                'counted_by': count.counted_by,
+                'notes': count.notes,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating supply inventory count: {e}")
+        return jsonify({'error': 'An error occurred while recording the count'}), 500
+
+
+@api.route('/api/supply_inventory_counts', methods=['GET'])
+@optional_api_key_or_login
+def get_supply_inventory_counts():
+    """Get supply inventory count history.
+
+    Query parameters:
+        supply_id:   filter by supply ID
+        start_date:  ISO datetime, inclusive lower bound
+        end_date:    ISO datetime, inclusive upper bound
+        limit:       max results (default 100, max 1000)
+    """
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    query = SupplyInventory.query.filter_by(company_id=company_id)
+
+    supply_id = request.args.get('supply_id', type=int)
+    if supply_id:
+        query = query.filter_by(supply_id=supply_id)
+
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            query = query.filter(
+                SupplyInventory.count_date >= datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            )
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format'}), 400
+
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            query = query.filter(
+                SupplyInventory.count_date <= datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            )
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format'}), 400
+
+    limit = min(request.args.get('limit', default=100, type=int), 1000)
+
+    counts = query.order_by(SupplyInventory.count_date.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': c.id,
+            'supply_id': c.supply_id,
+            'supply_name': c.supply.name if c.supply else None,
+            'supply_unit': c.supply.unit if c.supply else None,
+            'category': c.supply.category if c.supply else None,
+            'quantity': c.quantity,
+            'count_date': c.count_date.isoformat(),
+            'counted_by': c.counted_by,
+            'notes': c.notes,
+        }
+        for c in counts
+    ]), 200
+
+
+# INVENTORY SESSION ENDPOINTS
+
+@api.route('/api/inventory_sessions', methods=['POST'])
+@optional_api_key_or_login
+def create_inventory_session():
+    """Submit a complete inventory session (items + supplies) in one request.
+
+    The iPad sends a single JSON object that contains both item counts and
+    supply counts. One ``InventorySession`` parent row is created, and every
+    line is stored as a child ``ItemInventory`` or ``SupplyInventory`` row.
+
+    Request JSON::
+
+        {
+            "label": "Morning count",          // optional
+            "counted_by": "John",              // optional (falls back to device name)
+            "notes": "Cooler #2 was locked",   // optional
+            "submitted_at": "2026-03-06T08:00:00",  // optional, defaults to now
+            "item_counts": [
+                {"item_id": 1, "quantity": 40},
+                {"item_id": 3, "quantity": 12, "notes": "One damaged box"}
+            ],
+            "supply_counts": [
+                {"supply_id": 2, "quantity": 5},
+                {"supply_id": 4, "quantity": 0.5, "notes": "Half roll left"}
+            ]
+        }
+    """
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+        default_counted_by = (
+            g.device_name if hasattr(g, 'device_name')
+            else f"{current_user.first_name} {current_user.last_name}"
+        )
+
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = InventorySessionCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        # Validate all item IDs belong to this company before writing anything
+        item_ids = {line.item_id for line in data.item_counts}
+        if item_ids:
+            found_items = {
+                i.id: i for i in
+                Item.query.filter(
+                    Item.id.in_(item_ids),
+                    Item.company_id == company_id
+                ).all()
+            }
+            missing = item_ids - found_items.keys()
+            if missing:
+                return jsonify({'error': f'Item IDs not found: {sorted(missing)}'}), 404
+
+        # Validate all supply IDs belong to this company before writing anything
+        supply_ids = {line.supply_id for line in data.supply_counts}
+        if supply_ids:
+            found_supplies = {
+                s.id: s for s in
+                Supply.query.filter(
+                    Supply.id.in_(supply_ids),
+                    Supply.company_id == company_id
+                ).all()
+            }
+            missing = supply_ids - found_supplies.keys()
+            if missing:
+                return jsonify({'error': f'Supply IDs not found: {sorted(missing)}'}), 404
+
+        counted_by = data.counted_by or default_counted_by
+
+        # Create the parent session
+        session = InventorySession(
+            company_id=company_id,
+            counted_by=counted_by,
+            label=data.label,
+            notes=data.notes,
+            submitted_at=data.submitted_at,
+        )
+        db.session.add(session)
+        db.session.flush()  # get session.id before adding children
+
+        # Create item count rows
+        item_rows = []
+        for line in data.item_counts:
+            row = ItemInventory(
+                item_id=line.item_id,
+                quantity=line.quantity,
+                company_id=company_id,
+                session_id=session.id,
+                counted_by=counted_by,
+                notes=line.notes,
+                count_date=data.submitted_at,
+            )
+            db.session.add(row)
+            item_rows.append(row)
+
+        # Create supply count rows
+        supply_rows = []
+        for line in data.supply_counts:
+            row = SupplyInventory(
+                supply_id=line.supply_id,
+                quantity=line.quantity,
+                company_id=company_id,
+                session_id=session.id,
+                counted_by=counted_by,
+                notes=line.notes,
+                count_date=data.submitted_at,
+            )
+            db.session.add(row)
+            supply_rows.append(row)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Inventory session recorded successfully',
+            'session': {
+                'id': session.id,
+                'label': session.label,
+                'counted_by': session.counted_by,
+                'notes': session.notes,
+                'submitted_at': session.submitted_at.isoformat(),
+                'item_count': len(item_rows),
+                'supply_count': len(supply_rows),
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating inventory session: {e}")
+        return jsonify({'error': 'An error occurred while recording the inventory session'}), 500
+
+
+@api.route('/api/inventory_sessions', methods=['GET'])
+@optional_api_key_or_login
+def get_inventory_sessions():
+    """List inventory sessions for this company.
+
+    Query parameters:
+        start_date:  ISO datetime, inclusive lower bound on ``submitted_at``
+        end_date:    ISO datetime, inclusive upper bound on ``submitted_at``
+        limit:       max results (default 50, max 500)
+    """
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    query = InventorySession.query.filter_by(company_id=company_id)
+
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            query = query.filter(
+                InventorySession.submitted_at >= datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            )
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format'}), 400
+
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            query = query.filter(
+                InventorySession.submitted_at <= datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            )
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format'}), 400
+
+    limit = min(request.args.get('limit', default=50, type=int), 500)
+    sessions = query.order_by(InventorySession.submitted_at.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': s.id,
+            'label': s.label,
+            'counted_by': s.counted_by,
+            'notes': s.notes,
+            'submitted_at': s.submitted_at.isoformat(),
+            'item_count': len(s.item_counts),
+            'supply_count': len(s.supply_counts),
+        }
+        for s in sessions
+    ]), 200
+
+
+@api.route('/api/inventory_sessions/<int:session_id>', methods=['GET'])
+@optional_api_key_or_login
+def get_inventory_session(session_id):
+    """Return full detail of one inventory session including all line items."""
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    session = InventorySession.query.filter_by(
+        id=session_id, company_id=company_id
+    ).first_or_404()
+
+    return jsonify({
+        'id': session.id,
+        'label': session.label,
+        'counted_by': session.counted_by,
+        'notes': session.notes,
+        'submitted_at': session.submitted_at.isoformat(),
+        'item_counts': [
+            {
+                'id': r.id,
+                'item_id': r.item_id,
+                'item_name': r.item.name if r.item else None,
+                'quantity': r.quantity,
+                'notes': r.notes,
+            }
+            for r in session.item_counts
+        ],
+        'supply_counts': [
+            {
+                'id': r.id,
+                'supply_id': r.supply_id,
+                'supply_name': r.supply.name if r.supply else None,
+                'supply_unit': r.supply.unit if r.supply else None,
+                'quantity': r.quantity,
+                'notes': r.notes,
+            }
+            for r in session.supply_counts
+        ],
+    }), 200
+
+
+@api.route('/api/inventory_sessions/<int:session_id>', methods=['DELETE'])
+@optional_api_key_or_login
+def delete_inventory_session(session_id):
+    """Delete an inventory session and all its line items."""
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    session = InventorySession.query.filter_by(
+        id=session_id, company_id=company_id
+    ).first_or_404()
+
+    db.session.delete(session)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'Inventory session {session_id} deleted'}), 200

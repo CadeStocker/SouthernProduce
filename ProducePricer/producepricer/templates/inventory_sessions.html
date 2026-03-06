@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Inventory Sessions{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5" style="max-width: 95%;">
+  <h1 class="mb-4">Inventory Sessions</h1>
+
+  <!-- Search Form -->
+  <form method="GET" action="{{ url_for('main.inventory_sessions') }}" class="form-inline mb-4">
+    <input type="text" name="q" class="form-control mr-2" placeholder="Search by label or counter..." value="{{ q }}">
+    <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+    {% if q %}
+      <a href="{{ url_for('main.inventory_sessions') }}" class="btn btn-link">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if sessions %}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Inventory Sessions ({{ sessions|length }} total)</strong>
+        <a href="{{ url_for('main.supplies') }}" class="btn btn-outline-secondary btn-sm">
+          Manage Supplies
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Date &amp; Time</th>
+                <th>Label</th>
+                <th>Counted By</th>
+                <th>Item Lines</th>
+                <th>Supply Lines</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sessions %}
+              <tr>
+                <td>{{ s.submitted_at.strftime('%Y-%m-%d %H:%M') if s.submitted_at else 'N/A' }}</td>
+                <td>{{ s.label or '—' }}</td>
+                <td>{{ s.counted_by or '—' }}</td>
+                <td>{{ s.item_counts|length }}</td>
+                <td>{{ s.supply_counts|length }}</td>
+                <td>
+                  {% if s.notes %}
+                    <span class="text-muted" title="{{ s.notes }}">
+                      {{ s.notes[:50] }}{% if s.notes|length > 50 %}…{% endif %}
+                    </span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('main.view_inventory_session', session_id=s.id) }}"
+                     class="btn btn-outline-primary btn-sm">View</a>
+                  <form method="POST"
+                        action="{{ url_for('main.delete_inventory_session', session_id=s.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Delete this inventory session and all its counts?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No inventory sessions found{% if q %} matching "{{ q }}"{% endif %}.
+      Inventory is submitted from the <strong>Produce Receiver</strong> iPad app.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
