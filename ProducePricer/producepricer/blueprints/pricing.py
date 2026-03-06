@@ -991,6 +991,24 @@ def add_items_to_sheet(sheet_id):
     flash(f'Added {len(new_items)} item(s) to sheet.', 'success')
     return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
 
+# remove an item from the price sheet
+@main.route('/edit_price_sheet/<int:sheet_id>/remove_item/<int:item_id>', methods=['POST'])
+@login_required
+def remove_item_from_sheet(sheet_id, item_id):
+    sheet = PriceSheet.query.filter_by(
+        id=sheet_id, company_id=current_user.company_id
+    ).first_or_404()
+    item = Item.query.filter_by(
+        id=item_id, company_id=current_user.company_id
+    ).first_or_404()
+    if item in sheet.items:
+        sheet.items.remove(item)
+        db.session.commit()
+        flash(f'"{item.name}" removed from sheet.', 'success')
+    else:
+        flash(f'"{item.name}" was not on this sheet.', 'warning')
+    return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
+
 # delete a price sheet
 @main.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
 @login_required

@@ -84,6 +84,7 @@
                   Or Enter<br>
                   <small class="text-muted"><em>The default is the most recent price.</em></small>
                 </th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -109,6 +110,17 @@
                          {% if recent_prices[item.id] %}
                            value="{{ '%.2f'|format(recent_prices[item.id]) }}"
                          {% endif %}>
+                </td>
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('main.remove_item_from_sheet', sheet_id=sheet.id, item_id=item.id) }}"
+                        onsubmit="return confirm('Remove {{ item.name }} from this sheet?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            title="Remove from sheet">
+                      <i class="fas fa-times mr-1"></i> Remove
+                    </button>
+                  </form>
                 </td>
               </tr>
               {% endfor %}
