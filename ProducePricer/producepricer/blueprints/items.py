@@ -25,7 +25,8 @@ from producepricer.models import (
     GrowerOrDistributor,
     Item,
     ItemDesignation, 
-    ItemInfo, 
+    ItemInfo,
+    ItemInventory,
     ItemTotalCost, 
     LaborCost,
     Packaging, 
@@ -232,6 +233,7 @@ def add_item():
         # add the item to the database
         db.session.add(item)
         db.session.commit()
+        flash(f'Added Item: {item.name}', 'info')
 
         # add the item info
         item_info = ItemInfo(
@@ -268,6 +270,27 @@ def delete_item(item_id):
     
     # delete all associated ItemInfo entries
     ItemInfo.query.filter_by(item_id=item_id).delete()
+    
+    # delete all inventory counts for this item
+    ItemInventory.query.filter_by(item_id=item_id).delete()
+    
+    # delete all price history entries for this item
+    PriceHistory.query.filter_by(item_id=item_id).delete()
+    
+    # delete all item total cost entries for this item
+    ItemTotalCost.query.filter_by(item_id=item_id).delete()
+    
+    # Clear price sheet associations from regular price sheets
+    try:
+        from producepricer.models import price_sheet_items
+        db.session.execute(
+            price_sheet_items.delete().where(
+                price_sheet_items.c.item_id == item_id
+            )
+        )
+    except Exception:
+        pass
+    
     # Clear price sheet backup association rows directly so SQLAlchemy
     # doesn't need to query the price_sheet_backup table during flush.
     try:
@@ -279,6 +302,7 @@ def delete_item(item_id):
         )
     except Exception:
         pass
+    
     # delete the item itself
     db.session.delete(item)
     db.session.commit()
@@ -494,45 +518,38 @@ def upload_item_csv():
     form = UploadItemCSV()
     if form.validate_on_submit():
         # Check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part', 'danger')
-            return redirect(request.url)
+        if 'file' not in request.files or request.files['file'].filename == '':
+            flash('Please select a file to upload', 'danger')
+            return redirect(url_for('main.items'))
+        
         file = request.files['file']
-        # If user does not select a file, browser also submits an empty part without filename
-        if file.filename == '':
-            flash('No selected file', 'danger')
-            return redirect(request.url)
-        if file:
-            # Ensure the upload folder exists
-            if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
-                os.makedirs(current_app.config['UPLOAD_FOLDER'])
+        # Ensure the upload folder exists
+        if not os.path.exists(current_app.config['UPLOAD_FOLDER']):
+            os.makedirs(current_app.config['UPLOAD_FOLDER'])
 
-            # Save the file securely
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+        # Save the file securely
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
 
-            # Read the CSV file into a pandas DataFrame
-            try:
-                df = pd.read_csv(filepath)
-            except Exception as e:
-                flash(f'Error reading CSV file: {e}', 'danger')
-                return redirect(request.url)
+        # Read the CSV file into a pandas DataFrame
+        try:
+            df = pd.read_csv(filepath)
+        except Exception as e:
+            flash(f'Error reading CSV file: {e}', 'danger')
+            return redirect(url_for('main.items'))
 
-            # Make sure the columns are all in the CSV
-            required_columns = ['name', 'item_code', 'alternate_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield', 'case_weight', 'labor']
-            missing_columns = [column for column in required_columns if column not in df.columns]
+        # Make sure the columns are all in the CSV
+        required_columns = ['name', 'item_code', 'alternate_code', 'raw_product', 'ranch', 'item_designation', 'packaging_type', 'yield', 'case_weight', 'labor']
+        missing_columns = [column for column in required_columns if column not in df.columns]
 
-            if missing_columns:
-                flash(f'Invalid CSV format. Missing columns: {", ".join(missing_columns)}', 'danger')
-                return redirect(request.url)
-            
-            # if not all(column in df.columns for column in required_columns):
-            #     flash('Invalid CSV format. Please ensure all required columns are present.', 'danger')
-            #     return redirect(request.url)
-
-            # Process the DataFrame and add items to the database
-            for index, row in df.iterrows():
+        if missing_columns:
+            flash(f'Invalid CSV format. Missing columns: {", ".join(missing_columns)}', 'danger')
+            return redirect(url_for('main.items'))
+        
+        # Process the DataFrame and add items to the database
+        items_added = 0
+        for index, row in df.iterrows():
                 # Clean and convert values
                 name = safe_strip(row['name'])
                 item_code = safe_strip(row['item_code'])
@@ -658,16 +675,35 @@ def upload_item_csv():
 
                 try:
                     db.session.commit()
-
-                    # find the total cost of the item
-                    update_item_total_cost(item.id)
+                    flash(f'Item "{name}" has been added successfully!', 'success')
+                    items_added += 1
                 except IntegrityError:
                     db.session.rollback()
-                    flash(f'Skipped item {name}')
+                    flash(f'Skipped item "{name}" - integrity error', 'warning')
+                    continue
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error adding item "{name}": {str(e)}', 'danger')
                     continue
                 
-                #flash(f'Item "{name}" has been added successfully!', 'success')
-            flash('Items imported successfully!', 'success')
+                # find the total cost of the item
+                try:
+                    update_item_total_cost(item.id)
+                except Exception as e:
+                    flash(f'Warning: Could not calculate cost for item "{name}": {str(e)}', 'warning')
+        
+        flash('Items imported successfully!', 'success')
+        return redirect(url_for('main.items'))
+    else:
+        # Form didn't validate - show errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
+        if request.method == 'POST':
+            flash('Please select and upload a CSV file', 'danger')
+            return redirect(url_for('main.items'))
+    
+    # GET request - just redirect to items page
     return redirect(url_for('main.items'))
 
 # automatically update total cost for an item
