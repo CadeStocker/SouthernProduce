@@ -172,6 +172,24 @@ def items():
         if most_recent_info:
             item_info_lookup[item.id] = most_recent_info
     
+    # Create edit forms for each item with pre-populated data
+    edit_item_forms = {}
+    for item in items:
+        edit_form = EditItem()
+        edit_form.packaging.choices = [(pack.id, pack.packaging_type) for pack in Packaging.query.filter_by(company_id=current_user.company_id).all()]
+        edit_form.raw_products.choices = [(raw.id, raw.name) for raw in RawProduct.query.filter_by(company_id=current_user.company_id).all()]
+        
+        # Pre-populate form fields with item data
+        edit_form.unit_of_weight.data = item.unit_of_weight
+        edit_form.alternate_code.data = item.alternate_code if item.alternate_code else ''
+        edit_form.case_weight.data = item.case_weight if item.case_weight else 0.0
+        edit_form.ranch.data = item.ranch
+        edit_form.item_designation.data = item.item_designation
+        edit_form.packaging.data = item.packaging_id
+        edit_form.raw_products.data = [rp.id for rp in item.raw_products]
+        
+        edit_item_forms[item.id] = edit_form
+    
     # Render the page
     return render_template(
         'items.html',
@@ -182,6 +200,7 @@ def items():
         raw_product_lookup=raw_product_lookup,
         form=form,
         update_item_info_form=update_item_form,
+        edit_item_form=edit_item_forms,  # Pass all edit forms
         item_info_lookup=item_info_lookup,
         upload_item_csv=upload_item_csv,
         q=q  # Pass search query for maintaining state

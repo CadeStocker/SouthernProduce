@@ -2,6 +2,17 @@
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* Make items table more compact to fit without scrolling */
+.table {
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  padding: 0.4rem 0.5rem;
 }
 
 body {
@@ -45,6 +56,12 @@ body {
   background-color: #28a745 !important;
   border-color:     #28a745 !important;
   color:            #fff    !important;
+}
+
+.btn-edit {
+  background-color: #ffb010 !important;
+  border-color:     #ffb010 !important;
+  color:            #fff
 }
 
 /* Mobile breakpoints */
