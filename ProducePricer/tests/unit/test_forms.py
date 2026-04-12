@@ -14,7 +14,7 @@ from producepricer.forms import (
     AddItem, UpdateItemInfo, AddLaborCost, AddCustomer,
     EditItem, AddRanchPrice, ResetPasswordRequestForm,
     ResetPasswordForm, PriceQuoterForm, AddDesignationCost,
-    PriceSheetForm, EmailTemplateForm
+    PriceSheetForm, EmailTemplateForm, RawProductSessionEntryForm
 )
 
 
@@ -153,6 +153,18 @@ class TestAddRawProductForm:
                 'name': 'Romaine Lettuce'
             })
             assert form.name.data == 'Romaine Lettuce'
+
+
+class TestRawProductSessionEntryForm:
+    def test_session_entry_valid_data(self, app):
+        """Test raw product session entry form with valid data."""
+        with app.app_context():
+            form = RawProductSessionEntryForm(data={
+                'name': 'Romaine Lettuce',
+                'cost': 12.5
+            })
+            assert form.name.data == 'Romaine Lettuce'
+            assert form.cost.data == 12.5
 
 
 # ====================

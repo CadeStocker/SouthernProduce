@@ -1,6 +1,7 @@
 import pytest
 import json
 import io
+import os
 from producepricer import db
 from producepricer.models import (
     Company, User, RawProduct, 
@@ -113,12 +114,14 @@ class TestReceivingAPI:
         assert 'id' in data
         assert data['message'] == 'Receiving log created successfully'
 
-    def test_upload_receiving_images(self, client, setup_data, app):
+    def test_upload_receiving_images(self, client, setup_data, app, tmp_path):
         """Test POST /api/receiving_logs/<id>/images"""
         client.post('/login', data={'email': 'test@example.com', 'password': 'password'})
         
         # Create a log first
         with app.app_context():
+            app.config['RECEIVING_IMAGES_DIR'] = str(tmp_path)
+            os.makedirs(app.config['RECEIVING_IMAGES_DIR'], exist_ok=True)
             log = ReceivingLog(
                 raw_product_id=setup_data['raw_product']['id'],
                 pack_size_unit="lbs",
@@ -156,6 +159,7 @@ class TestReceivingAPI:
             images = ReceivingImage.query.filter_by(receiving_log_id=log_id).all()
             assert len(images) == 1
             assert "test_image.jpg" in images[0].filename
+            assert len(os.listdir(app.config['RECEIVING_IMAGES_DIR'])) == 1
 
     def test_get_auxiliary_data(self, client, setup_data):
         """Test GET endpoints for auxiliary data"""

@@ -54,6 +54,7 @@ from producepricer.forms import(
     AddRanchPrice, 
     AddRawProduct, 
     AddRawProductCost,
+    RawProductSessionEntryForm,
     AddSeller,
     CreatePackage,
     DeleteForm, 
@@ -337,9 +338,17 @@ def raw_product():
     # Forms
     form = AddRawProduct()
     cost_form = AddRawProductCost()
+    session_form = RawProductSessionEntryForm()
     upload_raw_product_csv_form = UploadRawProductCSV()
     csv_form = UploadCSV()
     delete_form = DeleteForm()
+
+    raw_product_names = [
+        rp.name for rp in RawProduct.query
+            .filter_by(company_id=current_user.company_id)
+            .order_by(RawProduct.name.asc())
+            .all()
+    ]
 
     return render_template(
         'raw_product.html',
@@ -348,6 +357,8 @@ def raw_product():
         raw_product_costs=raw_product_costs,
         form=form,
         cost_form=cost_form,
+        session_form=session_form,
+        raw_product_names=raw_product_names,
         upload_csv_form=upload_raw_product_csv_form,
         q=q,
         delete_form=delete_form,
@@ -471,6 +482,51 @@ def add_raw_product_cost(raw_product_id):
     else:
         flash('Invalid data submitted.', 'danger')
     return redirect(url_for('main.raw_product', raw_product_id=raw_product_id))
+
+@main.route('/raw_product_session', methods=['POST'])
+@login_required
+def raw_product_session():
+    form = RawProductSessionEntryForm()
+    if not form.validate_on_submit():
+        flash('Invalid data submitted.', 'danger')
+        return redirect(url_for('main.raw_product'))
+
+    name = form.name.data.strip()
+    raw_product = RawProduct.query.filter(
+        RawProduct.company_id == current_user.company_id,
+        func.lower(RawProduct.name) == name.lower()
+    ).first()
+
+    if raw_product is None:
+        matches = RawProduct.query.filter(
+            RawProduct.company_id == current_user.company_id,
+            RawProduct.name.ilike(f"%{name}%")
+        ).order_by(RawProduct.name.asc()).all()
+
+        if len(matches) == 1:
+            raw_product = matches[0]
+        elif len(matches) > 1:
+            flash('Multiple raw products matched. Please use the full name.', 'warning')
+            return redirect(url_for('main.raw_product'))
+        else:
+            flash('Raw product not found. Please select a valid name.', 'warning')
+            return redirect(url_for('main.raw_product'))
+
+    cost_history = CostHistory(
+        raw_product_id=raw_product.id,
+        cost=form.cost.data,
+        date=datetime.date.today(),
+        company_id=current_user.company_id
+    )
+    db.session.add(cost_history)
+    db.session.commit()
+
+    items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product.id)).all()
+    for item in items_using_raw_product:
+        update_item_total_cost(item.id)
+
+    flash(f'Updated cost for "{raw_product.name}".', 'success')
+    return redirect(url_for('main.raw_product'))
 
 
 # raw product import

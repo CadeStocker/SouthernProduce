@@ -34,6 +34,73 @@
     {% endif %}
   </form>
 
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Raw Product Prices Updater</strong>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.raw_product_session') }}" class="form-row align-items-end" id="raw-product-session-form">
+        {{ session_form.hidden_tag() }}
+        <div class="form-group col-md-6">
+          {{ session_form.name.label(class="form-control-label") }}
+          {{ session_form.name(class="form-control", list="raw-product-names", placeholder="Start typing a raw product...", id="raw-product-session-name") }}
+          <datalist id="raw-product-names">
+            {% for name in raw_product_names %}
+              <option value="{{ name }}"></option>
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="form-group col-md-4">
+          {{ session_form.cost.label(class="form-control-label") }}
+          {{ session_form.cost(class="form-control", step="0.01", min="0", id="raw-product-session-cost") }}
+        </div>
+        <div class="form-group col-md-2">
+          {{ session_form.submit(class="btn btn-primary btn-block", id="raw-product-session-submit") }}
+        </div>
+      </form>
+      <small class="text-muted">
+        Entries are saved with today's date. Shortcuts: Enter submits, Ctrl+Enter (Cmd+Enter on Mac) submits from any field, Esc clears fields.
+      </small>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('raw-product-session-form');
+      const nameInput = document.getElementById('raw-product-session-name');
+      const costInput = document.getElementById('raw-product-session-cost');
+      const submitBtn = document.getElementById('raw-product-session-submit');
+
+      if (!form || !nameInput || !costInput || !submitBtn) {
+        return;
+      }
+
+      nameInput.focus();
+
+      const clearFields = function() {
+        nameInput.value = '';
+        costInput.value = '';
+        nameInput.focus();
+      };
+
+      const handleShortcut = function(event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          clearFields();
+          return;
+        }
+
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          submitBtn.click();
+        }
+      };
+
+      nameInput.addEventListener('keydown', handleShortcut);
+      costInput.addEventListener('keydown', handleShortcut);
+    });
+  </script>
+
   {% if raw_products %}
     <div class="card mb-4">
       <div class="card-header">

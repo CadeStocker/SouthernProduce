@@ -87,6 +87,11 @@ class EditRawProduct(FlaskForm):
     name = StringField('Raw Product Name', validators=[DataRequired()])
     submit = SubmitField('Update Raw Product')
 
+class RawProductSessionEntryForm(FlaskForm):
+    name = StringField('Raw Product', validators=[DataRequired()])
+    cost = FloatField('New Cost', validators=[DataRequired(), NumberRange(min=0)])
+    submit = SubmitField('Save')
+
 class AddItem(FlaskForm):
     name = StringField('Item Name', validators=[DataRequired()])
     item_code = StringField('Item Code', validators=[DataRequired()])

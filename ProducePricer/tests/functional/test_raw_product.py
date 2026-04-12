@@ -253,7 +253,7 @@ class TestEditRawProduct:
         assert response.status_code == 200
         assert b'Renamed Raw Product' in response.data
         assert b'Original Raw Product' not in response.data
-    
+
     def test_edit_raw_product_duplicate_name_rejected(self, client, app, logged_in_user):
         """Test that renaming to an existing raw product name is rejected."""
         with app.app_context():
@@ -332,6 +332,63 @@ class TestEditRawProduct:
         
         assert response.status_code == 200
         assert b'not found' in response.data.lower() or b'permission' in response.data.lower()
+
+
+class TestRawProductSession:
+    def test_raw_product_session_creates_cost(self, client, app, logged_in_user):
+        """Test that session entry creates a cost history row and flashes success."""
+        with app.app_context():
+            raw_product = RawProduct(
+                name="Session Product",
+                company_id=logged_in_user.company_id
+            )
+            db.session.add(raw_product)
+            db.session.commit()
+            raw_product_id = raw_product.id
+            url = url_for('main.raw_product_session')
+
+        response = client.post(url, data={
+            'name': 'Session Product',
+            'cost': 7.75
+        }, follow_redirects=True)
+
+        assert response.status_code == 200
+        assert b'Updated cost for' in response.data
+
+        with app.app_context():
+            cost = (CostHistory.query
+                .filter_by(raw_product_id=raw_product_id, company_id=logged_in_user.company_id)
+                .order_by(CostHistory.id.desc())
+                .first())
+            assert cost is not None
+            assert cost.cost == 7.75
+
+    def test_raw_product_session_partial_match_rejected(self, client, app, logged_in_user):
+        """Test that ambiguous partial names are rejected with a warning."""
+        with app.app_context():
+            db.session.add_all([
+                RawProduct(name="Green Apple", company_id=logged_in_user.company_id),
+                RawProduct(name="Green Beans", company_id=logged_in_user.company_id)
+            ])
+            db.session.commit()
+            url = url_for('main.raw_product_session')
+
+        response = client.post(url, data={
+            'name': 'Green',
+            'cost': 5.00
+        }, follow_redirects=True)
+
+        assert response.status_code == 200
+        assert b'Multiple raw products matched' in response.data
+
+    def test_raw_product_page_shows_shortcut_hint(self, client, app, logged_in_user):
+        """Test that the raw product session shortcut hint is visible on the page."""
+        with app.app_context():
+            url = url_for('main.raw_product')
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert b'Shortcuts:' in response.data
 
 
 class TestDeleteRawProduct:

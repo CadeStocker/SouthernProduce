@@ -520,7 +520,10 @@ def _generate_price_sheet_pdf_bytes(sheet):
     # Table rows
     pdf.set_font("Arial", "", 8)
 
-    for item in sheet.items:
+    # Sort items alphabetically by name
+    sorted_items = sorted(sheet.items, key=lambda x: x.name.lower() if x.name else '')
+    
+    for item in sorted_items:
         info = recent.get(item.id, {})
         current_price = info.get('price')
         old_price = info.get('old_price')
@@ -772,6 +775,8 @@ def price_sheet():
     form.customer.choices = [(c.id, c.name) for c in customers]
 
     all_items = Item.query.filter_by(company_id=current_user.company_id).all()
+    # Sort items alphabetically by name
+    all_items.sort(key=lambda x: x.name.lower() if x.name else '')
     form.items.choices = [(i.id, i.name) for i in all_items]
 
     # get all the customer names for the existing sheets
@@ -823,6 +828,8 @@ def edit_price_sheet(sheet_id):
     all_items = Item.query.filter_by(company_id=current_user.company_id).all()
     existing_item_ids = {item.id for item in sheet.items}
     available_items = [item for item in all_items if item.id not in existing_item_ids]
+    # Sort available items alphabetically by name
+    available_items.sort(key=lambda x: x.name.lower() if x.name else '')
 
     # on save…
     if request.method=='POST':
@@ -949,9 +956,13 @@ def edit_price_sheet(sheet_id):
             opts.append((pct, price))
         markup_opts[item.id] = opts
 
+    # Sort items alphabetically by name for display
+    sorted_items = sorted(sheet.items, key=lambda x: x.name.lower() if x.name else '')
+
     return render_template(
       'edit_price_sheet.html',
       sheet=sheet,
+      sorted_items=sorted_items,
       history_opts=history_opts,
       markup_opts=markup_opts,
       recent_prices=recent_prices,

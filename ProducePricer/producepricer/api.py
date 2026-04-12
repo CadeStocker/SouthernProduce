@@ -54,10 +54,6 @@ def require_login():
     # Skip authentication for the test endpoint (it has its own decorator)
     if request.endpoint == 'api.test_api_key':
         return None
-    
-    # Skip if API key authentication is already set up by decorator
-    if hasattr(g, 'company_id'):
-        return None
         
     # Check for API key in request
     api_key_string = get_api_key_from_request()
@@ -71,6 +67,9 @@ def require_login():
             g.device_name = api_key.device_name
             g.auth_method = 'api_key'
             return None
+        else:
+            # API key was provided but is invalid or inactive
+            return jsonify({'error': 'Unauthorized'}), 401
     
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
