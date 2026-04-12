@@ -16,7 +16,7 @@ from producepricer.models import (
     Company,
     User
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 from producepricer import db
 
 
@@ -345,6 +345,10 @@ class TestReceivingLogs:
         response = client.get('/receiving_logs')
         assert response.status_code == 200
         assert b'Receiving Logs' in response.data
+        assert b'Daily Printout' in response.data
+
+        today_str = datetime.now().strftime('%Y-%m-%d').encode('utf-8')
+        assert today_str in response.data
     
     def test_display_receiving_logs(self, auth_client, app):
         """Test displaying receiving logs."""
@@ -507,6 +511,65 @@ class TestReceivingLogs:
         
         response = client.get('/receiving_logs?paginate=1&page=2')
         assert response.status_code == 200
+
+    def test_receiving_logs_print_filters_by_date(self, auth_client, app):
+        """Test daily printout only shows logs for the selected date."""
+        client, company_id, user_id = auth_client
+
+        selected_date = datetime(2026, 4, 12)
+        other_date = selected_date - timedelta(days=1)
+
+        with app.app_context():
+            raw_product_today = RawProduct(name='Today Product', company_id=company_id)
+            raw_product_other = RawProduct(name='Other Product', company_id=company_id)
+            brand = BrandName(name='Brand', company_id=company_id)
+            seller = Seller(name='Seller', company_id=company_id)
+            grower = GrowerOrDistributor(
+                name='Grower',
+                city='City',
+                state='State',
+                company_id=company_id
+            )
+            db.session.add_all([raw_product_today, raw_product_other, brand, seller, grower])
+            db.session.commit()
+
+            log_today = ReceivingLog(
+                raw_product_id=raw_product_today.id,
+                pack_size_unit='lbs',
+                pack_size=25.0,
+                brand_name_id=brand.id,
+                quantity_received=10,
+                seller_id=seller.id,
+                temperature=38.0,
+                hold_or_used='used',
+                grower_or_distributor_id=grower.id,
+                country_of_origin='USA',
+                received_by='Alice',
+                company_id=company_id,
+                date_time=selected_date
+            )
+            log_other = ReceivingLog(
+                raw_product_id=raw_product_other.id,
+                pack_size_unit='lbs',
+                pack_size=40.0,
+                brand_name_id=brand.id,
+                quantity_received=20,
+                seller_id=seller.id,
+                temperature=40.0,
+                hold_or_used='hold',
+                grower_or_distributor_id=grower.id,
+                country_of_origin='Mexico',
+                received_by='Bob',
+                company_id=company_id,
+                date_time=other_date
+            )
+            db.session.add_all([log_today, log_other])
+            db.session.commit()
+
+        response = client.get('/receiving_logs/print?date=2026-04-12')
+        assert response.status_code == 200
+        assert b'Today Product' in response.data
+        assert b'Other Product' not in response.data
 
 
 class TestRawProductReceivingLogsIntegration:

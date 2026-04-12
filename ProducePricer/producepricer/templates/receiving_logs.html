@@ -13,6 +13,9 @@
     {% else %}
       <a href="{{ url_for('main.receiving_logs', q=q, paginate=1) }}" class="btn btn-outline-secondary">Use Pagination</a>
     {% endif %}
+    <a href="{{ url_for('main.receiving_logs_print', date=today.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary ml-2">
+      Daily Printout
+    </a>
   </div>
 
   <!-- Search Form -->

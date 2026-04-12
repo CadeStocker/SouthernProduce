@@ -198,7 +198,41 @@ def receiving_logs():
         logs=logs,
         q=q,
         pagination=pagination,
-        use_pagination=use_pagination
+        use_pagination=use_pagination,
+        today=datetime.date.today()
+    )
+
+
+@main.route('/receiving_logs/print')
+@login_required
+def receiving_logs_print():
+    date_str = request.args.get('date', '').strip()
+    if date_str:
+        try:
+            selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Invalid date. Please use YYYY-MM-DD format.', 'danger')
+            return redirect(url_for('main.receiving_logs'))
+    else:
+        selected_date = datetime.date.today()
+
+    start_dt = datetime.datetime.combine(selected_date, datetime.time.min)
+    end_dt = datetime.datetime.combine(selected_date, datetime.time.max)
+
+    logs = (
+        ReceivingLog.query
+        .filter_by(company_id=current_user.company_id)
+        .filter(ReceivingLog.datetime >= start_dt, ReceivingLog.datetime <= end_dt)
+        .order_by(ReceivingLog.datetime.asc())
+        .all()
+    )
+
+    return render_template(
+        'receiving_logs_print.html',
+        title='Daily Receiving Log Printout',
+        logs=logs,
+        selected_date=selected_date,
+        now=datetime.datetime.utcnow()
     )
 
 # View individual receiving log
