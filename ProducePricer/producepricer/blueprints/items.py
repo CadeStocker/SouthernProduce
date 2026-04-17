@@ -137,7 +137,9 @@ def items():
     # Apply search filter if provided
     if q:
         query = query.filter(
-            (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
+            (Item.name.ilike(f'%{q}%')) |
+            (Item.code.ilike(f'%{q}%')) |
+            (Item.alternate_code.ilike(f'%{q}%'))
         )
     
     # Apply pagination or get all
@@ -171,6 +173,13 @@ def items():
         )
         if most_recent_info:
             item_info_lookup[item.id] = most_recent_info
+
+    item_names = [
+        i.name for i in Item.query
+            .filter_by(company_id=current_user.company_id)
+            .order_by(Item.name.asc())
+            .all()
+    ]
     
     # Create edit forms for each item with pre-populated data
     edit_item_forms = {}
@@ -203,8 +212,79 @@ def items():
         edit_item_form=edit_item_forms,  # Pass all edit forms
         item_info_lookup=item_info_lookup,
         upload_item_csv=upload_item_csv,
-        q=q  # Pass search query for maintaining state
+        q=q,  # Pass search query for maintaining state
+        item_names=item_names
     )
+
+
+@main.route('/update_item_alternate_codes', methods=['POST'])
+@login_required
+def update_item_alternate_codes():
+    """Bulk update alternate codes for items in the current company."""
+    updated_count = 0
+
+    items = Item.query.filter_by(company_id=current_user.company_id).all()
+    for item in items:
+        form_key = f'alternate_code_{item.id}'
+        if form_key not in request.form:
+            continue
+
+        submitted_value = (request.form.get(form_key) or '').strip()
+        new_value = submitted_value or None
+        if item.alternate_code != new_value:
+            item.alternate_code = new_value
+            updated_count += 1
+
+    db.session.commit()
+
+    if updated_count:
+        flash(f'Updated alternate codes for {updated_count} item(s).', 'success')
+    else:
+        flash('No alternate code changes to save.', 'info')
+
+    return redirect(url_for('main.items'))
+
+
+@main.route('/update_item_alternate_code_by_name', methods=['POST'])
+@login_required
+def update_item_alternate_code_by_name():
+    """Update an item's alternate code by item name."""
+    item_name = (request.form.get('name') or '').strip()
+    alternate_code = (request.form.get('alternate_code') or '').strip() or None
+
+    if not item_name:
+        flash('Please enter an item name.', 'warning')
+        return redirect(url_for('main.items'))
+
+    item = Item.query.filter(
+        Item.company_id == current_user.company_id,
+        func.lower(Item.name) == item_name.lower()
+    ).first()
+
+    if item is None:
+        matches = Item.query.filter(
+            Item.company_id == current_user.company_id,
+            Item.name.ilike(f'%{item_name}%')
+        ).order_by(Item.name.asc()).all()
+
+        if len(matches) == 1:
+            item = matches[0]
+        elif len(matches) > 1:
+            flash('Multiple items matched that name. Please use the full name.', 'warning')
+            return redirect(url_for('main.items'))
+        else:
+            flash('Item not found. Please enter a valid name.', 'warning')
+            return redirect(url_for('main.items'))
+
+    item.alternate_code = alternate_code
+    db.session.commit()
+
+    if alternate_code:
+        flash(f'Updated alternate code for "{item.name}".', 'success')
+    else:
+        flash(f'Cleared alternate code for "{item.name}".', 'success')
+
+    return redirect(url_for('main.items'))
     
 @main.route('/add_item', methods=['POST'])
 @login_required

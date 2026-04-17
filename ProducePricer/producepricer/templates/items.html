@@ -35,6 +35,82 @@
   {% if items %}
   <div class="card mb-4">
     <div class="card-header">
+      <strong>Alternate Code Updater</strong>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.update_item_alternate_code_by_name') }}" class="form-row align-items-end mb-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group col-md-6">
+          <label class="form-control-label" for="alternate-code-name-input">Item Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="name"
+            id="alternate-code-name-input"
+            list="item-names"
+            placeholder="Start typing an item..."
+            required
+          >
+          <datalist id="item-names">
+            {% for item_name in item_names %}
+              <option value="{{ item_name }}"></option>
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="form-group col-md-4">
+          <label class="form-control-label" for="alternate-code-value-input">Alternate Code</label>
+          <input
+            type="text"
+            class="form-control"
+            name="alternate_code"
+            id="alternate-code-value-input"
+            placeholder="Enter alternate code"
+          >
+        </div>
+        <div class="form-group col-md-2">
+          <button type="submit" class="btn btn-outline-primary btn-block">Update One</button>
+        </div>
+      </form>
+
+      <form method="POST" action="{{ url_for('main.update_item_alternate_codes') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+          <table class="table table-sm table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Alternate Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>{{ item.name }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    name="alternate_code_{{ item.id }}"
+                    value="{{ item.alternate_code or '' }}"
+                    placeholder="Enter alternate code"
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Save Alternate Codes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if items %}
+  <div class="card mb-4">
+    <div class="card-header">
       <strong>Items List</strong>
     </div>
     <div class="card-body p-0">
@@ -62,7 +138,7 @@
                 <a href="{{ url_for('main.view_item', item_id=item.id) }}">{{ item.name }}</a>
               </td>
               <td>{{ item.code }}</td>
-              <td>{{ item.alternate_code }}
+              <td>{{ item.alternate_code }}</td>
               <td>
                 {% if item.case_weight %}
                   {{ item.case_weight }} lbs
