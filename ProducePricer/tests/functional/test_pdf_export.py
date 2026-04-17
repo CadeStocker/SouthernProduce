@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from flask import url_for
 from unittest.mock import patch, MagicMock
 from io import BytesIO
+import pdfplumber
 from producepricer import db
 from producepricer.models import (
     Company, User, Item, RawProduct, Packaging, PackagingCost,
@@ -139,6 +140,7 @@ def setup_items_with_prices(app, setup_raw_products):
             item = Item(
                 name=f"PDF Test Item {i}",
                 code=f"PDF-{i:03d}",
+                alternate_code=f"ALT-{i:03d}",
                 unit_of_weight=UnitOfWeight.POUND,
                 packaging_id=setup['packaging_id'],
                 company_id=setup['company_id'],
@@ -364,6 +366,20 @@ class TestPriceSheetPDF:
         assert response.status_code == 200
         # PDF should have substantial content
         assert len(response.data) > 100
+
+    def test_price_sheet_pdf_includes_alternate_code_column(self, logged_in_pdf_user, app, setup_price_sheet):
+        """Price sheet PDF includes alternate code column/value."""
+        setup = setup_price_sheet
+
+        response = logged_in_pdf_user.get(f'/view_price_sheet/{setup["sheet_id"]}/export_pdf')
+
+        assert response.status_code == 200
+
+        with pdfplumber.open(BytesIO(response.data)) as pdf:
+            text = "\n".join((page.extract_text() or "") for page in pdf.pages)
+
+        assert "Alt Code" in text
+        assert "ALT-000" in text
 
     def test_export_nonexistent_price_sheet_404(self, logged_in_pdf_user, app):
         """Test that exporting non-existent price sheet returns 404."""

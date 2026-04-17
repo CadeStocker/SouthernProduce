@@ -79,6 +79,7 @@
             <thead>
               <tr>
                 <th>Item</th>
+                <th>Alternate Code</th>
                 <th>Choose Price</th>
                 <th>
                   Or Enter<br>
@@ -91,6 +92,7 @@
               {% for item in sorted_items %}
               <tr>
                 <td>{{ item.name }}</td>
+                <td>{{ item.alternate_code or '—' }}</td>
                 <td>
                   <select name="price_select_{{ item.id }}"
                           class="form-control form-control-sm">
@@ -155,7 +157,7 @@
                     class="form-control"
                     multiple size="6">
               {% for itm in available_items %}
-              <option value="{{ itm.id }}">{{ itm.name }}</option>
+              <option value="{{ itm.id }}">{{ itm.name }}{% if itm.alternate_code %} ({{ itm.alternate_code }}){% endif %}</option>
               {% endfor %}
             </select>
             <small class="form-text text-muted">

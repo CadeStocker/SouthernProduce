@@ -75,6 +75,7 @@
           <thead>
             <tr>
               <th>Raw Product</th>
+              <th>Lot Code</th>
               <th>Latest Cost</th>
               <th>Latest Cost Date</th>
               <th>Previous Cost</th>
@@ -89,6 +90,7 @@
               {% set avg = average[rp.id] %}
               <tr>
                 <td>{{ info.name }}</td>
+                <td>{{ rp.lot_code or '—' }}</td>
                 <td>
                   {% if info.price %}
                     ${{ info.price }}
@@ -116,7 +118,7 @@
               </tr>
             {% else %}
               <tr>
-                <td colspan="6" class="text-muted">No raw products found.</td>
+                <td colspan="7" class="text-muted">No raw products found.</td>
               </tr>
             {% endfor %}
           </tbody>

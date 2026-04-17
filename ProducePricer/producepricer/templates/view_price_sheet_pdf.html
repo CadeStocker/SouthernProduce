@@ -25,6 +25,7 @@
     <thead>
       <tr>
         <th>Product</th>
+        <th>Alternate Code</th>
         <th>Price</th>
         <th>Changed?</th>
       </tr>
@@ -33,6 +34,7 @@
       {% for item in sheet.items %}
       <tr>
         <td>{{ item.name }}</td>
+        <td>{{ item.alternate_code }}</td>
         <td>
           {% if recent[item.id]['price'] is not none %}
             ${{ '%.2f'|format(recent[item.id]['price']) }}

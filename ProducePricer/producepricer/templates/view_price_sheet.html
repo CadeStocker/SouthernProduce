@@ -84,6 +84,7 @@
                     <thead class="thead-light">
                         <tr>
                             <th>Product</th>
+                            <th>Alternate Code</th>
                             <th>Price</th>
                             <th>Last Updated</th>
                         </tr>
@@ -94,6 +95,7 @@
                             {% set entry = recent.get(item.id) %}
                             <tr>
                                 <td>{{ item.name }}</td>
+                                <td>{{ item.alternate_code or '—' }}</td>
                                 <td>
                                     {% if entry %}
                                         ${{ '%.2f'|format(entry.price) }}

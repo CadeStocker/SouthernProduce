@@ -71,6 +71,7 @@ class UploadCSV(FlaskForm):
 # create new raw product
 class AddRawProduct(FlaskForm):
     name = StringField('Raw Product Name', validators=[DataRequired()])
+    lot_code = StringField('Lot Code', validators=[Optional(), Length(max=100)])
     submit = SubmitField('Add Raw Product')
 
 # raw product cost
@@ -85,6 +86,7 @@ class UploadRawProductCSV(FlaskForm):
 
 class EditRawProduct(FlaskForm):
     name = StringField('Raw Product Name', validators=[DataRequired()])
+    lot_code = StringField('Lot Code', validators=[Optional(), Length(max=100)])
     submit = SubmitField('Update Raw Product')
 
 class RawProductSessionEntryForm(FlaskForm):

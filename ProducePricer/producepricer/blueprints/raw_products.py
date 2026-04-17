@@ -85,7 +85,7 @@ from producepricer.utils.ai_utils import get_ai_response
 from producepricer.utils.qr_utils import generate_api_key_qr_code, generate_qr_code_bytes
 import pdfplumber
 import tempfile
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 # raw price sheet
 @main.route('/raw_price_sheet')
@@ -158,13 +158,13 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=N
     
     if hide_previous:
         # 3 columns
-        col_widths = [100, 40, 40]
-        headers = ["Raw Product", "Latest Cost", "Date"]
+        col_widths = [80, 30, 40, 40]
+        headers = ["Raw Product", "Lot Code", "Latest Cost", "Date"]
     else:
         # 5 columns - need to adjust widths to fit A4 (approx 190mm usable width)
         # 190 total. 
-        col_widths = [70, 30, 30, 30, 30]
-        headers = ["Raw Product", "Latest Cost", "Date", "Prev Cost", "Prev Date"]
+        col_widths = [55, 25, 25, 25, 30, 30]
+        headers = ["Raw Product", "Lot Code", "Latest Cost", "Date", "Prev Cost", "Prev Date"]
 
     for i, header in enumerate(headers):
         pdf.cell(col_widths[i], 8, header, border=1, align="C")
@@ -175,21 +175,23 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=N
         info = recent_map.get(rp.id, {})
         price = f"${info['price']}" if info.get('price') else "-"
         date = info.get('date') or "-"
+        lot_code = rp.lot_code or "-"
         
         # Truncate name if needed
-        name = rp.name[:40] if not hide_previous else rp.name[:60]
+        name = rp.name[:30] if not hide_previous else rp.name[:45]
 
         pdf.cell(col_widths[0], 8, name, border=1)
-        pdf.cell(col_widths[1], 8, price, border=1, align="C")
-        pdf.cell(col_widths[2], 8, date, border=1, align="C")
+        pdf.cell(col_widths[1], 8, lot_code[:20], border=1, align="C")
+        pdf.cell(col_widths[2], 8, price, border=1, align="C")
+        pdf.cell(col_widths[3], 8, date, border=1, align="C")
         
         if not hide_previous:
             prev_info = previous_map.get(rp.id, {}) if previous_map else {}
             prev_price = f"${prev_info['price']}" if prev_info.get('price') else "-"
             prev_date = prev_info.get('date') or "-"
             
-            pdf.cell(col_widths[3], 8, prev_price, border=1, align="C")
-            pdf.cell(col_widths[4], 8, prev_date, border=1, align="C")
+            pdf.cell(col_widths[4], 8, prev_price, border=1, align="C")
+            pdf.cell(col_widths[5], 8, prev_date, border=1, align="C")
             
         pdf.ln()
 
@@ -313,7 +315,12 @@ def raw_product():
 
     base_query = RawProduct.query.filter_by(company_id=current_user.company_id)
     if q:
-        base_query = RawProduct.query.filter(RawProduct.name.ilike(f'%{q}%'))
+        base_query = base_query.filter(
+            or_(
+                RawProduct.name.ilike(f'%{q}%'),
+                RawProduct.lot_code.ilike(f'%{q}%')
+            )
+        )
     
     if use_pagination:
         pagination = base_query.order_by(RawProduct.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
@@ -392,6 +399,7 @@ def view_raw_product(raw_product_id):
     cost_form = AddRawProductCost()
     edit_form = EditRawProduct()
     edit_form.name.data = raw_product.name  # Pre-populate with current name
+    edit_form.lot_code.data = raw_product.lot_code or ''
 
     return render_template(
         'view_raw_product.html',
@@ -443,6 +451,7 @@ def add_raw_product():
         # Create a new raw product object
         raw_product = RawProduct(
             name=form.name.data,
+            lot_code=(form.lot_code.data or '').strip() or None,
             company_id=current_user.company_id
         )
 
@@ -454,6 +463,76 @@ def add_raw_product():
         flash(f'Raw product "{form.name.data}" has been added successfully!', 'success')
         return redirect(url_for('main.raw_product'))
     flash('Invalid data submitted.', 'danger')
+    return redirect(url_for('main.raw_product'))
+
+
+@main.route('/update_raw_product_lot_codes', methods=['POST'])
+@login_required
+def update_raw_product_lot_codes():
+    """Bulk update lot codes for all raw products in the current company."""
+    updated_count = 0
+
+    raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).all()
+    for raw_product in raw_products:
+        form_key = f'lot_code_{raw_product.id}'
+        if form_key not in request.form:
+            continue
+
+        submitted_value = (request.form.get(form_key) or '').strip()
+        new_value = submitted_value or None
+        if raw_product.lot_code != new_value:
+            raw_product.lot_code = new_value
+            updated_count += 1
+
+    db.session.commit()
+
+    if updated_count:
+        flash(f'Updated lot codes for {updated_count} raw product(s).', 'success')
+    else:
+        flash('No lot code changes to save.', 'info')
+
+    return redirect(url_for('main.raw_product'))
+
+
+@main.route('/update_raw_product_lot_code_by_name', methods=['POST'])
+@login_required
+def update_raw_product_lot_code_by_name():
+    """Update a lot code by typing the raw product name."""
+    raw_name = (request.form.get('name') or '').strip()
+    lot_code = (request.form.get('lot_code') or '').strip() or None
+
+    if not raw_name:
+        flash('Please enter a raw product name.', 'warning')
+        return redirect(url_for('main.raw_product'))
+
+    raw_product = RawProduct.query.filter(
+        RawProduct.company_id == current_user.company_id,
+        func.lower(RawProduct.name) == raw_name.lower()
+    ).first()
+
+    if raw_product is None:
+        matches = RawProduct.query.filter(
+            RawProduct.company_id == current_user.company_id,
+            RawProduct.name.ilike(f"%{raw_name}%")
+        ).order_by(RawProduct.name.asc()).all()
+
+        if len(matches) == 1:
+            raw_product = matches[0]
+        elif len(matches) > 1:
+            flash('Multiple raw products matched that name. Please use the full name.', 'warning')
+            return redirect(url_for('main.raw_product'))
+        else:
+            flash('Raw product not found. Please enter a valid name.', 'warning')
+            return redirect(url_for('main.raw_product'))
+
+    raw_product.lot_code = lot_code
+    db.session.commit()
+
+    if lot_code:
+        flash(f'Updated lot code for "{raw_product.name}".', 'success')
+    else:
+        flash(f'Cleared lot code for "{raw_product.name}".', 'success')
+
     return redirect(url_for('main.raw_product'))
 
 # Add a new raw product cost
@@ -647,6 +726,7 @@ def edit_raw_product(raw_product_id):
     form = EditRawProduct()
     if form.validate_on_submit():
         new_name = form.name.data.strip()
+        new_lot_code = (form.lot_code.data or '').strip() or None
         
         # Check if another raw product already has this name (excluding the current one)
         existing = RawProduct.query.filter(
@@ -661,6 +741,7 @@ def edit_raw_product(raw_product_id):
         
         old_name = raw_product.name
         raw_product.name = new_name
+        raw_product.lot_code = new_lot_code
         db.session.commit()
         
         flash(f'Raw product renamed from "{old_name}" to "{new_name}" successfully!', 'success')

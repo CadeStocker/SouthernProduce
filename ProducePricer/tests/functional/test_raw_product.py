@@ -312,6 +312,23 @@ class TestEditRawProduct:
             assert len(costs) == 2
             assert costs[0].cost == 15.00
             assert costs[1].cost == 16.50
+
+    def test_edit_raw_product_updates_lot_code(self, client, app, logged_in_user):
+        """Editing a raw product can update lot_code."""
+        with app.app_context():
+            raw_product = RawProduct(name="Lot Test Product", company_id=logged_in_user.company_id)
+            db.session.add(raw_product)
+            db.session.commit()
+
+            raw_product_id = raw_product.id
+            url = url_for('main.edit_raw_product', raw_product_id=raw_product_id)
+
+        response = client.post(url, data={'name': 'Lot Test Product', 'lot_code': 'LOT-NEW-123'}, follow_redirects=True)
+        assert response.status_code == 200
+
+        with app.app_context():
+            updated_product = db.session.get(RawProduct, raw_product_id)
+            assert updated_product.lot_code == 'LOT-NEW-123'
     
     def test_edit_other_company_raw_product_forbidden(self, client, app, logged_in_user):
         """Test that editing a raw product from another company is not allowed."""
@@ -389,6 +406,100 @@ class TestRawProductSession:
         response = client.get(url)
         assert response.status_code == 200
         assert b'Shortcuts:' in response.data
+
+
+class TestRawProductLotCodes:
+    def test_raw_product_page_displays_lot_code_column(self, client, app, logged_in_user):
+        """Raw product list page shows lot code values."""
+        with app.app_context():
+            raw_product = RawProduct(name="Display Lot Product", company_id=logged_in_user.company_id, lot_code="LOT-DISPLAY")
+            db.session.add(raw_product)
+            db.session.commit()
+
+            url = url_for('main.raw_product')
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert b'Lot Code' in response.data
+        assert b'LOT-DISPLAY' in response.data
+
+    def test_bulk_update_lot_codes(self, client, app, logged_in_user):
+        """Bulk lot code updater saves lot codes for existing raw products."""
+        with app.app_context():
+            rp1 = RawProduct(name="Bulk One", company_id=logged_in_user.company_id)
+            rp2 = RawProduct(name="Bulk Two", company_id=logged_in_user.company_id)
+            db.session.add_all([rp1, rp2])
+            db.session.commit()
+
+            rp1_id = rp1.id
+            rp2_id = rp2.id
+            url = url_for('main.update_raw_product_lot_codes')
+
+        response = client.post(
+            url,
+            data={
+                f'lot_code_{rp1_id}': 'LOT-BULK-1',
+                f'lot_code_{rp2_id}': 'LOT-BULK-2'
+            },
+            follow_redirects=True,
+        )
+
+        assert response.status_code == 200
+        assert b'Updated lot codes for' in response.data
+
+        with app.app_context():
+            updated_rp1 = db.session.get(RawProduct, rp1_id)
+            updated_rp2 = db.session.get(RawProduct, rp2_id)
+            assert updated_rp1.lot_code == 'LOT-BULK-1'
+            assert updated_rp2.lot_code == 'LOT-BULK-2'
+
+    def test_update_lot_code_by_name_exact_match(self, client, app, logged_in_user):
+        """Name-based lot code updater should update exact name matches."""
+        with app.app_context():
+            rp = RawProduct(name="Typed Name Product", company_id=logged_in_user.company_id)
+            db.session.add(rp)
+            db.session.commit()
+            rp_id = rp.id
+
+            url = url_for('main.update_raw_product_lot_code_by_name')
+
+        response = client.post(url, data={'name': 'Typed Name Product', 'lot_code': 'LOT-TYPED-01'}, follow_redirects=True)
+
+        assert response.status_code == 200
+        assert b'Updated lot code for' in response.data
+
+        with app.app_context():
+            updated = db.session.get(RawProduct, rp_id)
+            assert updated.lot_code == 'LOT-TYPED-01'
+
+    def test_update_lot_code_by_name_not_found(self, client, app, logged_in_user):
+        """Name-based updater should warn when no raw product matches."""
+        with app.app_context():
+            url = url_for('main.update_raw_product_lot_code_by_name')
+
+        response = client.post(url, data={'name': 'Does Not Exist', 'lot_code': 'LOT-X'}, follow_redirects=True)
+
+        assert response.status_code == 200
+        assert b'Raw product not found' in response.data
+
+    def test_raw_product_search_matches_name_or_lot_code(self, client, app, logged_in_user):
+        """Search should return products by either name or lot code."""
+        with app.app_context():
+            rp_name = RawProduct(name="SearchNameProduct", company_id=logged_in_user.company_id, lot_code="LOT-AAA")
+            rp_lot = RawProduct(name="DifferentNameProduct", company_id=logged_in_user.company_id, lot_code="LOT-SEARCH-777")
+            db.session.add_all([rp_name, rp_lot])
+            db.session.commit()
+
+            name_url = url_for('main.raw_product', q='SearchNameProduct')
+            lot_url = url_for('main.raw_product', q='SEARCH-777')
+
+        name_response = client.get(name_url)
+        assert name_response.status_code == 200
+        assert b'SearchNameProduct' in name_response.data
+
+        lot_response = client.get(lot_url)
+        assert lot_response.status_code == 200
+        assert b'DifferentNameProduct' in lot_response.data
 
 
 class TestDeleteRawProduct:

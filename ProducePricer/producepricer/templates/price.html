@@ -54,7 +54,7 @@
                 <thead>
                     <tr>
                         <th>Item Name</th>
-                        <th>Item Code</th>
+                        <th>Alternate Code</th>
                         <th>Case Weight</th>
                         <th>Total Cost</th>
                         <th>Cost/LB</th>
@@ -78,7 +78,7 @@
                                 {{ item.name }}
                             </a>
                         </td>
-                        <td>{{ item.code }}</td>
+                        <td>{{ item.alternate_code if item.alternate_code else '-' }}</td>
                         <td>{{ item.case_weight }} lbs</td>
                         <td>${{ item.total_cost }}</td>
                         <td>${{ item.cost_per_lb }}</td>

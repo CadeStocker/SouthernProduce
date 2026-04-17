@@ -25,15 +25,6 @@
     {% endif %}
   </div>
 
-  <!-- Search Form -->
-  <form method="GET" action="{{ url_for('main.raw_product') }}" class="form-inline mb-4">
-    <input type="text" name="q" class="form-control mr-2" placeholder="Search raw products..." value="{{ q }}">
-    <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
-    {% if q %}
-      <a href="{{ url_for('main.raw_product') }}" class="btn btn-link">Clear</a>
-    {% endif %}
-  </form>
-
   <div class="card mb-4">
     <div class="card-header">
       <strong>Raw Product Prices Updater</strong>
@@ -61,6 +52,75 @@
       <small class="text-muted">
         Entries are saved with today's date. Shortcuts: Enter submits, Ctrl+Enter (Cmd+Enter on Mac) submits from any field, Esc clears fields.
       </small>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Lot Code Updater</strong>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.update_raw_product_lot_code_by_name') }}" class="form-row align-items-end mb-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group col-md-6">
+          <label class="form-control-label" for="lot-code-name-input">Raw Product Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="name"
+            id="lot-code-name-input"
+            list="raw-product-names"
+            placeholder="Start typing a raw product..."
+            required
+          >
+        </div>
+        <div class="form-group col-md-4">
+          <label class="form-control-label" for="lot-code-value-input">Lot Code</label>
+          <input
+            type="text"
+            class="form-control"
+            name="lot_code"
+            id="lot-code-value-input"
+            placeholder="Enter lot code"
+          >
+        </div>
+        <div class="form-group col-md-2">
+          <button type="submit" class="btn btn-outline-primary btn-block">Update One</button>
+        </div>
+      </form>
+
+      <form method="POST" action="{{ url_for('main.update_raw_product_lot_codes') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+          <table class="table table-sm table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Raw Product</th>
+                <th>Lot Code</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rp in raw_products %}
+              <tr>
+                <td>{{ rp.name }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    name="lot_code_{{ rp.id }}"
+                    value="{{ rp.lot_code or '' }}"
+                    placeholder="Enter lot code"
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Save Lot Codes</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -102,6 +162,15 @@
   </script>
 
   {% if raw_products %}
+    <!-- Search Form -->
+    <form method="GET" action="{{ url_for('main.raw_product') }}" class="form-inline mb-3">
+      <input type="text" name="q" class="form-control mr-2" placeholder="Search by raw product name or lot code..." value="{{ q }}">
+      <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
+      {% if q %}
+        <a href="{{ url_for('main.raw_product') }}" class="btn btn-link">Clear</a>
+      {% endif %}
+    </form>
+
     <div class="card mb-4">
       <div class="card-header">
         <strong>Raw Product List</strong>
@@ -112,6 +181,7 @@
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Lot Code</th>
                 <th>Most Recent Cost</th>
                 <th>Date of Cost</th>
                 <th>Actions</th>
@@ -121,6 +191,7 @@
               {% for rp in raw_products %}
               <tr>
                 <td><a href="{{ url_for('main.view_raw_product', raw_product_id=rp.id) }}">{{ rp.name }}</a></td>
+                <td>{{ rp.lot_code or '—' }}</td>
                 {% if raw_product_costs[rp.id] %}
                   <td>${{ raw_product_costs[rp.id].cost|round(2) }}</td>
                   <td>{{ raw_product_costs[rp.id].date.strftime('%Y-%m-%d') }}</td>
@@ -225,7 +296,10 @@
         <form method="POST" action="{{ url_for('main.add_raw_product') }}">
           {{ form.hidden_tag() }}
           <div class="modal-header"><h5 class="modal-title" id="addRawProductModalLabel">Add New Raw Product</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
-          <div class="modal-body"><div class="form-group">{{ form.name.label(class="form-control-label") }}{{ form.name(class="form-control") }}</div></div>
+          <div class="modal-body">
+            <div class="form-group">{{ form.name.label(class="form-control-label") }}{{ form.name(class="form-control") }}</div>
+            <div class="form-group">{{ form.lot_code.label(class="form-control-label") }}{{ form.lot_code(class="form-control", placeholder="Optional") }}</div>
+          </div>
           <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>{{ form.submit(class="btn btn-primary") }}</div>
         </form>
       </div>

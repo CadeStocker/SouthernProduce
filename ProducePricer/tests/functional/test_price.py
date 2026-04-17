@@ -88,7 +88,7 @@ class TestPricePage:
             item = Item.query.filter_by(name="Test Item With Cost").first()
             if not item:
                 packaging = Packaging.query.first()
-                item = Item(name="Test Item With Cost", code="P-001", case_weight=10, packaging_id=packaging.id, company_id=logged_in_user_with_data.company_id, item_designation=ItemDesignation.RETAIL, unit_of_weight=UnitOfWeight.POUND)
+                item = Item(name="Test Item With Cost", code="P-001", case_weight=10, packaging_id=packaging.id, company_id=logged_in_user_with_data.company_id, item_designation=ItemDesignation.RETAIL, unit_of_weight=UnitOfWeight.POUND, alternate_code="ALT-P-001")
                 db.session.add(item)
                 db.session.commit()
                 item_cost = ItemTotalCost(item_id=item.id, total_cost=100.0, labor_cost=10, packaging_cost=20, ranch_cost=5, raw_product_cost=65, designation_cost=0, date=date.today(), company_id=logged_in_user_with_data.company_id)
@@ -100,6 +100,7 @@ class TestPricePage:
         assert response.status_code == 200
         assert b'Test Item With Cost' in response.data
         assert b'P-001' in response.data
+        assert b'ALT-P-001' in response.data
         assert b'100.00' in response.data # Total cost
         
         # Check for a rounded price (100 * 1.25 = 125, rounded to nearest quarter is 125.00)

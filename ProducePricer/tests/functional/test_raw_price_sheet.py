@@ -63,8 +63,8 @@ def test_raw_price_sheet_page(client, app, logged_in_user):
     """Test the raw price sheet page loads correctly with data."""
     with app.app_context():
         # Create raw products
-        rp1 = RawProduct(name="Carrots", company_id=logged_in_user.company_id)
-        rp2 = RawProduct(name="Potatoes", company_id=logged_in_user.company_id)
+        rp1 = RawProduct(name="Carrots", company_id=logged_in_user.company_id, lot_code="LOT-CAR-01")
+        rp2 = RawProduct(name="Potatoes", company_id=logged_in_user.company_id, lot_code="LOT-POT-99")
         db.session.add_all([rp1, rp2])
         db.session.commit()
 
@@ -116,6 +116,7 @@ def test_raw_price_sheet_page(client, app, logged_in_user):
     
     # Check Carrots data
     assert "Carrots" in html
+    assert "LOT-CAR-01" in html
     assert "$7.50" in html  # Latest
     assert "2023-03-01" in html
     assert "$6.00" in html  # Previous
@@ -123,6 +124,7 @@ def test_raw_price_sheet_page(client, app, logged_in_user):
     
     # Check Potatoes data
     assert "Potatoes" in html
+    assert "LOT-POT-99" in html
     assert "$12.00" in html
     
     # Verify export button exists
@@ -252,7 +254,8 @@ def test_average_cost_isolated_per_product(client, app, logged_in_user):
 
 
 def test_average_cost_header_present(client, app, logged_in_user):
-    """The 'Average Cost' column header should always be present in the table."""
+    """The 'Average Cost' and 'Lot Code' headers should always be present in the table."""
     response = client.get(url_for('main.raw_price_sheet'))
     assert response.status_code == 200
     assert "Average Cost" in response.data.decode('utf-8')
+    assert "Lot Code" in response.data.decode('utf-8')

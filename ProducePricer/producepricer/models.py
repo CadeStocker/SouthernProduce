@@ -429,18 +429,20 @@ class RawProduct(db.Model):
     __tablename__ = 'raw_product'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    lot_code = db.Column(db.String(100))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     #unit_of_weight = db.Column(db.Enum(UnitOfWeight), nullable=False)
     #weight = db.Column(db.Float, nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
 
-    def __init__(self, name, company_id):
+    def __init__(self, name, company_id, lot_code=None):
         self.name = name
+        self.company_id = company_id
+        self.lot_code = lot_code
         #self.unit_of_weight = unit_of_weight
         #self.weight = weight
-        self.company_id = company_id
 
     def __repr__(self):
-        return f"RawProduct('{self.name}', '{self.unit_of_weight}', '{self.weight}')"
+        return f"RawProduct('{self.name}', '{self.lot_code}')"
 
 class PendingUser(db.Model):
     __tablename__ = 'pending_user'

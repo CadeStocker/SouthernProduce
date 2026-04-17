@@ -46,6 +46,7 @@ def setup_data(app):
         item_a = Item(
             name="Apple",
             code="A01",
+            alternate_code="ALT-A01",
             unit_of_weight=UnitOfWeight.POUND,
             packaging_id=pkg.id,
             company_id=company.id,
@@ -53,6 +54,7 @@ def setup_data(app):
         item_b = Item(
             name="Banana",
             code="B01",
+            alternate_code="ALT-B01",
             unit_of_weight=UnitOfWeight.POUND,
             packaging_id=pkg.id,
             company_id=company.id,
@@ -279,3 +281,25 @@ def test_add_items_requires_login(client, app, setup_data):
 
     assert resp.status_code == 302
     assert "/login" in resp.headers["Location"]
+
+
+def test_edit_price_sheet_shows_alternate_code_column(logged_in_client, setup_data):
+    """Edit sheet page shows alternate code column/value."""
+    sheet_id = setup_data["sheet_id"]
+
+    resp = logged_in_client.get(f"/edit_price_sheet/{sheet_id}", follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert b"Alternate Code" in resp.data
+    assert b"ALT-A01" in resp.data
+
+
+def test_view_price_sheet_shows_alternate_code_column(logged_in_client, setup_data):
+    """View sheet page shows alternate code column/value."""
+    sheet_id = setup_data["sheet_id"]
+
+    resp = logged_in_client.get(f"/view_price_sheet/{sheet_id}", follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert b"Alternate Code" in resp.data
+    assert b"ALT-A01" in resp.data

@@ -224,7 +224,7 @@ def price():
         item_data.append({
             'id': item.id,
             'name': item.name,
-            'code': item.code,
+            'alternate_code': item.alternate_code or '',
             'case_weight': item.case_weight,
             'total_cost': f"{most_recent_cost.total_cost:.2f}",
             'ranch_cost': f"{most_recent_cost.ranch_cost:.2f}",
@@ -319,7 +319,7 @@ def export_price_pdf():
         # Append data for this item
         item_data.append({
             'name': item.name,
-            'code': item.code,
+            'alternate_code': item.alternate_code,
             'case_weight': item.case_weight,
             'total_cost': most_recent_cost.total_cost,
             'ranch_cost': most_recent_cost.ranch_cost,
@@ -364,7 +364,7 @@ def export_price_pdf():
     
     # Adjusted column widths - made item name much wider (80mm)
     col_widths = [80, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]
-    headers = ['Item Name', 'Code', 'Weight', 'Total', 'Cost/LB', 'Cost/Oz', 'Labor', 
+    headers = ['Item Name', 'Alternate Code', 'Weight', 'Total', 'Cost/LB', 'Cost/Oz', 'Labor', 
                'Pkg', 'Ranch', 'Unit', '25%', '30%', '35%', '40%', '45%']
     
     # Calculate table width and center it
@@ -396,7 +396,7 @@ def export_price_pdf():
         item_name = item['name'][:95] + '...' if len(item['name']) > 95 else item['name']
         
         pdf.cell(col_widths[0], 6, item_name, 1, 0, 'L', fill)
-        pdf.cell(col_widths[1], 6, str(item['code']), 1, 0, 'C', fill)
+        pdf.cell(col_widths[1], 6, str(item['alternate_code']), 1, 0, 'C', fill)
         pdf.cell(col_widths[2], 6, f"{item['case_weight']:.1f}", 1, 0, 'C', fill)
         pdf.cell(col_widths[3], 6, f"${item['total_cost']:.2f}", 1, 0, 'R', fill)
         pdf.cell(col_widths[4], 6, f"${item['cost_per_lb']:.2f}", 1, 0, 'R', fill)
@@ -489,7 +489,7 @@ def _generate_price_sheet_pdf_bytes(sheet):
     pdf.set_auto_page_break(auto=True, margin=15)
     
     # Center on page
-    col_widths = [90, 20, 20]
+    col_widths = [90, 25, 20, 25]
     total_width = sum(col_widths)
     left_margin = (210 - total_width) / 2
     pdf.set_left_margin(left_margin)
@@ -512,7 +512,7 @@ def _generate_price_sheet_pdf_bytes(sheet):
     # Table header
     pdf.set_font("Arial", "B", 9)
     # col_widths defined above
-    headers = ["Product", "Price", "Changed"]
+    headers = ["Product", "Price", "Changed", "Alt Code"]
     for i, header in enumerate(headers):
         pdf.cell(col_widths[i], 6, header, border=1, align="C")
     pdf.ln()
@@ -542,10 +542,12 @@ def _generate_price_sheet_pdf_bytes(sheet):
 
         # Sanitize the item name before rendering
         sanitized_item_name = sanitize_text(item.name)
+        sanitized_alternate_code = sanitize_text(item.alternate_code or "-")
+
         pdf.cell(col_widths[0], 6, sanitized_item_name, border=1)
-        
         pdf.cell(col_widths[1], 6, price_str, border=1, align="C")
         pdf.cell(col_widths[2], 6, changed_char, border=1, align="C")
+        pdf.cell(col_widths[3], 6, sanitized_alternate_code, border=1, align="C")
         pdf.ln()
 
     return bytes(pdf.output(dest='S'))
