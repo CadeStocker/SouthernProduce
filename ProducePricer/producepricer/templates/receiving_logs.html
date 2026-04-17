@@ -131,7 +131,13 @@
                 </td>
                 <td>{{ log.country_of_origin }}</td>
                 <td>{{ log.received_by }}</td>
-                <td>{{ log.returned if log.returned else '-' }}</td>
+                <td>
+                  {% if log.returned is not none %}
+                    {{ 'Yes' if log.returned else 'No' }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
                 <td>
                   {% if log.images %}
                     <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#imagesModal-{{ log.id }}">
