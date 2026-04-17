@@ -625,6 +625,146 @@ class TestRawProductReceivingLogsIntegration:
         assert b'Test Employee' in response.data
 
 
+class TestReceivingLogsPrintCalendar:
+    """Tests for daily receiving printout and calendar selector behavior."""
+
+    def test_print_page_shows_manual_and_calendar_labels(self, auth_client, app):
+        """Manual picker and calendar selector should both have clear labels/help text."""
+        client, company_id, user_id = auth_client
+
+        with app.app_context():
+            raw_product = RawProduct(name='Label Test Product', company_id=company_id)
+            brand = BrandName(name='Label Brand', company_id=company_id)
+            seller = Seller(name='Label Seller', company_id=company_id)
+            grower = GrowerOrDistributor(
+                name='Label Grower',
+                city='City',
+                state='State',
+                company_id=company_id
+            )
+            db.session.add_all([raw_product, brand, seller, grower])
+            db.session.commit()
+
+            log = ReceivingLog(
+                raw_product_id=raw_product.id,
+                pack_size_unit='lbs',
+                pack_size=20.0,
+                brand_name_id=brand.id,
+                quantity_received=8,
+                seller_id=seller.id,
+                temperature=37.0,
+                hold_or_used='used',
+                grower_or_distributor_id=grower.id,
+                country_of_origin='USA',
+                received_by='Tester',
+                company_id=company_id,
+                date_time=datetime(2026, 4, 12, 9, 30)
+            )
+            db.session.add(log)
+            db.session.commit()
+
+        response = client.get('/receiving_logs/print?date=2026-04-12&month=2026-04')
+        assert response.status_code == 200
+
+        html = response.data.decode('utf-8')
+        assert 'Manual Date Picker' in html
+        assert 'Type or choose an exact date, then click Load.' in html
+        assert 'Calendar Date Selector' in html
+        assert "Browse months and click a highlighted day to load that date's logs." in html
+
+    def test_calendar_only_links_days_with_logs_in_displayed_month(self, auth_client, app):
+        """Calendar links should appear only for in-month dates that actually have logs."""
+        client, company_id, user_id = auth_client
+
+        with app.app_context():
+            raw_product = RawProduct(name='Calendar Product', company_id=company_id)
+            brand = BrandName(name='Calendar Brand', company_id=company_id)
+            seller = Seller(name='Calendar Seller', company_id=company_id)
+            grower = GrowerOrDistributor(
+                name='Calendar Grower',
+                city='City',
+                state='State',
+                company_id=company_id
+            )
+            db.session.add_all([raw_product, brand, seller, grower])
+            db.session.commit()
+
+            logs = [
+                ReceivingLog(
+                    raw_product_id=raw_product.id,
+                    pack_size_unit='lbs',
+                    pack_size=10.0,
+                    brand_name_id=brand.id,
+                    quantity_received=1,
+                    seller_id=seller.id,
+                    temperature=35.0,
+                    hold_or_used='used',
+                    grower_or_distributor_id=grower.id,
+                    country_of_origin='USA',
+                    received_by='Tester',
+                    company_id=company_id,
+                    date_time=datetime(2026, 4, 10, 8, 0)
+                ),
+                ReceivingLog(
+                    raw_product_id=raw_product.id,
+                    pack_size_unit='lbs',
+                    pack_size=12.0,
+                    brand_name_id=brand.id,
+                    quantity_received=2,
+                    seller_id=seller.id,
+                    temperature=36.0,
+                    hold_or_used='hold',
+                    grower_or_distributor_id=grower.id,
+                    country_of_origin='Mexico',
+                    received_by='Tester',
+                    company_id=company_id,
+                    date_time=datetime(2026, 4, 12, 10, 0)
+                ),
+                ReceivingLog(
+                    raw_product_id=raw_product.id,
+                    pack_size_unit='lbs',
+                    pack_size=14.0,
+                    brand_name_id=brand.id,
+                    quantity_received=3,
+                    seller_id=seller.id,
+                    temperature=38.0,
+                    hold_or_used='used',
+                    grower_or_distributor_id=grower.id,
+                    country_of_origin='Canada',
+                    received_by='Tester',
+                    company_id=company_id,
+                    date_time=datetime(2026, 5, 1, 7, 0)
+                )
+            ]
+            db.session.add_all(logs)
+            db.session.commit()
+
+        response = client.get('/receiving_logs/print?date=2026-04-12&month=2026-04')
+        assert response.status_code == 200
+
+        html = response.data.decode('utf-8')
+        assert '/receiving_logs/print?date=2026-04-10&amp;month=2026-04' in html
+        assert '/receiving_logs/print?date=2026-04-12&amp;month=2026-04' in html
+        assert '/receiving_logs/print?date=2026-04-11&amp;month=2026-04' not in html
+        assert '/receiving_logs/print?date=2026-05-01&amp;month=2026-04' not in html
+
+    def test_receiving_logs_print_invalid_date_redirects_to_logs(self, auth_client):
+        """Invalid date should redirect to receiving logs list route."""
+        client, company_id, user_id = auth_client
+
+        response = client.get('/receiving_logs/print?date=not-a-date')
+        assert response.status_code == 302
+        assert '/receiving_logs' in response.headers['Location']
+
+    def test_receiving_logs_print_invalid_month_redirects_with_selected_date(self, auth_client):
+        """Invalid month should redirect back to print route preserving selected date."""
+        client, company_id, user_id = auth_client
+
+        response = client.get('/receiving_logs/print?date=2026-04-12&month=bad-month')
+        assert response.status_code == 302
+        assert '/receiving_logs/print?date=2026-04-12' in response.headers['Location']
+
+
 class TestCompanyIsolation:
     """Test that companies can only see their own data."""
     

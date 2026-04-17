@@ -1,4 +1,5 @@
 import datetime
+import calendar
 from flask_mailman import EmailMessage
 from fpdf import FPDF
 from producepricer.auth_utils import optional_api_key_or_login
@@ -207,6 +208,7 @@ def receiving_logs():
 @login_required
 def receiving_logs_print():
     date_str = request.args.get('date', '').strip()
+    month_str = request.args.get('month', '').strip()
     if date_str:
         try:
             selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -216,8 +218,29 @@ def receiving_logs_print():
     else:
         selected_date = datetime.date.today()
 
+    if month_str:
+        try:
+            month_parts = month_str.split('-')
+            if len(month_parts) != 2:
+                raise ValueError
+            calendar_year = int(month_parts[0])
+            calendar_month = int(month_parts[1])
+            calendar_date = datetime.date(calendar_year, calendar_month, 1)
+        except ValueError:
+            flash('Invalid month. Please use YYYY-MM format.', 'danger')
+            return redirect(url_for('main.receiving_logs_print', date=selected_date.strftime('%Y-%m-%d')))
+    else:
+        calendar_date = selected_date.replace(day=1)
+
     start_dt = datetime.datetime.combine(selected_date, datetime.time.min)
     end_dt = datetime.datetime.combine(selected_date, datetime.time.max)
+
+    month_last_day = calendar.monthrange(calendar_date.year, calendar_date.month)[1]
+    month_start_dt = datetime.datetime.combine(calendar_date, datetime.time.min)
+    month_end_dt = datetime.datetime.combine(
+        datetime.date(calendar_date.year, calendar_date.month, month_last_day),
+        datetime.time.max
+    )
 
     logs = (
         ReceivingLog.query
@@ -227,12 +250,41 @@ def receiving_logs_print():
         .all()
     )
 
+    available_dates_rows = (
+        db.session.query(func.date(ReceivingLog.datetime))
+        .filter_by(company_id=current_user.company_id)
+        .filter(ReceivingLog.datetime >= month_start_dt, ReceivingLog.datetime <= month_end_dt)
+        .distinct()
+        .all()
+    )
+
+    available_dates = []
+    for row in available_dates_rows:
+        row_value = row[0]
+        if isinstance(row_value, datetime.date):
+            available_dates.append(row_value.strftime('%Y-%m-%d'))
+        else:
+            available_dates.append(str(row_value))
+
+    calendar_instance = calendar.Calendar(firstweekday=6)
+    calendar_weeks = calendar_instance.monthdatescalendar(calendar_date.year, calendar_date.month)
+
+    prev_month_date = (calendar_date.replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
+    next_month_date = (calendar_date.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+
     return render_template(
         'receiving_logs_print.html',
         title='Daily Receiving Log Printout',
         logs=logs,
         selected_date=selected_date,
-        now=datetime.datetime.utcnow()
+        now=datetime.datetime.utcnow(),
+        calendar_date=calendar_date,
+        calendar_month_label=calendar_date.strftime('%B %Y'),
+        calendar_month_str=calendar_date.strftime('%Y-%m'),
+        calendar_weeks=calendar_weeks,
+        available_dates=available_dates,
+        prev_month_str=prev_month_date.strftime('%Y-%m'),
+        next_month_str=next_month_date.strftime('%Y-%m')
     )
 
 # View individual receiving log

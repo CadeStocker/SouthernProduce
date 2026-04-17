@@ -3,21 +3,226 @@
 
 {% block content %}
 <style>
+  :root {
+    --rcv-surface: #f6f8f5;
+    --rcv-panel: #ffffff;
+    --rcv-ink: #1f2a1f;
+    --rcv-muted: #5f6d60;
+    --rcv-line: #dde4d8;
+    --rcv-accent: #2f7d32;
+    --rcv-accent-soft: #e7f5e7;
+  }
+
+  .receiving-print-shell {
+    color: var(--rcv-ink);
+  }
+
+  .receiving-print-shell .card {
+    border: 1px solid var(--rcv-line);
+    border-radius: 16px;
+    box-shadow: 0 10px 20px rgba(31, 42, 31, 0.06);
+    overflow: hidden;
+  }
+
+  .receiving-print-shell .toolbar-title {
+    font-size: 1.8rem;
+    letter-spacing: 0.2px;
+    margin-bottom: 0.25rem;
+  }
+
+  .receiving-print-shell .toolbar-subtitle {
+    color: var(--rcv-muted);
+    font-size: 0.97rem;
+  }
+
+  .calendar-controls {
+    background: linear-gradient(160deg, #fcfdfb 0%, var(--rcv-surface) 100%);
+    border: 1px solid var(--rcv-line);
+    border-radius: 14px;
+    padding: 0.95rem;
+  }
+
+  .calendar-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .calendar-form .form-control {
+    min-width: 210px;
+    border-radius: 10px;
+    border-color: #cfd9cc;
+  }
+
+  .calendar-section-title {
+    display: block;
+    font-weight: 700;
+    color: #2a3a2b;
+    margin-bottom: 0.25rem;
+  }
+
+  .calendar-help-text {
+    color: var(--rcv-muted);
+    font-size: 0.84rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.95rem 0 0.5rem;
+  }
+
+  .calendar-month-label {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.15px;
+  }
+
+  .calendar-grid {
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--rcv-panel);
+    border: 1px solid var(--rcv-line);
+  }
+
+  .calendar-grid thead th {
+    background: #eef4ea;
+    color: #304130;
+    border-top: 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+  }
+
+  .calendar-grid td {
+    vertical-align: middle;
+    background: #fff;
+    border-color: #edf2eb;
+  }
+
+  .calendar-day {
+    min-height: 34px;
+    line-height: 1;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  .calendar-day.btn-outline-primary {
+    color: #2d6b31;
+    border-color: #b6d4b7;
+    background: #f4fbf4;
+  }
+
+  .calendar-day.btn-outline-primary:hover {
+    background: #e9f7ea;
+    border-color: #8fbd92;
+  }
+
+  .calendar-day.btn-primary {
+    background-color: var(--rcv-accent);
+    border-color: var(--rcv-accent);
+    box-shadow: 0 6px 12px rgba(47, 125, 50, 0.22);
+  }
+
+  .calendar-day-muted {
+    color: #8d9a8f;
+    font-weight: 500;
+  }
+
+  .calendar-legend {
+    color: var(--rcv-muted);
+    font-size: 0.85rem;
+  }
+
+  .calendar-legend-swatch {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 3px;
+    margin-right: 0.35rem;
+    vertical-align: -1px;
+    background: var(--rcv-accent-soft);
+    border: 1px solid #b6d4b7;
+  }
+
+  @media (max-width: 768px) {
+    .calendar-form .form-control {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .calendar-nav {
+      gap: 0.35rem;
+    }
+
+    .calendar-month-label {
+      font-size: 0.95rem;
+      text-align: center;
+    }
+  }
+
   @media print {
     .no-print { display: none !important; }
     nav, .navbar, .btn, button { display: none !important; }
-    body { background: white !important; }
+    body {
+      background: white !important;
+      color: #1a1f26 !important;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
     .container-fluid { max-width: 100% !important; padding: 0 !important; }
-    .card { border: 1px solid #ddd !important; box-shadow: none !important; }
-    .table { font-size: 8px; width: 100% !important; table-layout: fixed; }
+    .card {
+      border: 1px solid #cfd6de !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      margin-bottom: 0.3in !important;
+    }
+    .card-header {
+      background: #f2f5f8 !important;
+      border-bottom: 1px solid #cfd6de !important;
+      color: #111827 !important;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 0.28rem 0.45rem !important;
+    }
+    .d-print-block h2 {
+      font-size: 15px;
+      letter-spacing: 0.2px;
+      margin-bottom: 0.12rem !important;
+    }
+    .d-print-block .text-muted {
+      color: #4b5563 !important;
+      font-size: 9px;
+    }
+    .table {
+      font-size: 8px;
+      width: 100% !important;
+      table-layout: fixed;
+      border-collapse: collapse !important;
+    }
     .table td, .table th {
       padding: 0.2rem;
       line-height: 1.2;
       white-space: normal;
       overflow-wrap: anywhere;
       word-break: break-word;
+      border-color: #d3dae2 !important;
+      vertical-align: top;
     }
-    .table thead th { background: #f6f6f6 !important; }
+    .table thead th {
+      background: #edf2f7 !important;
+      color: #1f2937 !important;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+    .table tbody tr:nth-child(even) {
+      background: #f9fbfc !important;
+    }
     .table-responsive { overflow: visible !important; }
     .print-table-wrap {
       transform: scale(0.75);
@@ -30,11 +235,11 @@
   }
 </style>
 
-<div class="container-fluid mt-4" style="max-width: 98%;">
+<div class="container-fluid mt-4 receiving-print-shell" style="max-width: 98%;">
   <div class="d-flex justify-content-between align-items-center mb-3 no-print">
     <div>
-      <h1 class="mb-1">Daily Receiving Log Printout</h1>
-      <div class="text-muted">Print all logs for a specific date.</div>
+      <h1 class="toolbar-title">Daily Receiving Log Printout</h1>
+      <div class="toolbar-subtitle">Print all logs for a specific date.</div>
     </div>
     <div>
       <a href="{{ url_for('main.receiving_logs') }}" class="btn btn-secondary">Back to Logs</a>
@@ -44,11 +249,65 @@
 
   <div class="card mb-3">
     <div class="card-body">
-      <form method="GET" action="{{ url_for('main.receiving_logs_print') }}" class="form-inline no-print">
-        <label for="date" class="mr-2">Date</label>
-        <input type="date" id="date" name="date" class="form-control mr-2" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+      <div class="calendar-controls no-print">
+      <form method="GET" action="{{ url_for('main.receiving_logs_print') }}" class="calendar-form">
+        <div>
+          <label for="date" class="calendar-section-title mb-0">Manual Date Picker</label>
+          <div id="manual-date-help" class="calendar-help-text mb-0">Type or choose an exact date, then click Load.</div>
+        </div>
+        <input type="date" id="date" name="date" class="form-control mr-2" aria-describedby="manual-date-help" value="{{ selected_date.strftime('%Y-%m-%d') }}">
         <button type="submit" class="btn btn-outline-primary">Load</button>
       </form>
+
+      <div class="mt-3">
+        <div class="calendar-section-title">Calendar Date Selector</div>
+        <div id="calendar-date-help" class="calendar-help-text">Browse months and click a highlighted day to load that date's logs.</div>
+        <div class="calendar-nav">
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.receiving_logs_print', month=prev_month_str, date=selected_date.strftime('%Y-%m-%d')) }}">&laquo; Prev</a>
+          <div class="calendar-month-label">{{ calendar_month_label }}</div>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.receiving_logs_print', month=next_month_str, date=selected_date.strftime('%Y-%m-%d')) }}">Next &raquo;</a>
+        </div>
+        <table class="table table-bordered table-sm text-center mb-0 calendar-grid" style="table-layout: fixed;" aria-describedby="calendar-date-help">
+          <thead>
+            <tr>
+              <th>Sun</th>
+              <th>Mon</th>
+              <th>Tue</th>
+              <th>Wed</th>
+              <th>Thu</th>
+              <th>Fri</th>
+              <th>Sat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for week in calendar_weeks %}
+            <tr>
+              {% for day in week %}
+                {% set day_str = day.strftime('%Y-%m-%d') %}
+                {% set in_month = day.month == calendar_date.month %}
+                {% set has_logs = day_str in available_dates %}
+                {% set is_selected = day == selected_date %}
+                <td class="p-1">
+                  {% if in_month and has_logs %}
+                    <a href="{{ url_for('main.receiving_logs_print', date=day_str, month=calendar_month_str) }}"
+                       class="btn btn-sm calendar-day {{ 'btn-primary' if is_selected else 'btn-outline-primary' }} w-100"
+                       title="View logs for {{ day_str }}">
+                      {{ day.day }}
+                    </a>
+                  {% else %}
+                    <span class="d-inline-block w-100 calendar-day-muted" style="opacity: {{ '1' if in_month else '0.4' }};">
+                      {{ day.day }}
+                    </span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="calendar-legend mt-2"><span class="calendar-legend-swatch"></span>Days with logs are highlighted.</div>
+      </div>
+      </div>
 
       <div class="d-none d-print-block">
         <h2 class="mb-0">Receiving Logs - {{ selected_date.strftime('%Y-%m-%d') }}</h2>
