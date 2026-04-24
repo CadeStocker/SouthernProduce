@@ -62,6 +62,9 @@ def create_app(db_uri=None):
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'devkey')
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+    app.config['NOTIFICATION_OUTLIER_PERCENT_THRESHOLD'] = float(
+        os.environ.get('NOTIFICATION_OUTLIER_PERCENT_THRESHOLD', '10')
+    )
     
     # Set database URI - use parameter if provided (for testing)
     if db_uri:

@@ -135,3 +135,32 @@ body {
     font-size: 0.85rem;
   }
 }
+
+  .notification-menu {
+    min-width: 320px;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  .notification-item {
+    white-space: normal;
+  }
+
+  .notification-unread {
+    background-color: #f8f9fa;
+    font-weight: 600;
+  }
+
+  .notification-title {
+    font-size: 0.9rem;
+  }
+
+  .notification-message {
+    font-size: 0.85rem;
+    color: #495057;
+  }
+
+  .notification-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }

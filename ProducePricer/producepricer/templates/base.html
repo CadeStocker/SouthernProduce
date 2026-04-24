@@ -96,6 +96,18 @@
     </div>
     <ul class="navbar-nav ml-auto">
         {% if current_user.is_authenticated %}
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Notifications
+                    <span id="notification-count" class="badge badge-light ml-1 d-none">0</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right notification-menu" aria-labelledby="notificationDropdown">
+                    <h6 class="dropdown-header">Notifications</h6>
+                    <div id="notification-list" class="notification-list">
+                        <span class="dropdown-item text-muted">Loading...</span>
+                    </div>
+                </div>
+            </li>
             <li class="nav-item">
                 <a class="nav-link" href="#">{{ current_user.first_name }}</a>
             </li>
@@ -144,5 +156,110 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    {% if current_user.is_authenticated %}
+    <script>
+        (function () {
+            const pollIntervalMs = 30000;
+            const listEl = document.getElementById('notification-list');
+            const countEl = document.getElementById('notification-count');
+            const csrfToken = "{{ csrf_token() }}";
+            let latestNotifications = [];
+
+            function renderNotifications(notifications, unreadCount) {
+                if (!listEl || !countEl) {
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                if (!notifications.length) {
+                    const emptyItem = document.createElement('span');
+                    emptyItem.className = 'dropdown-item text-muted';
+                    emptyItem.textContent = 'No notifications';
+                    listEl.appendChild(emptyItem);
+                } else {
+                    notifications.forEach((notification) => {
+                        const item = document.createElement('a');
+                        item.className = `dropdown-item notification-item ${notification.read_at ? '' : 'notification-unread'}`;
+                        item.href = notification.link_url || '#';
+
+                        const title = document.createElement('div');
+                        title.className = `notification-title text-${notification.category || 'info'}`;
+                        title.textContent = notification.title;
+
+                        const message = document.createElement('div');
+                        message.className = 'notification-message';
+                        message.textContent = notification.message;
+
+                        const meta = document.createElement('div');
+                        meta.className = 'notification-meta';
+                        meta.textContent = notification.created_at_label;
+
+                        item.appendChild(title);
+                        item.appendChild(message);
+                        item.appendChild(meta);
+                        listEl.appendChild(item);
+                    });
+                }
+
+                if (unreadCount > 0) {
+                    countEl.textContent = unreadCount;
+                    countEl.classList.remove('d-none');
+                } else {
+                    countEl.textContent = '0';
+                    countEl.classList.add('d-none');
+                }
+            }
+
+            async function fetchNotifications() {
+                try {
+                    const response = await fetch('/notifications/poll');
+                    if (!response.ok) {
+                        return;
+                    }
+                    const data = await response.json();
+                    latestNotifications = data.notifications || [];
+                    renderNotifications(latestNotifications, data.unread_count || 0);
+                } catch (error) {
+                    // Ignore polling errors to avoid disrupting the UI.
+                }
+            }
+
+            async function markNotificationsRead() {
+                const unreadIds = latestNotifications
+                    .filter(notification => !notification.read_at)
+                    .map(notification => notification.id);
+
+                if (!unreadIds.length) {
+                    return;
+                }
+
+                try {
+                    await fetch('/notifications/mark_read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ ids: unreadIds })
+                    });
+                } catch (error) {
+                    // Ignore mark-read errors.
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                fetchNotifications();
+                setInterval(fetchNotifications, pollIntervalMs);
+
+                if (window.jQuery) {
+                    $('#notificationDropdown').on('show.bs.dropdown', () => {
+                        markNotificationsRead();
+                    });
+                }
+            });
+        })();
+    </script>
+    {% endif %}
 </body>
 </html>

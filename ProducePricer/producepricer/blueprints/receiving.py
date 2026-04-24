@@ -86,6 +86,7 @@ from werkzeug.utils import secure_filename
 from flask_mailman import EmailMessage
 from producepricer.utils.ai_utils import get_ai_response
 from producepricer.utils.qr_utils import generate_api_key_qr_code, generate_qr_code_bytes
+from producepricer.utils.notification_utils import maybe_create_receiving_log_outlier_notification
 import pdfplumber
 import tempfile
 from sqlalchemy import func
@@ -333,6 +334,10 @@ def edit_receiving_log(log_id):
         log.price_paid = None
     
     db.session.commit()
+    try:
+        maybe_create_receiving_log_outlier_notification(log, commit=True)
+    except Exception:
+        current_app.logger.exception('Failed to create receiving log outlier notification')
     flash('Receiving log updated successfully!', 'success')
     return redirect(url_for('main.view_receiving_log', log_id=log_id))
 

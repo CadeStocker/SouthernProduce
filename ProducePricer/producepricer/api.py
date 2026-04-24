@@ -27,6 +27,10 @@ from producepricer.schemas import (
 )
 from producepricer.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
 from datetime import datetime
+from producepricer.utils.notification_utils import (
+    create_receiving_log_notification,
+    maybe_create_receiving_log_outlier_notification
+)
 
 api = Blueprint('api', __name__)
 
@@ -185,6 +189,12 @@ def create_receiving_log():
         
         db.session.add(new_log)
         db.session.commit()
+
+        try:
+            create_receiving_log_notification(new_log, commit=True)
+            maybe_create_receiving_log_outlier_notification(new_log, commit=True)
+        except Exception:
+            current_app.logger.exception('Failed to create receiving log notifications')
         
         return jsonify({'message': 'Receiving log created successfully', 'id': new_log.id}), 201
         

@@ -33,6 +33,7 @@ class Company(db.Model):
     customers = db.relationship('Customer', backref='company', lazy=True)
     packaging = db.relationship('Packaging', backref='company', lazy=True)
     packaging_cost = db.relationship('PackagingCost', backref='company', lazy=True)
+    notifications = db.relationship('Notification', backref='company', lazy=True)
     admin_email = db.Column(db.String(120), unique=True, nullable=False)
 
     def __init__(self, name, admin_email):
@@ -70,6 +71,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    notifications = db.relationship('Notification', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def __init__(self, first_name, last_name, email, password, company_id):
         self.first_name = first_name
@@ -155,6 +157,33 @@ class User(db.Model, UserMixin):
             return None
 
         return user
+
+class Notification(db.Model):
+    __tablename__ = 'notification'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(20), nullable=False, default='info')
+    link_url = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+
+    def __init__(self, user_id, company_id, title, message, category='info', link_url=None, created_at=None, read_at=None):
+        self.user_id = user_id
+        self.company_id = company_id
+        self.title = title
+        self.message = message
+        self.category = category
+        self.link_url = link_url
+        if created_at:
+            self.created_at = created_at
+        if read_at:
+            self.read_at = read_at
+
+    def __repr__(self):
+        return f"Notification('{self.title}', '{self.user_id}', '{self.created_at}')"
 
 item_raw = db.Table('item_raw',
     db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True),
