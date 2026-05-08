@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import pytest
 from unittest.mock import patch, MagicMock
 from flask import url_for

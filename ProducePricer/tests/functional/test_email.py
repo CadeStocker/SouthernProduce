@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for email functionality including:
 - Admin approval emails for new user signups

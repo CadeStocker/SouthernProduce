@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from producepricer import db
 from producepricer.models import PriceSheetBackup
 

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import re
 import pytest
 from datetime import date, timedelta

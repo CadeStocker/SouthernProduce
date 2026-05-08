@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for PDF export functionality including:
 - Raw product price sheet PDF generation

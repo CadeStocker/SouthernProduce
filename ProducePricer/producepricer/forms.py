@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask_wtf import FlaskForm
 from wtforms import DateField, FileField, FloatField, SelectField, SelectMultipleField, StringField, PasswordField, SubmitField, BooleanField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Optional, InputRequired

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask import Blueprint, jsonify, request, current_app, url_for, g
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename

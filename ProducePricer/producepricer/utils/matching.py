@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from typing import Optional, Tuple
 from rapidfuzz import process, fuzz
 

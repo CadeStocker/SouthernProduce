@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import datetime
 from io import BytesIO
 from sqlite3 import IntegrityError

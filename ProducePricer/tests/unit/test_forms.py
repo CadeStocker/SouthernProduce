@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Unit tests for form validation in the ProducePricer application.
 Tests cover all form classes to ensure proper validation behavior.

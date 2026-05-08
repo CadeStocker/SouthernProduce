@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Comprehensive tests for database logic and operations.
 Tests cover model relationships, cost calculations, cascading operations,

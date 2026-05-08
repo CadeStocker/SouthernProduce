@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Comprehensive unit tests for all models in the ProducePricer application.
 These tests verify model creation, relationships, and basic database operations.

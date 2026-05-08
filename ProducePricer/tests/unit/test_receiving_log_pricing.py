@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Unit tests for ReceivingLog pricing comparison features.
 

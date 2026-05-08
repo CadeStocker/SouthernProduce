@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Functional tests for API reference data creation endpoints.
 Tests POST endpoints for creating raw products, brands, sellers, and growers.

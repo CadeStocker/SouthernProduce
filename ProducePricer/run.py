@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import os
 from producepricer import create_app
 

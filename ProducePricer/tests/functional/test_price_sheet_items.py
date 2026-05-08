@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for adding and removing items from a price sheet.
 Covers:

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import json
 import re
 import datetime

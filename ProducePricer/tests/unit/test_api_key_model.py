@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """Unit tests for the APIKey model."""
 import pytest
 from datetime import datetime, timedelta

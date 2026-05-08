@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import datetime
 from flask_mailman import EmailMessage
 from producepricer.utils.pdf_utils import extract_pdf_text

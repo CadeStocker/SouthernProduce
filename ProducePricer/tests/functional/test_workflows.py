@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Business workflow tests for the ProducePricer application.
 Tests cover end-to-end workflows like customer management, item creation,

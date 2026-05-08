@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from datetime import date
 from flask import url_for
 

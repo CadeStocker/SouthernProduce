@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for updating price sheet dates (valid_from, valid_to).
 """

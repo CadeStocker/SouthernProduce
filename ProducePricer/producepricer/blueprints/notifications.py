@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from datetime import datetime
 from flask import jsonify, request
 from flask_login import login_required, current_user

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import datetime
 from flask_mailman import EmailMessage
 from producepricer.blueprints.items import update_item_total_cost

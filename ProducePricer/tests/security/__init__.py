@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Security test suite for ProducePricer application.
 

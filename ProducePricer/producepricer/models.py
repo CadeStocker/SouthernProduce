@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask import current_app
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from producepricer import db, login_manager

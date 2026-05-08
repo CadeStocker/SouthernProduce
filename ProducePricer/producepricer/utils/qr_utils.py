@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """QR Code generation utilities for API keys."""
 import qrcode
 import io

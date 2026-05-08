@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Security tests for API endpoints to ensure they're protected against common attacks.
 

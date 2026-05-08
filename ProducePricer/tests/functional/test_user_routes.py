@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import pytest
 from flask import url_for
 from flask_login import current_user

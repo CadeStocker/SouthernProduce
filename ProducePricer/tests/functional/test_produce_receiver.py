@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Comprehensive tests for Produce Receiver app features including:
 - Brand Names management

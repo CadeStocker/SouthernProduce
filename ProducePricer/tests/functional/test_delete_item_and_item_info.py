@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for:
   - delete_item route (including the price_sheet_backup regression)

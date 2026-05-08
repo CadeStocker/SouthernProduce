@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """Functional tests for API key authentication."""
 import pytest
 import json

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Input validation schemas for API endpoints using Pydantic.
 Provides type safety and input sanitization for all API requests.

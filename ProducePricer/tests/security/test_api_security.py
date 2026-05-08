@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Comprehensive security tests for API endpoints.
 Tests authentication, authorization, multi-tenant isolation, and common vulnerabilities.

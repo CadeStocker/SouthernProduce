@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask import current_app, url_for
 from producepricer import db
 from producepricer.models import Notification, User

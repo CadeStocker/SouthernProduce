@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Security tests for web routes.
 Tests authentication, authorization, CSRF protection, and access control.

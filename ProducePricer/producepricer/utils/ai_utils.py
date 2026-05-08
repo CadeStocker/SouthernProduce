@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import datetime
 from producepricer import openai_client
 from producepricer.models import AIResponse

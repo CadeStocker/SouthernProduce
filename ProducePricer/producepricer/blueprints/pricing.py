@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import datetime
 import math
 from flask_mailman import EmailMessage

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 # blueprints/__init__.py
 # Import main from its own module to avoid circular imports
 from producepricer.blueprints._blueprint import main

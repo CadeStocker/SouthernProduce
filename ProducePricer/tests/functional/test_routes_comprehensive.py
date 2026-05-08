@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Comprehensive tests for Flask routes - authentication, pages, and API endpoints.
 Tests cover GET/POST requests, login requirements, and basic functionality.

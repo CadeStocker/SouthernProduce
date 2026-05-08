@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """Authentication utilities for API key validation."""
 from functools import wraps
 from flask import request, jsonify, g

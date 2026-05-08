@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for authentication features including login, logout, and password reset.
 """

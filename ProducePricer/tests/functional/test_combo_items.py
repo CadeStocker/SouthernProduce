@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 import pytest
 from datetime import date
 from producepricer import db

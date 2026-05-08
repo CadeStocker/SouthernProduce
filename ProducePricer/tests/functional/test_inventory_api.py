@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Tests for item inventory API endpoints.
 Tests authentication, data isolation, input validation, and inventory counting functionality.

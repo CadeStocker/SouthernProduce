@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 """
 Additional unit tests for models not fully covered in other test files.
 Includes CustomerEmail, User password tokens, and other specific scenarios.

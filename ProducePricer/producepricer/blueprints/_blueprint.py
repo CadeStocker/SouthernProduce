@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask import Blueprint
 
 # The single 'main' Blueprint instance shared by all sub-modules.

@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 from flask_mailman import EmailMessage
 from producepricer.blueprints._blueprint import main
 

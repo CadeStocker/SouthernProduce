@@ -1,3 +1,4 @@
+# Copyright Cade Stocker 2026
 def extract_pdf_text(file_path: str) -> str:
     import pdfplumber
     text_parts = []
