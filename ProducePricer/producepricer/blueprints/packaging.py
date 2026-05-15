@@ -89,6 +89,11 @@ from sqlalchemy import func
 @main.route('/packaging')
 @login_required
 def packaging():
+
+    """
+    Display the packaging management page, allowing users to view, add, and manage packaging types and costs.
+    """
+
     # search feature
     q = request.args.get('q', '').strip()
 
@@ -142,6 +147,11 @@ def packaging():
 @main.route('/packaging/<int:packaging_id>')
 @login_required
 def view_packaging(packaging_id):
+
+    """
+    Display the details of a specific packaging type, including its cost history and associated items.
+    """
+
     packaging_costs = {}
     packaging_items = {}
 
@@ -175,6 +185,11 @@ def view_packaging(packaging_id):
 @main.route('/add_package', methods=['POST'])
 @login_required
 def add_package():
+
+    """
+    Handle the creation of a new packaging type based on user input from the create package form.
+    """
+
     form = CreatePackage()
     if form.validate_on_submit():
         # flash a message to the user

@@ -92,9 +92,11 @@ from sqlalchemy import func, or_
 @main.route('/raw_price_sheet')
 @login_required
 def raw_price_sheet():
+
     """
     Show a price sheet with the latest cost for every raw product for the current company.
     """
+
     # load all raw products for the company
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
     
@@ -139,10 +141,12 @@ def raw_price_sheet():
     return render_template('raw_price_sheet.html', title='Raw Product Price Sheet', raw_products=raw_products, recent=recent, previous=previous, customers=customers, average=average)
 
 def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=None, hide_previous=False, sheet_name="Raw Product Price Sheet"):
+    
     """
     Simple PDF generator that lists raw products and their most recent prices.
     Returns bytes.
     """
+
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
     # Add company name as a prominent title
@@ -202,6 +206,11 @@ def _generate_raw_price_sheet_pdf_bytes(raw_products, recent_map, previous_map=N
 @main.route('/raw_price_sheet/export_pdf')
 @login_required
 def export_raw_price_sheet_pdf():
+
+    """
+    Generate a PDF of the raw price sheet and send it as a download response.
+    """
+
     # reuse same data gathering as the html view
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
     recent = {}
@@ -239,6 +248,11 @@ def export_raw_price_sheet_pdf():
 @main.route('/raw_price_sheet/email', methods=['POST'])
 @login_required
 def email_raw_price_sheet():
+
+    """
+    Email the raw price sheet as a PDF attachment to specified recipients.
+    """
+
     # Get recipients
     recipients = request.form.getlist('recipients')
     single_recipient = request.form.get('recipient')
@@ -309,6 +323,11 @@ def email_raw_price_sheet():
 @main.route('/raw_product')
 @login_required
 def raw_product():
+
+    """
+    Display a list of all raw products for the current company, along with their most recent cost.
+    """
+
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Number of raw products per page
@@ -379,6 +398,11 @@ def raw_product():
 @main.route('/raw_product/<int:raw_product_id>')
 @login_required
 def view_raw_product(raw_product_id):
+
+    """
+    Display details about a raw product, including its cost history and receiving logs.
+    """
+
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if raw_product is None:
@@ -417,6 +441,11 @@ def view_raw_product(raw_product_id):
 @main.route('/delete_raw_product_cost/<int:cost_id>', methods=['POST'])
 @login_required
 def delete_raw_product_cost(cost_id):
+
+    """
+    Delete a specific cost entry for a raw product.
+    """
+
     # Find the cost in the database
     cost = CostHistory.query.filter_by(id=cost_id, company_id=current_user.company_id).first()
     if not cost:
@@ -440,6 +469,11 @@ def delete_raw_product_cost(cost_id):
 @main.route('/add_raw_product', methods=['POST'])
 @login_required
 def add_raw_product():
+
+    """
+    Add a new raw product to the database with the provided name and optional lot code.
+    """
+
     form = AddRawProduct()
     if form.validate_on_submit():
 
@@ -470,7 +504,10 @@ def add_raw_product():
 @main.route('/update_raw_product_lot_codes', methods=['POST'])
 @login_required
 def update_raw_product_lot_codes():
-    """Bulk update lot codes for all raw products in the current company."""
+
+    """
+    Bulk update lot codes for all raw products in the current company.
+    """
     updated_count = 0
 
     raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).all()
@@ -498,7 +535,11 @@ def update_raw_product_lot_codes():
 @main.route('/update_raw_product_lot_code_by_name', methods=['POST'])
 @login_required
 def update_raw_product_lot_code_by_name():
-    """Update a lot code by typing the raw product name."""
+    
+    """
+    Update a lot code by typing the raw product name.
+    """
+
     raw_name = (request.form.get('name') or '').strip()
     lot_code = (request.form.get('lot_code') or '').strip() or None
 
@@ -540,8 +581,21 @@ def update_raw_product_lot_code_by_name():
 @main.route('/add_raw_product_cost/<int:raw_product_id>', methods=['POST'])
 @login_required
 def add_raw_product_cost(raw_product_id):
+
+    """
+    Add a new cost entry for a raw product, and update the total cost for any items that use this raw product.
+    """
+
     form = AddRawProductCost()
     if form.validate_on_submit():
+        # Get the previous cost for comparison
+        previous_cost_entry = CostHistory.query.filter_by(
+            raw_product_id=raw_product_id,
+            company_id=current_user.company_id
+        ).order_by(CostHistory.date.desc()).first()
+        
+        previous_cost = previous_cost_entry.cost if previous_cost_entry else None
+        
         # Create a new cost history entry
         cost_history = CostHistory(
             raw_product_id=raw_product_id,
@@ -551,6 +605,15 @@ def add_raw_product_cost(raw_product_id):
         )
         db.session.add(cost_history)
         db.session.commit()
+        
+        # Check if price change is significant and send notification
+        # maybe_create_price_change_notification(  # Temporarily disabled for debugging
+        #     raw_product_id,
+        #     form.cost.data,
+        #     previous_cost,
+        #     current_user.company_id,
+        #     commit=True
+        # )
 
         # Update the total cost for any items using this raw product
         items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product_id)).all()
@@ -566,6 +629,11 @@ def add_raw_product_cost(raw_product_id):
 @main.route('/raw_product_session', methods=['POST'])
 @login_required
 def raw_product_session():
+
+    """
+    Add a raw product cost by typing the raw product name, for quick data entry in receiving.
+    """
+
     form = RawProductSessionEntryForm()
     if not form.validate_on_submit():
         flash('Invalid data submitted.', 'danger')
@@ -592,6 +660,14 @@ def raw_product_session():
             flash('Raw product not found. Please select a valid name.', 'warning')
             return redirect(url_for('main.raw_product'))
 
+    # Get the previous cost for comparison
+    previous_cost_entry = CostHistory.query.filter_by(
+        raw_product_id=raw_product.id,
+        company_id=current_user.company_id
+    ).order_by(CostHistory.date.desc()).first()
+    
+    previous_cost = previous_cost_entry.cost if previous_cost_entry else None
+
     cost_history = CostHistory(
         raw_product_id=raw_product.id,
         cost=form.cost.data,
@@ -600,6 +676,15 @@ def raw_product_session():
     )
     db.session.add(cost_history)
     db.session.commit()
+    
+    # Check if price change is significant and send notification
+    # maybe_create_price_change_notification(  # Temporarily disabled for debugging
+    #     raw_product.id,
+    #     form.cost.data,
+    #     previous_cost,
+    #     current_user.company_id,
+    #     commit=True
+    # )
 
     items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product.id)).all()
     for item in items_using_raw_product:
@@ -613,6 +698,11 @@ def raw_product_session():
 @main.route('/upload_raw_product_csv', methods=['GET', 'POST'])
 @login_required
 def upload_raw_product_csv():
+
+    """
+    Upload a CSV file to bulk import raw products and their costs.
+    """
+
     form = UploadRawProductCSV()
     if form.validate_on_submit():
         # Check if the post request has the file part
@@ -694,6 +784,11 @@ def upload_raw_product_csv():
 @main.route('/delete_raw_product/<int:raw_product_id>', methods=['POST'])
 @login_required
 def delete_raw_product(raw_product_id):
+
+    """
+    Delete a raw product and all its associated cost history entries. Also unlink it from any items that use
+    """
+
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if not raw_product:
@@ -718,6 +813,11 @@ def delete_raw_product(raw_product_id):
 @main.route('/edit_raw_product/<int:raw_product_id>', methods=['POST'])
 @login_required
 def edit_raw_product(raw_product_id):
+
+    """
+    Edit the name and lot code of a raw product.
+    """
+
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if not raw_product:

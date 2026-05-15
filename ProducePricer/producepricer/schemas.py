@@ -1,7 +1,15 @@
 # Copyright Cade Stocker 2026
+
 """
 Input validation schemas for API endpoints using Pydantic.
+    Pydantic models define the expected structure and types of incoming JSON data for each API endpoint.
+
 Provides type safety and input sanitization for all API requests.
+
+API is used for things like - creating receiving logs, submitting inventory counts, and managing the supply catalog.
+
+So this file essentially defines the "contracts" for what data the frontend must send to the backend for these operations,
+and ensures that the data is valid and safe to process.
 """
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
@@ -39,7 +47,11 @@ class ReceivingLogCreateSchema(BaseModel):
     @field_validator('pack_size_unit', 'country_of_origin', 'received_by', 'returned')
     @classmethod
     def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        """Sanitize text fields to prevent XSS attacks."""
+        
+        """
+        Sanitize text fields to prevent XSS attacks.
+        """
+
         if v is None:
             return v
         # Remove any HTML/script tags

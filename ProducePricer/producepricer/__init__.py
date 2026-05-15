@@ -66,6 +66,9 @@ def create_app(db_uri=None):
     app.config['NOTIFICATION_OUTLIER_PERCENT_THRESHOLD'] = float(
         os.environ.get('NOTIFICATION_OUTLIER_PERCENT_THRESHOLD', '10')
     )
+    app.config['NOTIFICATION_PRICE_CHANGE_PERCENT_THRESHOLD'] = float(
+        os.environ.get('NOTIFICATION_PRICE_CHANGE_PERCENT_THRESHOLD', '20')
+    )
     
     # Set database URI - use parameter if provided (for testing)
     if db_uri:

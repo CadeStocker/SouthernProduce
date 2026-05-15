@@ -83,6 +83,7 @@ from producepricer.utils.qr_utils import generate_api_key_qr_code, generate_qr_c
 import pdfplumber
 import tempfile
 from sqlalchemy import func
+from datetime import datetime, timedelta
 
 # API Keys management page
 @main.route('/api-keys')
@@ -103,10 +104,21 @@ def api_keys():
 def create_api_key():
     """Create a new API key for a device."""
     device_name = request.form.get('device_name', '').strip()
+    expiration_days_str = request.form.get('expiration_days', '').strip()
     
     if not device_name:
         flash('Device name is required.', 'danger')
         return redirect(url_for('main.api_keys'))
+    
+    # Parse optional expiration days
+    expires_at = None
+    if expiration_days_str:
+        try:
+            expiration_days = int(expiration_days_str)
+            if expiration_days > 0:
+                expires_at = datetime.utcnow() + timedelta(days=expiration_days)
+        except (ValueError, TypeError):
+            flash('Invalid expiration days value.', 'warning')
     
     # Generate a new API key
     key = APIKey.generate_key()
@@ -119,8 +131,14 @@ def create_api_key():
         created_by_user_id=current_user.id
     )
     
+    if expires_at:
+        api_key.expires_at = expires_at
+    
     db.session.add(api_key)
     db.session.commit()
+    
+    # Send notification about new device
+    # create_new_api_key_notification(api_key, commit=True)  # Temporarily disabled for debugging
     
     # Generate QR code
     api_base_url = request.url_root.rstrip('/')

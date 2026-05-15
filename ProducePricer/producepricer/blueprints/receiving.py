@@ -96,7 +96,11 @@ from sqlalchemy import func
 @main.route('/debug_receiving_log/<int:log_id>')
 @login_required
 def debug_receiving_log(log_id):
-    """Debug route to check why market cost comparison isn't working."""
+
+    """
+    Debug route to check why market cost comparison isn't working.
+    """
+
     from datetime import timedelta
     from sqlalchemy import and_
     
@@ -172,6 +176,11 @@ def debug_receiving_log(log_id):
 @main.route('/receiving_logs')
 @login_required
 def receiving_logs():
+
+    """
+    Display all receiving logs with optional search and pagination.
+    """
+
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Number of logs per page
@@ -209,6 +218,11 @@ def receiving_logs():
 @main.route('/receiving_logs/print')
 @login_required
 def receiving_logs_print():
+
+    """
+    Display receiving logs in a print-friendly format, with optional date filtering.
+    """
+
     date_str = request.args.get('date', '').strip()
     month_str = request.args.get('month', '').strip()
     if date_str:
@@ -293,6 +307,11 @@ def receiving_logs_print():
 @main.route('/receiving_log/<int:log_id>')
 @login_required
 def view_receiving_log(log_id):
+
+    """
+    View details of a single receiving log entry, including market price comparison if available.
+    """
+
     log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
     
     # Get master customer price even if no price_paid is set yet
@@ -314,6 +333,11 @@ def view_receiving_log(log_id):
 @main.route('/edit_receiving_log/<int:log_id>', methods=['POST'])
 @login_required
 def edit_receiving_log(log_id):
+
+    """
+    Edit a receiving log entry, specifically to add or update the price paid information.
+    """
+
     log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
     
     # Get price_paid from form
@@ -346,6 +370,11 @@ def edit_receiving_log(log_id):
 @main.route('/email_receiving_log/<int:log_id>', methods=['POST'])
 @login_required
 def email_receiving_log(log_id):
+
+    """
+    Email the details of a receiving log entry to a specified recipient, with an optional custom message.
+    """
+
     log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
     
     recipient = request.form.get('recipient', '').strip()
@@ -441,6 +470,11 @@ def email_receiving_log(log_id):
 @main.route('/receiving_log/<int:log_id>/pdf')
 @login_required
 def download_receiving_log_pdf(log_id):
+
+    """
+    Generate a PDF document for a receiving log entry and send it as a downloadable file.
+    """
+
     log = ReceivingLog.query.filter_by(id=log_id, company_id=current_user.company_id).first_or_404()
     
     # Generate PDF
@@ -566,6 +600,11 @@ def download_receiving_log_pdf(log_id):
 @main.route('/brand_names')
 @login_required
 def brand_names():
+
+    """
+    Display all brand names with optional search and pagination.
+    """
+
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15
@@ -600,6 +639,11 @@ def brand_names():
 @main.route('/add_brand_name', methods=['POST'])
 @login_required
 def add_brand_name():
+
+    """
+    Add a new brand name to the database after validating the form input.
+    """
+
     form = AddBrandName()
     if form.validate_on_submit():
         brand = BrandName(name=form.name.data, company_id=current_user.company_id)
@@ -627,6 +671,11 @@ def delete_brand_name(brand_id):
 @main.route('/sellers')
 @login_required
 def sellers():
+
+    """
+    Display all sellers with optional search and pagination.
+    """
+
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15
@@ -661,6 +710,11 @@ def sellers():
 @main.route('/add_seller', methods=['POST'])
 @login_required
 def add_seller():
+
+    """
+    Add a new seller to the database after validating the form input.
+    """
+
     form = AddSeller()
     if form.validate_on_submit():
         seller = Seller(name=form.name.data, company_id=current_user.company_id)
@@ -674,6 +728,11 @@ def add_seller():
 @main.route('/delete_seller/<int:seller_id>', methods=['POST'])
 @login_required
 def delete_seller(seller_id):
+
+    """
+    Delete a seller from the database after confirming it exists and belongs to the current user's company.
+    """
+
     seller = Seller.query.filter_by(id=seller_id, company_id=current_user.company_id).first()
     if not seller:
         flash('Seller not found or you do not have permission to delete it.', 'danger')
@@ -688,6 +747,11 @@ def delete_seller(seller_id):
 @main.route('/growers_distributors')
 @login_required
 def growers_distributors():
+
+    """
+    Display all growers/distributors with optional search and pagination.
+    """
+
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15
@@ -726,6 +790,11 @@ def growers_distributors():
 @main.route('/add_grower_distributor', methods=['POST'])
 @login_required
 def add_grower_distributor():
+
+    """
+    Add a new grower/distributor to the database after validating the form input.
+    """
+
     form = AddGrowerOrDistributor()
     if form.validate_on_submit():
         grower = GrowerOrDistributor(
@@ -744,6 +813,11 @@ def add_grower_distributor():
 @main.route('/delete_grower_distributor/<int:grower_id>', methods=['POST'])
 @login_required
 def delete_grower_distributor(grower_id):
+
+    """
+    Delete a grower/distributor from the database after confirming it exists and belongs to the current user's company.
+    """
+
     grower = GrowerOrDistributor.query.filter_by(id=grower_id, company_id=current_user.company_id).first()
     if not grower:
         flash('Grower/Distributor not found or you do not have permission to delete it.', 'danger')
@@ -757,4 +831,9 @@ def delete_grower_distributor(grower_id):
 @main.route('/receiving_images/<path:filename>')
 @optional_api_key_or_login
 def get_receiving_image(filename):
+
+    """
+    Serve a receiving image file from the configured directory, with access control for authenticated users or valid API keys.
+    """
+
     return send_from_directory(current_app.config['RECEIVING_IMAGES_DIR'], filename)

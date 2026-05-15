@@ -802,6 +802,7 @@ class APIKey(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_used_at = db.Column(db.DateTime, nullable=True)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration date
     
     # Relationships
     company = db.relationship('Company', backref='api_keys')

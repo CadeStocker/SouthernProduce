@@ -1,4 +1,11 @@
 # Copyright Cade Stocker 2026
+
+"""
+routes.py - Defines all Flask routes for the ProducePricer application.
+    This file contains the route handlers for all API endpoints and web pages in the ProducePricer
+    application. It imports the necessary models, forms, and utilities to process requests and render responses.
+"""
+
 import datetime
 from io import BytesIO
 from sqlite3 import IntegrityError
@@ -116,13 +123,21 @@ from producepricer.utils.pdf_utils import extract_pdf_text  # noqa: F401 (re-exp
 def home():
     return render_template('home.html')
 
-# about page
 @main.route('/about')
 def about():
+
+    """Simple about page with static content.."""
+
     return render_template('about.html')
 
 
 def safe_strip(x):
+
+    """
+    Safely strip whitespace from a string, returning an empty string for None or NaN values.
+    This is useful for cleaning up user input or data that may contain missing values.
+    """
+
     if x is None: return ''
     try:
         if math.isnan(x): return ''

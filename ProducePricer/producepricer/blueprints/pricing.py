@@ -93,6 +93,11 @@ from sqlalchemy import func
 @main.route('/delete_price_history/<int:price_history_id>', methods=['POST'])
 @login_required
 def delete_price_history(price_history_id):
+
+    """
+    Delete a price history entry from the database after confirming it exists and belongs to the current user's company.
+    """
+
     # Find the price history entry
     price_history = PriceHistory.query.filter_by(
         id=price_history_id, 
@@ -117,6 +122,11 @@ def delete_price_history(price_history_id):
 @main.route('/price')
 @login_required
 def price():
+
+    """
+    Display the price page with cost and pricing information for each item, including optional search and pagination.
+    """
+
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Items per page
@@ -254,7 +264,11 @@ def price():
 @main.route('/price/export-pdf')
 @login_required
 def export_price_pdf():
-    """Export the price table as a PDF"""
+
+    """
+    Export the price table as a PDF
+    """
+
     # Get search parameter
     q = request.args.get('q', '').strip()
     
@@ -432,7 +446,10 @@ def export_price_pdf():
     return response
 
 def _generate_price_sheet_pdf_bytes(sheet):
-    """Helper function to generate the price sheet PDF bytes."""
+    
+    """
+    Helper function to generate the price sheet PDF bytes.
+    """
 
     # Helper to sanitize text for FPDF by replacing non-standard characters
     def sanitize_text(text):
@@ -556,6 +573,11 @@ def _generate_price_sheet_pdf_bytes(sheet):
 @main.route('/price_quoter', methods=['GET','POST'])
 @login_required
 def price_quoter():
+    
+    """
+    Display the price quoter form and handle price calculations based on user input.
+    """
+
     form = PriceQuoterForm()
 
     # Populate the dropdowns
@@ -763,6 +785,11 @@ def price_quoter():
 @main.route('/price_sheet', methods=['GET', 'POST'])
 @login_required
 def price_sheet():
+
+    """
+    Display the price sheet management page, allowing users to create new price sheets and view existing ones.
+    """
+
     form = PriceSheetForm()
 
     # 1) load existing sheets
@@ -822,6 +849,11 @@ def price_sheet():
 @main.route('/edit_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
 @login_required
 def edit_price_sheet(sheet_id):
+
+    """
+    Display the price sheet editing page, allowing users to update prices and sheet details.
+    """
+
     sheet = PriceSheet.query.filter_by(
         id=sheet_id,
         company_id=current_user.company_id
@@ -975,6 +1007,11 @@ def edit_price_sheet(sheet_id):
 @main.route('/view_price_sheet/<int:sheet_id>/export_pdf')
 @login_required
 def export_price_sheet_pdf(sheet_id):
+
+    """
+    Generate and return a PDF version of the price sheet for download.
+    """
+
     sheet = PriceSheet.query.filter_by(
         id=sheet_id,
         company_id=current_user.company_id
@@ -990,6 +1027,11 @@ def export_price_sheet_pdf(sheet_id):
 @main.route('/edit_price_sheet/<int:sheet_id>/add_items', methods=['POST'])
 @login_required
 def add_items_to_sheet(sheet_id):
+
+    """
+    Add selected items to the price sheet.
+    """
+
     sheet = PriceSheet.query.filter_by(
         id=sheet_id, company_id=current_user.company_id
     ).first_or_404()
@@ -1009,6 +1051,11 @@ def add_items_to_sheet(sheet_id):
 @main.route('/edit_price_sheet/<int:sheet_id>/remove_item/<int:item_id>', methods=['POST'])
 @login_required
 def remove_item_from_sheet(sheet_id, item_id):
+
+    """
+    Remove an item from the price sheet.
+    """
+
     sheet = PriceSheet.query.filter_by(
         id=sheet_id, company_id=current_user.company_id
     ).first_or_404()
@@ -1027,6 +1074,11 @@ def remove_item_from_sheet(sheet_id, item_id):
 @main.route('/delete_price_sheet/<int:sheet_id>', methods=['POST'])
 @login_required
 def delete_price_sheet(sheet_id):
+
+    """
+    Delete the price sheet and all associated price history entries.
+    """
+
     sheet = PriceSheet.query.filter_by(
         id=sheet_id,
         company_id=current_user.company_id
@@ -1042,6 +1094,11 @@ def delete_price_sheet(sheet_id):
 @main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])
 @login_required
 def email_price_sheet(sheet_id):
+
+    """
+    Generate a PDF of the price sheet and email it to the specified recipients using the selected email template.
+    """
+
     sheet = PriceSheet.query.filter_by(id=sheet_id, company_id=current_user.company_id).first_or_404()
 
     # Choose template_id from form or fallback to company default
