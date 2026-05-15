@@ -15,6 +15,9 @@ and ensures that the data is valid and safe to process.
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime as dt_type
+
+# bleach is an optional dependency for sanitizing text fields to prevent XSS attacks.
+# If it's not available, fall back to basic HTML escaping.
 try:
     import bleach
     BLEACH_AVAILABLE = True
