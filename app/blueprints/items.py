@@ -368,6 +368,12 @@ def delete_item(item_id):
         flash('Item not found or you do not have permission to delete it.', 'danger')
         return redirect(url_for('main.items'))
     
+    # Check if item is on any price sheets
+    price_sheet_count = item.price_sheets.count()
+    if price_sheet_count > 0:
+        flash(f'Cannot delete "{item.name}" - it is on {price_sheet_count} price sheet(s). Please remove it from those first.', 'warning')
+        return redirect(url_for('main.items'))
+    
     # delete all associated ItemInfo entries
     ItemInfo.query.filter_by(item_id=item_id).delete()
     
@@ -407,6 +413,108 @@ def delete_item(item_id):
     db.session.delete(item)
     db.session.commit()
     flash(f'Item "{item.name}" and its associated information have been deleted.', 'success')
+    return redirect(url_for('main.items'))
+
+
+@main.route('/delete_multiple_items', methods=['POST'])
+@login_required
+def delete_multiple_items():
+    """Delete multiple items at once with confirmation."""
+    
+    # Get the list of item IDs from the form
+    item_ids_str = request.form.getlist('item_ids')
+    
+    if not item_ids_str:
+        flash('No items selected for deletion.', 'warning')
+        return redirect(url_for('main.items'))
+    
+    # Convert to integers
+    try:
+        item_ids = [int(item_id) for item_id in item_ids_str]
+    except (ValueError, TypeError):
+        flash('Invalid item IDs provided.', 'danger')
+        return redirect(url_for('main.items'))
+    
+    # Get all items to delete (verify they belong to current user)
+    items = Item.query.filter(
+        Item.id.in_(item_ids),
+        Item.company_id == current_user.company_id
+    ).all()
+    
+    if not items:
+        flash('No valid items found for deletion.', 'warning')
+        return redirect(url_for('main.items'))
+    
+    # Track items that couldn't be deleted
+    failed_deletions = []
+    successful_deletions = []
+    
+    for item in items:
+        try:
+            # Check if item is on any price sheets
+            price_sheet_count = item.price_sheets.count()
+            if price_sheet_count > 0:
+                failed_deletions.append(f'"{item.name}" is on {price_sheet_count} price sheet(s)')
+                continue
+            
+            item_name = item.name
+            
+            # delete all associated ItemInfo entries
+            ItemInfo.query.filter_by(item_id=item.id).delete()
+            
+            # delete all inventory counts for this item
+            ItemInventory.query.filter_by(item_id=item.id).delete()
+            
+            # delete all price history entries for this item
+            PriceHistory.query.filter_by(item_id=item.id).delete()
+            
+            # delete all item total cost entries for this item
+            ItemTotalCost.query.filter_by(item_id=item.id).delete()
+            
+            # Clear price sheet associations from regular price sheets
+            try:
+                from app.models import price_sheet_items
+                db.session.execute(
+                    price_sheet_items.delete().where(
+                        price_sheet_items.c.item_id == item.id
+                    )
+                )
+            except Exception:
+                pass
+            
+            # Clear price sheet backup association rows
+            try:
+                from app.models import price_sheet_backup_items
+                db.session.execute(
+                    price_sheet_backup_items.delete().where(
+                        price_sheet_backup_items.c.item_id == item.id
+                    )
+                )
+            except Exception:
+                pass
+            
+            # delete the item itself
+            db.session.delete(item)
+            successful_deletions.append(item_name)
+            
+        except Exception as e:
+            failed_deletions.append(f'"{item.name}": {str(e)}')
+    
+    # Commit all successful deletions
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting items: {str(e)}', 'danger')
+        return redirect(url_for('main.items'))
+    
+    # Provide feedback to user
+    if successful_deletions:
+        flash(f'Successfully deleted {len(successful_deletions)} item(s): {", ".join(successful_deletions)}', 'success')
+    
+    if failed_deletions:
+        flash(f'Could not delete: {"; ".join(failed_deletions)}', 'warning')
+    
     return redirect(url_for('main.items'))
 
 # update info for an item

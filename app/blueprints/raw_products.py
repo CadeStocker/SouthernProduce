@@ -694,6 +694,69 @@ def raw_product_session():
     return redirect(url_for('main.raw_product'))
 
 
+@main.route('/save_bulk_raw_product_costs', methods=['POST'])
+@login_required
+def save_bulk_raw_product_costs():
+    """
+    Save bulk raw product costs from the bulk updater form.
+    """
+    
+    # Get all raw products for the current company
+    raw_products = RawProduct.query.filter_by(company_id=current_user.company_id).all()
+    
+    costs_saved = 0
+    costs_skipped = 0
+    
+    for raw_product in raw_products:
+        # Get the cost value from the form
+        cost_key = f'cost_{raw_product.id}'
+        if cost_key not in request.form or request.form[cost_key].strip() == '':
+            # Skip if not provided
+            costs_skipped += 1
+            continue
+        
+        try:
+            cost_value = float(request.form[cost_key])
+            if cost_value < 0:
+                flash(f'Invalid cost for "{raw_product.name}": cost cannot be negative. Skipping.', 'warning')
+                costs_skipped += 1
+                continue
+            
+            # Create new cost history entry
+            cost_history = CostHistory(
+                raw_product_id=raw_product.id,
+                cost=cost_value,
+                date=datetime.date.today(),
+                company_id=current_user.company_id
+            )
+            db.session.add(cost_history)
+            
+            # Update item total costs for items using this raw product
+            items_using_raw_product = Item.query.filter(Item.raw_products.any(id=raw_product.id)).all()
+            for item in items_using_raw_product:
+                update_item_total_cost(item.id)
+            
+            costs_saved += 1
+            
+        except (ValueError, TypeError):
+            flash(f'Invalid cost value for "{raw_product.name}". Skipping.', 'warning')
+            costs_skipped += 1
+            continue
+    
+    # Commit all changes at once
+    try:
+        db.session.commit()
+        if costs_saved > 0:
+            flash(f'Successfully saved {costs_saved} raw product cost(s).', 'success')
+        if costs_skipped > 0 and costs_saved == 0:
+            flash('No costs were provided to save.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error saving costs: {str(e)}', 'danger')
+    
+    return redirect(url_for('main.raw_product'))
+
+
 # raw product import
 @main.route('/upload_raw_product_csv', methods=['GET', 'POST'])
 @login_required
@@ -786,13 +849,21 @@ def upload_raw_product_csv():
 def delete_raw_product(raw_product_id):
 
     """
-    Delete a raw product and all its associated cost history entries. Also unlink it from any items that use
+    Delete a raw product and all its associated cost history entries. Also unlink it from any items that use it.
+    Prevents deletion if the raw product is used in any receiving logs.
     """
 
     # Find the raw product in the database
     raw_product = RawProduct.query.filter_by(id=raw_product_id, company_id=current_user.company_id).first()
     if not raw_product:
         flash('Raw product not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.raw_product'))
+
+    # Check if raw product is referenced by any receiving logs
+    from app.models import ReceivingLog
+    receiving_log_count = ReceivingLog.query.filter_by(raw_product_id=raw_product_id).count()
+    if receiving_log_count > 0:
+        flash(f'Cannot delete "{raw_product.name}" - it is used by {receiving_log_count} receiving log(s). Please remove those references first.', 'warning')
         return redirect(url_for('main.raw_product'))
 
     # Remove all associations from item_raw table (unlink from items)

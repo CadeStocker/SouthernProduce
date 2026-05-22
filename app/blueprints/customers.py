@@ -240,6 +240,18 @@ def delete_customer(customer_id):
         flash('Customer not found or you do not have permission to delete it.', 'danger')
         return make_response(redirect(url_for('main.customer')), 404)
 
+    # Check if customer has price sheets
+    price_sheet_count = PriceSheet.query.filter_by(customer_id=customer_id).count()
+    if price_sheet_count > 0:
+        flash(f'Cannot delete "{customer.name}" - it has {price_sheet_count} price sheet(s). Please delete those first.', 'warning')
+        return redirect(url_for('main.customer'))
+
+    # Check if customer has price history
+    price_history_count = PriceHistory.query.filter_by(customer_id=customer_id).count()
+    if price_history_count > 0:
+        flash(f'Cannot delete "{customer.name}" - it has {price_history_count} price history record(s). Please remove those first.', 'warning')
+        return redirect(url_for('main.customer'))
+
     # Delete the customer
     db.session.delete(customer)
     db.session.commit()

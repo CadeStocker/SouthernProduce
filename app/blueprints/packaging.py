@@ -257,6 +257,12 @@ def delete_packaging(packaging_id):
         flash('Packaging not found or you do not have permission to delete it.', 'danger')
         return redirect(url_for('main.packaging'))
 
+    # Check if packaging is used by any items
+    item_count = Item.query.filter_by(packaging_id=packaging_id).count()
+    if item_count > 0:
+        flash(f'Cannot delete "{packaging.packaging_type}" - it is used by {item_count} item(s). Please remove those references first.', 'warning')
+        return redirect(url_for('main.packaging'))
+
     # Delete all associated PackagingCost entries
     PackagingCost.query.filter_by(packaging_id=packaging_id).delete()
 

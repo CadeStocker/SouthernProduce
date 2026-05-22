@@ -662,6 +662,12 @@ def delete_brand_name(brand_id):
         flash('Brand name not found or you do not have permission to delete it.', 'danger')
         return redirect(url_for('main.brand_names'))
     
+    # Check if brand is referenced by any receiving logs
+    receiving_log_count = ReceivingLog.query.filter_by(brand_name_id=brand_id).count()
+    if receiving_log_count > 0:
+        flash(f'Cannot delete "{brand.name}" - it is used by {receiving_log_count} receiving log(s). Please remove those references first.', 'warning')
+        return redirect(url_for('main.brand_names'))
+    
     db.session.delete(brand)
     db.session.commit()
     flash(f'Brand name "{brand.name}" has been deleted.', 'success')
@@ -736,6 +742,12 @@ def delete_seller(seller_id):
     seller = Seller.query.filter_by(id=seller_id, company_id=current_user.company_id).first()
     if not seller:
         flash('Seller not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.sellers'))
+    
+    # Check if seller is referenced by any receiving logs
+    receiving_log_count = ReceivingLog.query.filter_by(seller_id=seller_id).count()
+    if receiving_log_count > 0:
+        flash(f'Cannot delete "{seller.name}" - it is used by {receiving_log_count} receiving log(s). Please remove those references first.', 'warning')
         return redirect(url_for('main.sellers'))
     
     db.session.delete(seller)
@@ -821,6 +833,12 @@ def delete_grower_distributor(grower_id):
     grower = GrowerOrDistributor.query.filter_by(id=grower_id, company_id=current_user.company_id).first()
     if not grower:
         flash('Grower/Distributor not found or you do not have permission to delete it.', 'danger')
+        return redirect(url_for('main.growers_distributors'))
+    
+    # Check if grower is referenced by any receiving logs
+    receiving_log_count = ReceivingLog.query.filter_by(grower_or_distributor_id=grower_id).count()
+    if receiving_log_count > 0:
+        flash(f'Cannot delete "{grower.name}" - it is used by {receiving_log_count} receiving log(s). Please remove those references first.', 'warning')
         return redirect(url_for('main.growers_distributors'))
     
     db.session.delete(grower)
