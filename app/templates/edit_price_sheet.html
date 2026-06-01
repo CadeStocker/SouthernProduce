@@ -80,6 +80,7 @@
               <tr>
                 <th>Item</th>
                 <th>Alternate Code</th>
+                <th>Unit Cost</th>
                 <th>Choose Price</th>
                 <th>
                   Or Enter<br>
@@ -93,6 +94,7 @@
               <tr>
                 <td>{{ item.name }}</td>
                 <td>{{ item.alternate_code or '—' }}</td>
+                <td>${{ '%.2f'|format(unit_costs[item.id]) }}</td>
                 <td>
                   <select name="price_select_{{ item.id }}"
                           class="form-control form-control-sm">

@@ -949,6 +949,9 @@ def edit_price_sheet(sheet_id):
 
     # get the most recent price for each item in the sheet
     recent_prices = {}
+    
+    # get the unit cost for each item in the sheet
+    unit_costs = {}
 
     for item in sheet.items:
         # find master customer for the current company
@@ -984,6 +987,10 @@ def edit_price_sheet(sheet_id):
             item_id=item.id, company_id=current_user.company_id
         ).order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc()).first()
         base = itc.total_cost if itc else 0
+        
+        # store the unit cost
+        unit_costs[item.id] = base
+        
         opts = []
         for pct in percents:
             raw = base * (1 + pct/100)
@@ -1001,6 +1008,7 @@ def edit_price_sheet(sheet_id):
       history_opts=history_opts,
       markup_opts=markup_opts,
       recent_prices=recent_prices,
+      unit_costs=unit_costs,
       available_items=available_items
     )
 
