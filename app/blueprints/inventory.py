@@ -1,4 +1,5 @@
 # Copyright Cade Stocker 2026
+from datetime import datetime
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.blueprints._blueprint import main
@@ -9,6 +10,9 @@ from app import db
 @main.route('/inventory')
 @login_required
 def inventory_sessions():
+    """
+    View all inventory sessions for the company, with optional search.
+    """
     q = request.args.get('q', '').strip()
     query = InventorySession.query.filter_by(company_id=current_user.company_id)
     if q:
@@ -23,6 +27,9 @@ def inventory_sessions():
 @main.route('/inventory/session/<int:session_id>')
 @login_required
 def view_inventory_session(session_id):
+    """
+    View details of a specific inventory session, including item and supply counts.
+    """
     session = InventorySession.query.filter_by(
         id=session_id, company_id=current_user.company_id
     ).first_or_404()
@@ -43,6 +50,9 @@ def view_inventory_session(session_id):
 @main.route('/inventory/session/<int:session_id>/delete', methods=['POST'])
 @login_required
 def delete_inventory_session(session_id):
+    """
+    Delete an inventory session and all associated counts.
+    """
     session = InventorySession.query.filter_by(
         id=session_id, company_id=current_user.company_id
     ).first_or_404()
@@ -55,6 +65,9 @@ def delete_inventory_session(session_id):
 @main.route('/inventory/supplies')
 @login_required
 def supplies():
+    """
+    View all supply items for the company, with optional search.
+    """
     q = request.args.get('q', '').strip()
     query = Supply.query.filter_by(company_id=current_user.company_id)
     if q:
@@ -69,6 +82,10 @@ def supplies():
 @main.route('/inventory/supplies/<int:supply_id>/toggle', methods=['POST'])
 @login_required
 def toggle_supply_active(supply_id):
+    """
+    Toggle the active state of a supply item.
+    """
+
     supply = Supply.query.filter_by(
         id=supply_id, company_id=current_user.company_id
     ).first_or_404()
@@ -77,3 +94,27 @@ def toggle_supply_active(supply_id):
     state = 'activated' if supply.is_active else 'deactivated'
     flash(f'"{supply.name}" {state}.', 'success')
     return redirect(url_for('main.supplies'))
+
+
+@main.route('/inventory/session/<int:session_id>/print')
+@login_required
+def view_inventory_session_print(session_id):
+    """
+    Print version of an inventory session.
+    """
+    session = InventorySession.query.filter_by(
+        id=session_id, company_id=current_user.company_id
+    ).first_or_404()
+    item_counts = ItemInventory.query.filter_by(
+        session_id=session_id, company_id=current_user.company_id
+    ).all()
+    supply_counts = SupplyInventory.query.filter_by(
+        session_id=session_id, company_id=current_user.company_id
+    ).all()
+    return render_template(
+        'view_inventory_session_print.html',
+        session=session,
+        item_counts=item_counts,
+        supply_counts=supply_counts,
+        now=datetime.now()
+    )

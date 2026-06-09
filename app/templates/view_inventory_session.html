@@ -9,6 +9,15 @@
     &larr; All Sessions
   </a>
 
+  <!-- Print button -->
+  <div class="mb-4">
+    <a href="{{ url_for('main.view_inventory_session_print', session_id=session.id) }}?print=1"
+       class="btn btn-print"
+       target="_blank">
+      Print Inventory Session
+    </a>
+  </div>
+
   <!-- Session header card -->
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">

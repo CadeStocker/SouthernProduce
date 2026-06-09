@@ -136,6 +136,13 @@ body {
   }
 }
 
+/* Print button styling */
+.btn-print {
+  background-color: #17a2b8 !important;
+  border-color: #17a2b8 !important;
+  color: white !important;
+}
+
   .notification-menu {
     min-width: 320px;
     max-height: 360px;
