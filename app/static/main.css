@@ -18,6 +18,162 @@
 body {
   padding: 20px 0;
   background-color: #f8f9fa; /* light background for contrast */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+h1, h2, h3, .section-heading, .home-hero__title {
+  font-family: 'Poppins', 'Inter', sans-serif;
+}
+
+.section-heading {
+  font-weight: 600;
+  color: #1e3a2b;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+.section-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48px;
+  height: 3px;
+  border-radius: 3px;
+  background-color: #28a745;
+}
+
+/* ---- Home hero ---- */
+.home-hero {
+  background: linear-gradient(135deg, #1e7e34 0%, #28a745 55%, #20a4a4 100%);
+  color: #fff;
+  padding: 3.5rem 3rem;
+  overflow: hidden;
+  position: relative;
+}
+.home-hero::after {
+  content: "";
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 260px;
+  height: 260px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+}
+.home-hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+}
+.home-hero__eyebrow {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.75rem;
+  border-radius: 50rem;
+  margin-bottom: 1rem;
+}
+.home-hero__title {
+  font-weight: 700;
+  font-size: 2.5rem;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+.home-hero__lead {
+  font-size: 1.15rem;
+  opacity: 0.95;
+  margin-bottom: 1.5rem;
+}
+.home-hero__welcome {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-bottom: 0;
+}
+.home-hero__cta {
+  font-weight: 600;
+  color: #1e7e34 !important;
+  border: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.home-hero__cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Navigation cards ---- */
+.nav-card {
+  border: none;
+  border-top: 4px solid #28a745;
+  border-radius: 0.6rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.nav-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12) !important;
+}
+.nav-card--items   { border-top-color: #28a745; }
+.nav-card--pricing { border-top-color: #f0a500; }
+.nav-card--costs   { border-top-color: #17a2b8; }
+
+.nav-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+.nav-card--items   .nav-card__icon { background: #e6f4ea; color: #1e7e34; }
+.nav-card--pricing .nav-card__icon { background: #fdf3dc; color: #b8860b; }
+.nav-card--costs   .nav-card__icon { background: #e0f3f6; color: #117a8b; }
+
+.nav-card__title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.nav-card .list-group-item {
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+  transition: padding-left 0.15s ease, color 0.15s ease;
+}
+.nav-card .list-group-item:hover {
+  padding-left: 0.5rem;
+  color: #1e7e34;
+  background-color: transparent;
+}
+
+/* ---- Action cards ---- */
+.action-card {
+  border: none;
+  border-radius: 0.6rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12) !important;
+}
+.action-card__icon {
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+@media (max-width: 768px) {
+  .home-hero { padding: 2.25rem 1.5rem; }
+  .home-hero__title { font-size: 1.8rem; }
 }
 
 /* Sticky table headers for review modal */
@@ -171,3 +327,165 @@ body {
     font-size: 0.75rem;
     color: #6c757d;
   }
+
+/* ============================================================
+   GLOBAL MODERNIZATION — applies the home page's polish app-wide
+   ============================================================ */
+
+/* Page headings get the underline-accent treatment everywhere */
+.container h1,
+.container-main h1 {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-weight: 600;
+  color: #1e3a2b;
+}
+
+/* ---- Cards ---- */
+.card {
+  border: none;
+  border-radius: 0.6rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: box-shadow 0.18s ease;
+}
+.card:hover {
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.10);
+}
+/* The home page nav/action cards manage their own borders & hover */
+.nav-card,
+.action-card {
+  overflow: visible;
+}
+
+.card-header {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-weight: 600;
+  padding: 0.85rem 1.25rem;
+  border-bottom: none;
+}
+.card-header h5,
+.card-header h4,
+.card-header h6 {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+/* ---- Tables ---- */
+.table {
+  background-color: #fff;
+}
+.table thead th {
+  background-color: #f1f8f3;
+  color: #1e3a2b;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  border-top: none;
+  border-bottom: 2px solid #d8e9dd;
+  vertical-align: middle;
+}
+.table td {
+  vertical-align: middle;
+  border-top: 1px solid #f0f0f0;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fafdfb;
+}
+.table-hover tbody tr:hover,
+.table tbody tr:hover {
+  background-color: #eef7f1;
+  transition: background-color 0.12s ease;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  border-radius: 0.45rem;
+  font-weight: 500;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.6rem rgba(0, 0, 0, 0.12);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn-sm {
+  border-radius: 0.4rem;
+}
+
+/* ---- Forms ---- */
+.form-control,
+.custom-select {
+  border-radius: 0.45rem;
+  border-color: #d8e0da;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.form-control:focus,
+.custom-select:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.18);
+}
+.form-control-label,
+label {
+  font-weight: 500;
+  color: #34433a;
+}
+
+/* ---- Badges ---- */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.65em;
+  border-radius: 50rem;
+}
+
+/* ---- Alerts ---- */
+.alert {
+  border: none;
+  border-radius: 0.55rem;
+  border-left: 4px solid transparent;
+  box-shadow: 0 0.125rem 0.4rem rgba(0, 0, 0, 0.05);
+}
+.alert-success { border-left-color: #28a745; }
+.alert-danger  { border-left-color: #dc3545; }
+.alert-warning { border-left-color: #ffc107; }
+.alert-info    { border-left-color: #17a2b8; }
+
+/* ---- Modals ---- */
+.modal-content {
+  border: none;
+  border-radius: 0.7rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.modal-header {
+  background-color: #28a745;
+  color: #fff;
+  border-bottom: none;
+}
+.modal-header .close {
+  color: #fff;
+  opacity: 0.85;
+  text-shadow: none;
+}
+
+/* ---- Navbar refinement ---- */
+.navbar.bg-light {
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08);
+}
+.navbar-brand {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-weight: 600;
+}
+.navbar.bg-light .nav-link {
+  transition: color 0.12s ease;
+}
+
+/* ---- List groups ---- */
+.list-group-item {
+  border-color: #f0f0f0;
+}
+.list-group-item-action:hover {
+  background-color: #eef7f1;
+}
