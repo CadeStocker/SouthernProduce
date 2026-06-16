@@ -3,34 +3,193 @@
 
 {% block content %}
 <div class="container-fluid mt-5" style="max-width: 95%;">
-  <h1 class="mb-4">Receiving Logs</h1>
-
-  <!-- Action Buttons -->
-  <div class="mb-3">
-    {# Toggle pagination / show all #}
-    {% if use_pagination %}
-      <a href="{{ url_for('main.receiving_logs', q=q) }}" class="btn btn-outline-secondary">Show All</a>
-    {% else %}
-      <a href="{{ url_for('main.receiving_logs', q=q, paginate=1) }}" class="btn btn-outline-secondary">Use Pagination</a>
-    {% endif %}
-    <a href="{{ url_for('main.receiving_logs_print', date=today.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary ml-2">
-      Daily Printout
-    </a>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h1 class="mb-0">Receiving Logs</h1>
+    <div>
+      <a href="{{ url_for('main.receiving_logs', export='csv', **filter_args) }}" class="btn btn-outline-success">
+        <i class="bi bi-download"></i> Export CSV
+      </a>
+      <a href="{{ url_for('main.receiving_logs_print', date=today.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary ml-2">
+        Daily Printout
+      </a>
+    </div>
   </div>
 
-  <!-- Search Form -->
-  <form method="GET" action="{{ url_for('main.receiving_logs') }}" class="form-inline mb-4">
-    <input type="text" name="q" class="form-control mr-2" placeholder="Search logs..." value="{{ q }}">
-    <button type="submit" class="btn btn-outline-primary mr-2">Search</button>
-    {% if q %}
-      <a href="{{ url_for('main.receiving_logs') }}" class="btn btn-link">Clear</a>
-    {% endif %}
-  </form>
+  <!-- Summary window + quick ranges -->
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+    <h5 class="mb-0 text-muted">Summary <span class="text-dark">&mdash; {{ window_label }}</span></h5>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Quick ranges">
+      {% for r in quick_ranges %}
+        {% if r.all %}
+          <a href="{{ url_for('main.receiving_logs', all=1, **nondate_args) }}"
+             class="btn {{ 'btn-primary' if all_time else 'btn-outline-secondary' }}">{{ r.label }}</a>
+        {% else %}
+          <a href="{{ url_for('main.receiving_logs', start_date=r.start, **nondate_args) }}"
+             class="btn {{ 'btn-primary' if (not all_time and filters.start_date == r.start and not filters.end_date) else 'btn-outline-secondary' }}">{{ r.label }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- KPI Summary -->
+  <div class="row mb-4">
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Loads</div>
+          <div class="h3 mb-0">{{ kpis.total_loads }}</div>
+          <div class="small text-muted">{{ kpis.priced }} priced</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Est. Spend</div>
+          <div class="h3 mb-0">${{ "{:,.0f}".format(kpis.est_spend) }}</div>
+          <div class="small text-muted">priced loads</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm {% if kpis.over_market_amount > 0 %}border-danger{% endif %}">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Over Market</div>
+          <div class="h3 mb-0 {% if kpis.over_market_amount > 0 %}text-danger{% endif %}">${{ "{:,.0f}".format(kpis.over_market_amount) }}</div>
+          <div class="small text-muted">vs. market cost</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Market</div>
+          <div class="h5 mb-0">
+            <span class="text-danger" title="Above market">↑ {{ kpis.above_market }}</span>
+            <span class="text-success ml-2" title="Below market">↓ {{ kpis.below_market }}</span>
+          </div>
+          <div class="small text-muted">{{ kpis.at_market }} at market</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Hold / Used</div>
+          <div class="h5 mb-0">
+            <span class="badge badge-warning">{{ kpis.held }}</span>
+            <span class="badge badge-success ml-1">{{ kpis.used }}</span>
+          </div>
+          <div class="small text-muted">held / used</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 mb-3">
+      <div class="card h-100 text-center shadow-sm {% if kpis.outliers %}border-warning{% endif %}">
+        <div class="card-body py-3">
+          <div class="text-muted text-uppercase small">Outliers</div>
+          <div class="h3 mb-0 {% if kpis.outliers %}text-warning{% endif %}">{{ kpis.outliers }}</div>
+          <div class="small text-muted">&ge; {{ kpis.threshold|round(0)|int }}% off market</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend Chart -->
+  {% if trend|length > 1 %}
+  <div class="card mb-4">
+    <div class="card-header"><strong>Receiving Trend</strong></div>
+    <div class="card-body">
+      <canvas id="receivingTrendChart" height="80"></canvas>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>Filters</strong></div>
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('main.receiving_logs') }}">
+        {% if use_pagination %}<input type="hidden" name="paginate" value="1">{% endif %}
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label class="small mb-1">Search</label>
+            <input type="text" name="q" class="form-control" placeholder="Product, received by, country..." value="{{ q }}">
+          </div>
+          <div class="form-group col-md-2">
+            <label class="small mb-1">Start date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ filters.start_date }}">
+          </div>
+          <div class="form-group col-md-2">
+            <label class="small mb-1">End date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ filters.end_date }}">
+          </div>
+          <div class="form-group col-md-3">
+            <label class="small mb-1">Raw product</label>
+            <select name="raw_product_id" class="form-control">
+              <option value="">All products</option>
+              {% for p in products %}
+                <option value="{{ p.id }}" {% if filters.raw_product_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-2">
+            <label class="small mb-1">Status</label>
+            <select name="status" class="form-control">
+              <option value="">All</option>
+              <option value="hold" {% if filters.status == 'hold' %}selected{% endif %}>Hold</option>
+              <option value="used" {% if filters.status == 'used' %}selected{% endif %}>Used</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label class="small mb-1">Grower / Distributor</label>
+            <select name="grower_id" class="form-control">
+              <option value="">All growers/distributors</option>
+              {% for gd in growers %}
+                <option value="{{ gd.id }}" {% if filters.grower_id == gd.id %}selected{% endif %}>{{ gd.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-3">
+            <label class="small mb-1">Seller</label>
+            <select name="seller_id" class="form-control">
+              <option value="">All sellers</option>
+              {% for s in sellers %}
+                <option value="{{ s.id }}" {% if filters.seller_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-3 d-flex align-items-end">
+            <div class="custom-control custom-checkbox mb-2">
+              <input type="checkbox" class="custom-control-input" id="outliersOnly" name="outliers_only" value="1" {% if filters.outliers_only %}checked{% endif %}>
+              <label class="custom-control-label" for="outliersOnly">Price outliers only</label>
+            </div>
+          </div>
+          <div class="form-group col-md-3 d-flex align-items-end justify-content-md-end">
+            <button type="submit" class="btn btn-primary mr-2">Apply</button>
+            <a href="{{ url_for('main.receiving_logs') }}" class="btn btn-outline-secondary">Reset</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+      {% if use_pagination %}
+        <a href="{{ url_for('main.receiving_logs', **filter_args) }}" class="btn btn-sm btn-outline-secondary">Show All</a>
+      {% else %}
+        <a href="{{ url_for('main.receiving_logs', paginate=1, **filter_args) }}" class="btn btn-sm btn-outline-secondary">Use Pagination</a>
+      {% endif %}
+    </div>
+  </div>
 
   {% if logs %}
     <div class="card mb-4">
       <div class="card-header">
-        <strong>Receiving Logs ({{ logs|length }} entries{% if use_pagination and pagination %}, page {{ pagination.page }} of {{ pagination.pages }}{% endif %})</strong>
+        <strong>Showing {{ logs|length }} of {{ kpis.total_loads }} entries{% if use_pagination and pagination %} &mdash; page {{ pagination.page }} of {{ pagination.pages }}{% endif %}</strong>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -56,7 +215,9 @@
             </thead>
             <tbody>
               {% for log in logs %}
-              <tr>
+              {% set comparison = comparisons.get(log.id) %}
+              {% set is_outlier = log.id in outlier_ids %}
+              <tr {% if is_outlier and comparison and comparison.status == 'above_market' %}class="table-danger"{% elif is_outlier and comparison and comparison.status == 'below_market' %}class="table-success"{% endif %}>
                 <td>{{ log.datetime.strftime('%Y-%m-%d %H:%M') if log.datetime else 'N/A' }}</td>
                 <td>
                   {% if log.raw_product %}
@@ -78,7 +239,6 @@
                 <td>{{ log.pack_size }} {{ log.pack_size_unit }}</td>
                 <td>
                   {% if log.price_paid %}
-                    {% set comparison = log.get_price_comparison() %}
                     {% if comparison and comparison.master_price %}
                       <div>
                         <div><strong>Paid:</strong> ${{ "%.2f"|format(log.price_paid) }}</div>
@@ -166,7 +326,7 @@
         <ul class="pagination">
           {% if pagination.has_prev %}
             <li class="page-item">
-              <a class="page-link" href="{{ url_for('main.receiving_logs', page=pagination.prev_num, q=q, paginate=1) }}">&laquo; Prev</a>
+              <a class="page-link" href="{{ url_for('main.receiving_logs', page=pagination.prev_num, paginate=1, **filter_args) }}">&laquo; Prev</a>
             </li>
           {% else %}
             <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
@@ -176,7 +336,7 @@
               {% if p == pagination.page %}
                 <li class="page-item active"><span class="page-link">{{ p }}</span></li>
               {% else %}
-                <li class="page-item"><a class="page-link" href="{{ url_for('main.receiving_logs', page=p, q=q, paginate=1) }}">{{ p }}</a></li>
+                <li class="page-item"><a class="page-link" href="{{ url_for('main.receiving_logs', page=p, paginate=1, **filter_args) }}">{{ p }}</a></li>
               {% endif %}
             {% else %}
               <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -184,7 +344,7 @@
           {% endfor %}
           {% if pagination.has_next %}
             <li class="page-item">
-              <a class="page-link" href="{{ url_for('main.receiving_logs', page=pagination.next_num, q=q, paginate=1) }}">Next &raquo;</a>
+              <a class="page-link" href="{{ url_for('main.receiving_logs', page=pagination.next_num, paginate=1, **filter_args) }}">Next &raquo;</a>
             </li>
           {% else %}
             <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
@@ -213,8 +373,8 @@
             <div class="row">
               {% for image in log.images %}
               <div class="col-md-6 mb-3">
-                <img src="{{ url_for('main.get_receiving_image', filename=image.filename) }}" 
-                     class="img-fluid" 
+                <img src="{{ url_for('main.get_receiving_image', filename=image.filename) }}"
+                     class="img-fluid"
                      alt="Receiving Image"
                      style="max-width: 100%; height: auto;">
                 <p class="text-muted small mt-1">Uploaded: {{ image.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</p>
@@ -232,12 +392,75 @@
     {% endfor %}
   {% else %}
     <div class="alert alert-info" role="alert">
-      {% if q %}
-        No receiving logs found matching "{{ q }}".
+      {% if q or filters.start_date or filters.end_date or filters.raw_product_id or filters.grower_id or filters.seller_id or filters.status or filters.outliers_only %}
+        No receiving logs found matching the current filters.
       {% else %}
         No receiving logs found. Logs will appear here once they are submitted through the mobile app.
       {% endif %}
     </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if trend|length > 1 %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const trend = {{ trend|tojson }};
+    const labels = trend.map(t => t.date);
+    const loads = trend.map(t => t.loads);
+    const spend = trend.map(t => t.spend);
+
+    const ctx = document.getElementById('receivingTrendChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Loads',
+            data: loads,
+            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            yAxisID: 'yLoads'
+          },
+          {
+            type: 'line',
+            label: 'Est. Spend ($)',
+            data: spend,
+            borderColor: 'rgba(220, 53, 69, 1)',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            yAxisID: 'ySpend'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          yLoads: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Loads' },
+            ticks: { precision: 0 }
+          },
+          ySpend: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Est. Spend ($)' }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endif %}
 {% endblock %}

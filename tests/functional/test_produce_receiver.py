@@ -388,8 +388,9 @@ class TestReceivingLogs:
             db.session.add(log)
             db.session.commit()
         
-        # View receiving logs
-        response = client.get('/receiving_logs')
+        # View receiving logs. The log is backdated to January, so request the
+        # full history (the page otherwise defaults to a rolling 30-day window).
+        response = client.get('/receiving_logs?all=1')
         assert response.status_code == 200
         assert b'Test Product' in response.data
         assert b'Test Brand' in response.data
@@ -451,11 +452,14 @@ class TestReceivingLogs:
             db.session.add_all([log1, log2])
             db.session.commit()
         
-        # Search by raw product name
+        # Search by raw product name. Assert on row-only data (received_by):
+        # product names also appear in the filter dropdowns, so they aren't a
+        # reliable signal for which rows are shown.
         response = client.get('/receiving_logs?q=Apples')
         assert response.status_code == 200
         assert b'Apples' in response.data
-        assert b'Bananas' not in response.data
+        assert b'Alice' in response.data       # Apples row is shown
+        assert b'Bob' not in response.data      # Bananas row is filtered out
         
         # Search by received_by
         response = client.get('/receiving_logs?q=Bob')

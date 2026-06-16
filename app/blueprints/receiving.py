@@ -90,7 +90,10 @@ from app.utils.qr_utils import generate_api_key_qr_code, generate_qr_code_bytes
 from app.utils.notification_utils import maybe_create_receiving_log_outlier_notification
 import pdfplumber
 import tempfile
+import csv
+import io
 from sqlalchemy import func
+from app.utils.notification_utils import _get_outlier_threshold
 
 # Debug route to check market price data
 @main.route('/debug_receiving_log/<int:log_id>')
@@ -178,25 +181,196 @@ def debug_receiving_log(log_id):
 def receiving_logs():
 
     """
-    Display all receiving logs with optional search and pagination.
+    Display all receiving logs with search, filters, a KPI summary, trend data,
+    outlier highlighting, and CSV export.
     """
 
     q = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Number of logs per page
     use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
+    export = request.args.get('export', '').strip().lower()
     pagination = None
 
+    # Filter params
+    start_str = request.args.get('start_date', '').strip()
+    end_str = request.args.get('end_date', '').strip()
+    raw_product_id = request.args.get('raw_product_id', type=int)
+    grower_id = request.args.get('grower_id', type=int)
+    seller_id = request.args.get('seller_id', type=int)
+    status = request.args.get('status', '').strip().lower()
+    outliers_only = request.args.get('outliers_only', '0').lower() in ('1', 'true', 'yes')
+
+    start_date = None
+    end_date = None
+    if start_str:
+        try:
+            start_date = datetime.datetime.strptime(start_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Invalid start date. Please use YYYY-MM-DD format.', 'danger')
+    if end_str:
+        try:
+            end_date = datetime.datetime.strptime(end_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Invalid end date. Please use YYYY-MM-DD format.', 'danger')
+
+    # The summary/dashboard is only useful when scoped to recent activity, so the
+    # view defaults to a rolling 30-day window. An explicit date range overrides
+    # it, and `all=1` opts into the full history.
+    all_time = request.args.get('all', '0').strip().lower() in ('1', 'true', 'yes')
+    default_window = False
+    if not start_date and not end_date and not all_time:
+        start_date = datetime.date.today() - datetime.timedelta(days=30)
+        start_str = start_date.strftime('%Y-%m-%d')
+        default_window = True
+
+    if all_time:
+        window_label = 'All time'
+    elif default_window:
+        window_label = 'Last 30 days'
+    else:
+        window_label = f"{start_str or '…'} → {end_str or 'today'}"
+
     base_query = ReceivingLog.query.filter_by(company_id=current_user.company_id)
-    
+
     # Apply search filter if provided (search by raw product name, received_by, or country_of_origin)
     if q:
         base_query = base_query.join(RawProduct).filter(
-            (RawProduct.name.ilike(f'%{q}%')) | 
+            (RawProduct.name.ilike(f'%{q}%')) |
             (ReceivingLog.received_by.ilike(f'%{q}%')) |
             (ReceivingLog.country_of_origin.ilike(f'%{q}%'))
         )
-    
+    if start_date:
+        base_query = base_query.filter(
+            ReceivingLog.datetime >= datetime.datetime.combine(start_date, datetime.time.min)
+        )
+    if end_date:
+        base_query = base_query.filter(
+            ReceivingLog.datetime <= datetime.datetime.combine(end_date, datetime.time.max)
+        )
+    if raw_product_id:
+        base_query = base_query.filter(ReceivingLog.raw_product_id == raw_product_id)
+    if grower_id:
+        base_query = base_query.filter(ReceivingLog.grower_or_distributor_id == grower_id)
+    if seller_id:
+        base_query = base_query.filter(ReceivingLog.seller_id == seller_id)
+    if status in ('hold', 'used'):
+        base_query = base_query.filter(ReceivingLog.hold_or_used == status)
+
+    # Full filtered set (newest first) drives the KPIs, trend chart, outlier
+    # detection, and CSV export. Price comparison is computed once per log here
+    # and reused by the template to avoid duplicate lookups.
+    all_filtered = base_query.order_by(ReceivingLog.datetime.desc()).all()
+    threshold = _get_outlier_threshold()
+
+    comparisons = {}
+    outlier_ids = set()
+    held = used = priced = above_market = below_market = at_market = 0
+    est_spend = 0.0
+    over_market_amount = 0.0
+    daily = {}  # 'YYYY-MM-DD' -> {'loads': int, 'spend': float}
+
+    for log in all_filtered:
+        if log.hold_or_used == 'hold':
+            held += 1
+        elif log.hold_or_used == 'used':
+            used += 1
+
+        if log.datetime:
+            day_key = log.datetime.strftime('%Y-%m-%d')
+            bucket = daily.setdefault(day_key, {'loads': 0, 'spend': 0.0})
+            bucket['loads'] += 1
+        else:
+            bucket = None
+
+        comp = log.get_price_comparison()
+        comparisons[log.id] = comp
+        if log.price_paid is not None:
+            priced += 1
+            line_total = log.price_paid * (log.quantity_received or 0)
+            est_spend += line_total
+            if bucket is not None:
+                bucket['spend'] += line_total
+            if comp and comp.get('master_price') is not None:
+                pct = comp.get('percentage') or 0.0
+                if comp['status'] == 'above_market':
+                    above_market += 1
+                    if comp.get('difference') is not None:
+                        over_market_amount += comp['difference'] * (log.quantity_received or 0)
+                    if abs(pct) >= threshold:
+                        outlier_ids.add(log.id)
+                elif comp['status'] == 'below_market':
+                    below_market += 1
+                    if abs(pct) >= threshold:
+                        outlier_ids.add(log.id)
+                elif comp['status'] == 'at_market':
+                    at_market += 1
+
+    kpis = {
+        'total_loads': len(all_filtered),
+        'held': held,
+        'used': used,
+        'priced': priced,
+        'unpriced': len(all_filtered) - priced,
+        'above_market': above_market,
+        'below_market': below_market,
+        'at_market': at_market,
+        'outliers': len(outlier_ids),
+        'est_spend': est_spend,
+        'over_market_amount': over_market_amount,
+        'threshold': threshold,
+    }
+
+    trend = sorted(
+        (
+            {'date': d, 'loads': v['loads'], 'spend': round(v['spend'], 2)}
+            for d, v in daily.items()
+        ),
+        key=lambda x: x['date']
+    )
+
+    # CSV export of the full filtered set (ignores pagination/outlier toggle)
+    if export == 'csv':
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            'Date', 'Raw Product', 'Brand', 'Quantity', 'Pack Size', 'Unit',
+            'Price Paid', 'Market Cost', 'Variance %', 'Seller', 'Temperature (F)',
+            'Hold/Used', 'Grower/Distributor', 'Country', 'Received By', 'Returned'
+        ])
+        for log in all_filtered:
+            comp = comparisons.get(log.id)
+            market = comp.get('master_price') if comp else None
+            variance = comp.get('percentage') if comp else None
+            writer.writerow([
+                log.datetime.strftime('%Y-%m-%d %H:%M') if log.datetime else '',
+                log.raw_product.name if log.raw_product else '',
+                log.brand_name.name if log.brand_name else '',
+                log.quantity_received,
+                log.pack_size,
+                log.pack_size_unit,
+                f"{log.price_paid:.2f}" if log.price_paid is not None else '',
+                f"{market:.2f}" if market is not None else '',
+                f"{variance:.1f}" if variance is not None else '',
+                log.seller.name if log.seller else '',
+                log.temperature,
+                log.hold_or_used,
+                log.grower_or_distributor.name if log.grower_or_distributor else '',
+                log.country_of_origin,
+                log.received_by,
+                log.returned or ''
+            ])
+        response = make_response(output.getvalue())
+        filename = f"receiving_logs_{datetime.date.today().strftime('%Y%m%d')}.csv"
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+
+    # Restrict the displayed list to outliers if requested (KPIs/trend stay full).
+    if outliers_only:
+        # When no outliers exist, force an empty result set (id is never -1).
+        base_query = base_query.filter(ReceivingLog.id.in_(outlier_ids or [-1]))
+
     if use_pagination:
         pagination = base_query.order_by(ReceivingLog.datetime.desc()).paginate(page=page, per_page=per_page, error_out=False)
         logs = pagination.items
@@ -204,14 +378,65 @@ def receiving_logs():
         # return all results without pagination
         logs = base_query.order_by(ReceivingLog.datetime.desc()).all()
 
+    # Filter dropdown options (company-scoped, alphabetical)
+    products = RawProduct.query.filter_by(company_id=current_user.company_id).order_by(RawProduct.name).all()
+    growers = GrowerOrDistributor.query.filter_by(company_id=current_user.company_id).order_by(GrowerOrDistributor.name).all()
+    sellers = Seller.query.filter_by(company_id=current_user.company_id).order_by(Seller.name).all()
+
+    # Non-date filters, reused when switching the quick-range window.
+    nondate_args = {
+        'q': q,
+        'raw_product_id': raw_product_id or '',
+        'grower_id': grower_id or '',
+        'seller_id': seller_id or '',
+        'status': status,
+        'outliers_only': 1 if outliers_only else '',
+    }
+
+    # Preserve active filters (including the window) when building links.
+    filter_args = dict(nondate_args)
+    filter_args['start_date'] = start_str
+    filter_args['end_date'] = end_str
+    if all_time:
+        filter_args['all'] = 1
+
+    today = datetime.date.today()
+    quick_ranges = [
+        {'label': 'Last 7 days', 'start': (today - datetime.timedelta(days=7)).strftime('%Y-%m-%d')},
+        {'label': 'Last 30 days', 'start': (today - datetime.timedelta(days=30)).strftime('%Y-%m-%d')},
+        {'label': 'Last 90 days', 'start': (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')},
+        {'label': 'All time', 'all': True},
+    ]
+
     return render_template(
         'receiving_logs.html',
         title='Receiving Logs',
         logs=logs,
+        comparisons=comparisons,
+        outlier_ids=outlier_ids,
+        kpis=kpis,
+        trend=trend,
         q=q,
         pagination=pagination,
         use_pagination=use_pagination,
-        today=datetime.date.today()
+        today=today,
+        window_label=window_label,
+        all_time=all_time,
+        quick_ranges=quick_ranges,
+        nondate_args=nondate_args,
+        products=products,
+        growers=growers,
+        sellers=sellers,
+        filters={
+            'start_date': start_str,
+            'end_date': end_str,
+            'raw_product_id': raw_product_id,
+            'grower_id': grower_id,
+            'seller_id': seller_id,
+            'status': status,
+            'outliers_only': outliers_only,
+        },
+        filter_args=filter_args
     )
 
 
