@@ -473,10 +473,59 @@ class TestAPIKeySecurityEdgeCases:
                 assert response.status_code == 401
 
     def test_api_key_rate_limiting_placeholder(self, client, app):
-        """Placeholder test for future rate limiting implementation."""
-        # This test documents the need for rate limiting
-        # Implementation would track requests per key per time period
-        pass
+        """Repeated invalid API key attempts should return 429."""
+        app.config['BAD_API_KEY_RATE_LIMIT_ATTEMPTS'] = 3
+        app.config['BAD_API_KEY_RATE_LIMIT_WINDOW_SECONDS'] = 60
+
+        with app.app_context():
+            for _ in range(2):
+                response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+                assert response.status_code == 401
+
+            response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+            assert response.status_code == 429
+            data = json.loads(response.data)
+            assert data['error'] == 'Too many invalid API key attempts'
+
+    def test_valid_api_key_clears_bad_attempt_counter(self, client, app):
+        """A valid API key should still work after earlier bad attempts from the same client."""
+        app.config['BAD_API_KEY_RATE_LIMIT_ATTEMPTS'] = 3
+        app.config['BAD_API_KEY_RATE_LIMIT_WINDOW_SECONDS'] = 60
+
+        with app.app_context():
+            company = Company(name="Test Company", admin_email="admin@test.com")
+            db.session.add(company)
+            db.session.commit()
+
+            user = User(
+                first_name="Test",
+                last_name="User",
+                email="test@test.com",
+                password="password",
+                company_id=company.id
+            )
+            db.session.add(user)
+            db.session.commit()
+
+            valid_key = APIKey.generate_key()
+            api_key = APIKey(
+                key=valid_key,
+                device_name="Test iPad",
+                company_id=company.id,
+                created_by_user_id=user.id
+            )
+            db.session.add(api_key)
+            db.session.commit()
+
+            for _ in range(2):
+                response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+                assert response.status_code == 401
+
+            response = client.get('/api/receiving_logs', headers={'X-API-Key': valid_key})
+            assert response.status_code == 200
+
+            response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+            assert response.status_code == 401
 
     def test_api_key_expiration_placeholder(self, app):
         """Placeholder test for future API key expiration."""

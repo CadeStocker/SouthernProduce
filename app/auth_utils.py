@@ -1,9 +1,63 @@
 # Copyright Cade Stocker 2026
 """Authentication utilities for API key validation."""
+from collections import deque
 from functools import wraps
-from flask import request, jsonify, g
+from time import time
+
+from flask import current_app, request, jsonify, g
 from app.models import APIKey
 from app import db
+
+
+def _get_rate_limit_store():
+    return current_app.extensions.setdefault('bad_api_key_attempts', {})
+
+
+def _get_rate_limit_settings():
+    return {
+        'max_attempts': current_app.config.get('BAD_API_KEY_RATE_LIMIT_ATTEMPTS', 10),
+        'window_seconds': current_app.config.get('BAD_API_KEY_RATE_LIMIT_WINDOW_SECONDS', 300),
+    }
+
+
+def _get_client_identifier():
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
+
+
+def _prune_attempts(attempts, now, window_seconds):
+    while attempts and now - attempts[0] > window_seconds:
+        attempts.popleft()
+
+
+def record_bad_api_key_attempt():
+    client_id = _get_client_identifier()
+    settings = _get_rate_limit_settings()
+    now = time()
+    attempts = _get_rate_limit_store().setdefault(client_id, deque())
+    _prune_attempts(attempts, now, settings['window_seconds'])
+    attempts.append(now)
+    return len(attempts) >= settings['max_attempts']
+
+
+def clear_bad_api_key_attempts():
+    _get_rate_limit_store().pop(_get_client_identifier(), None)
+
+
+def bad_api_key_response():
+    rate_limited = record_bad_api_key_attempt()
+    if rate_limited:
+        return jsonify({
+            'error': 'Too many invalid API key attempts',
+            'message': 'Try again later'
+        }), 429
+
+    return jsonify({
+        'error': 'Invalid or inactive API key',
+        'message': 'The provided API key is invalid or has been revoked'
+    }), 401
 
 
 def get_api_key_from_request():
@@ -44,9 +98,28 @@ def validate_api_key(api_key_string):
     
     # Check if key exists and is active
     if api_key and api_key.is_active:
+        clear_bad_api_key_attempts()
         return api_key
     
     return None
+
+
+def authenticate_api_key_request(api_key_string=None, require_key=True):
+    api_key_string = api_key_string if api_key_string is not None else get_api_key_from_request()
+
+    if not api_key_string:
+        if require_key:
+            return None, (jsonify({
+                'error': 'API key required',
+                'message': 'Please provide an API key in the X-API-Key header'
+            }), 401)
+        return None, None
+
+    api_key = validate_api_key(api_key_string)
+    if not api_key:
+        return None, bad_api_key_response()
+
+    return api_key, None
 
 
 def require_api_key(f):
@@ -65,23 +138,9 @@ def require_api_key(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Extract API key from request
-        api_key_string = get_api_key_from_request()
-        
-        if not api_key_string:
-            return jsonify({
-                'error': 'API key required',
-                'message': 'Please provide an API key in the X-API-Key header'
-            }), 401
-        
-        # Validate the API key
-        api_key = validate_api_key(api_key_string)
-        
-        if not api_key:
-            return jsonify({
-                'error': 'Invalid or inactive API key',
-                'message': 'The provided API key is invalid or has been revoked'
-            }), 401
+        api_key, error_response = authenticate_api_key_request(require_key=True)
+        if error_response:
+            return error_response
         
         # Update last used timestamp
         api_key.update_last_used()
@@ -125,22 +184,15 @@ def optional_api_key_or_login(f):
             return f(*args, **kwargs)
         
         # If not logged in, try API key authentication
-        api_key_string = get_api_key_from_request()
-        
-        if not api_key_string:
+        if not get_api_key_from_request():
             return jsonify({
                 'error': 'Authentication required',
                 'message': 'Please log in or provide an API key'
             }), 401
-        
-        # Validate the API key
-        api_key = validate_api_key(api_key_string)
-        
-        if not api_key:
-            return jsonify({
-                'error': 'Invalid or inactive API key',
-                'message': 'The provided API key is invalid or has been revoked'
-            }), 401
+
+        api_key, error_response = authenticate_api_key_request(require_key=True)
+        if error_response:
+            return error_response
         
         # Update last used timestamp
         api_key.update_last_used()

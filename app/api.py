@@ -26,7 +26,12 @@ from app.schemas import (
     InventorySessionCreateSchema,
     validate_foreign_key_exists,
 )
-from app.auth_utils import require_api_key, optional_api_key_or_login, get_api_key_from_request, validate_api_key
+from app.auth_utils import (
+    require_api_key,
+    optional_api_key_or_login,
+    get_api_key_from_request,
+    authenticate_api_key_request,
+)
 from datetime import datetime
 from app.utils.notification_utils import (
     create_receiving_log_notification,
@@ -63,7 +68,7 @@ def require_login():
     # Check for API key in request
     api_key_string = get_api_key_from_request()
     if api_key_string:
-        api_key = validate_api_key(api_key_string)
+        api_key, error_response = authenticate_api_key_request(api_key_string=api_key_string, require_key=False)
         if api_key:
             # Set global context variables
             api_key.update_last_used()
@@ -72,9 +77,8 @@ def require_login():
             g.device_name = api_key.device_name
             g.auth_method = 'api_key'
             return None
-        else:
-            # API key was provided but is invalid or inactive
-            return jsonify({'error': 'Unauthorized'}), 401
+        if error_response:
+            return error_response
     
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401

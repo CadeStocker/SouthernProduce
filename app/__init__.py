@@ -82,6 +82,12 @@ def create_app(db_uri=None):
     app.config['NOTIFICATION_PRICE_CHANGE_PERCENT_THRESHOLD'] = float(
         os.environ.get('NOTIFICATION_PRICE_CHANGE_PERCENT_THRESHOLD', '20')
     )
+    app.config['BAD_API_KEY_RATE_LIMIT_ATTEMPTS'] = int(
+        os.environ.get('BAD_API_KEY_RATE_LIMIT_ATTEMPTS', '10')
+    )
+    app.config['BAD_API_KEY_RATE_LIMIT_WINDOW_SECONDS'] = int(
+        os.environ.get('BAD_API_KEY_RATE_LIMIT_WINDOW_SECONDS', '300')
+    )
     
     # Set database URI - use parameter if provided (for testing)
     if db_uri:
@@ -94,6 +100,7 @@ def create_app(db_uri=None):
     bcrypt.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    app.extensions['bad_api_key_attempts'] = {}
     
     # attempt to fix "No such command 'db'" error
     migrate.init_app(app, db)
