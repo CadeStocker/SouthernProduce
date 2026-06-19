@@ -13,6 +13,7 @@ def inventory_sessions():
     """
     View all inventory sessions for the company, with optional search.
     """
+    
     q = request.args.get('q', '').strip()
     query = InventorySession.query.filter_by(company_id=current_user.company_id)
     if q:
@@ -30,6 +31,7 @@ def view_inventory_session(session_id):
     """
     View details of a specific inventory session, including item and supply counts.
     """
+
     session = InventorySession.query.filter_by(
         id=session_id, company_id=current_user.company_id
     ).first_or_404()
@@ -53,6 +55,7 @@ def delete_inventory_session(session_id):
     """
     Delete an inventory session and all associated counts.
     """
+
     session = InventorySession.query.filter_by(
         id=session_id, company_id=current_user.company_id
     ).first_or_404()
@@ -68,6 +71,7 @@ def supplies():
     """
     View all supply items for the company, with optional search.
     """
+
     q = request.args.get('q', '').strip()
     query = Supply.query.filter_by(company_id=current_user.company_id)
     if q:
@@ -82,17 +86,21 @@ def supplies():
 @main.route('/inventory/supplies/<int:supply_id>/toggle', methods=['POST'])
 @login_required
 def toggle_supply_active(supply_id):
-    """
-    Toggle the active state of a supply item.
-    """
+    """Toggle active state for a company-owned supply item."""
 
     supply = Supply.query.filter_by(
-        id=supply_id, company_id=current_user.company_id
+        id=supply_id,
+        company_id=current_user.company_id,
     ).first_or_404()
+
     supply.is_active = not supply.is_active
     db.session.commit()
-    state = 'activated' if supply.is_active else 'deactivated'
-    flash(f'"{supply.name}" {state}.', 'success')
+
+    if supply.is_active:
+        flash(f'{supply.name} activated.', 'success')
+    else:
+        flash(f'{supply.name} deactivated.', 'success')
+
     return redirect(url_for('main.supplies'))
 
 
@@ -102,6 +110,7 @@ def view_inventory_session_print(session_id):
     """
     Print version of an inventory session.
     """
+
     session = InventorySession.query.filter_by(
         id=session_id, company_id=current_user.company_id
     ).first_or_404()

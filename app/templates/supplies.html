@@ -30,35 +30,16 @@
                 <th>Name</th>
                 <th>Category</th>
                 <th>Unit</th>
-                <th>Status</th>
                 <th>Notes</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for supply in supplies %}
-              <tr class="{{ '' if supply.is_active else 'text-muted' }}">
+              <tr>
                 <td>{{ supply.name }}</td>
                 <td>{{ supply.category or '—' }}</td>
                 <td>{{ supply.unit }}</td>
-                <td>
-                  {% if supply.is_active %}
-                    <span class="badge badge-success">Active</span>
-                  {% else %}
-                    <span class="badge badge-secondary">Inactive</span>
-                  {% endif %}
-                </td>
                 <td>{{ supply.notes or '—' }}</td>
-                <td>
-                  <form method="POST"
-                        action="{{ url_for('main.toggle_supply_active', supply_id=supply.id) }}"
-                        style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">
-                      {{ 'Deactivate' if supply.is_active else 'Activate' }}
-                    </button>
-                  </form>
-                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -70,6 +51,49 @@
     <div class="alert alert-info">
       No supplies found{% if q %} matching "{{ q }}"{% endif %}.
       Supplies are created via the <strong>Produce Receiver</strong> iPad app API.
+    </div>
+  {% endif %}
+  
+  <!-- Inventory Counts Section -->
+  <h2 class="mt-5 mb-4">Supply Inventory History</h2>
+  
+  {% if supplies %}
+    {% for supply in supplies %}
+      {% if supply.inventory_counts %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <strong>{{ supply.name }} - Inventory Counts</strong>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Quantity</th>
+                    <th>Counted By</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for count in supply.inventory_counts|sort(attribute='count_date', reverse=True) %}
+                  <tr>
+                    <td>{{ count.count_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ "%.2f"|format(count.quantity) }}</td>
+                    <td>{{ count.counted_by or '—' }}</td>
+                    <td>{{ count.notes or '—' }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">
+      No supply inventory counts found for any supplies.
     </div>
   {% endif %}
 </div>
