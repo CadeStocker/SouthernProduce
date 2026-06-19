@@ -41,7 +41,7 @@
             <p><strong>Alternate Code:</strong> {{ item.alternate_code if item.alternate_code else 'N/A' }}</p>
             <p><strong>Case Weight:</strong> {{ "%.2f"|format(item.case_weight) }} lbs</p>
             <p><strong>Item Designation:</strong> {{ item.item_designation.value if item.item_designation else 'N/A' }}</p>
-            <p><strong>Packaging:</strong> {{ packaging.packaging_type if packaging else 'N/A' }}</p>
+            <p><strong>Packaging:</strong> <a href="{{ url_for('main.view_packaging', packaging_id=packaging.id) }}">{{ packaging.packaging_type }}</a></p>
             <p><strong>Raw Products:</strong> 
                 {% if raw_products %}
                     {% for rp in raw_products %}
