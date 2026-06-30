@@ -2,7 +2,6 @@
 from flask_mailman import EmailMessage
 from app.blueprints.items import update_item_total_cost
 from app.blueprints._blueprint import main
-
 from flask import (
     redirect,
     render_template,
@@ -84,6 +83,10 @@ import pdfplumber
 import tempfile
 from sqlalchemy import func
 from datetime import datetime, timedelta
+
+"""
+File that deals with API keys
+"""
 
 # API Keys management page
 @main.route('/api-keys')

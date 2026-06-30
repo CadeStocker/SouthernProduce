@@ -169,8 +169,17 @@ def view_price_sheet(sheet_id):
             company_id=current_user.company_id,
             item_id=item.id,
             customer_id=customer.id if customer else None,
+            price_sheet_id=sheet.id
         ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
         ph = q.first()
+
+        if not ph:
+            # Backward compatibility for historical rows created before sheet-scoped pricing.
+            ph = PriceHistory.query.filter_by(
+                company_id=current_user.company_id,
+                item_id=item.id,
+                customer_id=customer.id if customer else None,
+            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
 
         if ph:
             # find customer name from customer id

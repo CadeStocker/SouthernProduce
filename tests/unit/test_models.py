@@ -15,6 +15,7 @@ from app.models import (
     UnitOfWeight, 
     Packaging,
     Customer,
+    CurrentItemPrice,
     PriceSheet,
     PriceHistory,
     LaborCost,
@@ -242,6 +243,132 @@ def test_price_history(app):
         assert history_entries[1].price == 11.25
         assert history_entries[0].date == date(2023, 1, 1)
         assert history_entries[1].date == date(2023, 2, 1)
+
+
+def test_current_item_price(app):
+    """Test creating and updating a single current price per item."""
+    with app.app_context():
+        company = Company(name="Current Price Company", admin_email="currentprice@test.com")
+        db.session.add(company)
+        db.session.commit()
+
+        packaging = Packaging(packaging_type="Current Price Box", company_id=company.id)
+        db.session.add(packaging)
+        db.session.commit()
+
+        item = Item(
+            name="Current Price Item",
+            code="CP001",
+            unit_of_weight=UnitOfWeight.POUND,
+            packaging_id=packaging.id,
+            company_id=company.id
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        current_price = CurrentItemPrice(
+            item_id=item.id,
+            company_id=company.id,
+            price=14.25,
+            effective_date=date(2026, 6, 1)
+        )
+        db.session.add(current_price)
+        db.session.commit()
+
+        queried = CurrentItemPrice.query.filter_by(item_id=item.id, company_id=company.id).first()
+        assert queried is not None
+        assert queried.price == 14.25
+        assert queried.effective_date == date(2026, 6, 1)
+
+        queried.price = 15.00
+        queried.effective_date = date(2026, 6, 15)
+        db.session.commit()
+
+        updated = CurrentItemPrice.query.filter_by(item_id=item.id, company_id=company.id).first()
+        assert updated.price == 15.00
+        assert updated.effective_date == date(2026, 6, 15)
+
+
+def test_current_item_price_unique_per_item(app):
+    """Test that each item can only have one current price row."""
+    from sqlalchemy.exc import IntegrityError
+
+    with app.app_context():
+        company = Company(name="Unique Current Price Company", admin_email="uniquecurrent@test.com")
+        db.session.add(company)
+        db.session.commit()
+
+        packaging = Packaging(packaging_type="Unique Current Price Box", company_id=company.id)
+        db.session.add(packaging)
+        db.session.commit()
+
+        item = Item(
+            name="Unique Current Price Item",
+            code="UCP001",
+            unit_of_weight=UnitOfWeight.POUND,
+            packaging_id=packaging.id,
+            company_id=company.id
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        first = CurrentItemPrice(
+            item_id=item.id,
+            company_id=company.id,
+            price=10.00,
+            effective_date=date(2026, 6, 1)
+        )
+        second = CurrentItemPrice(
+            item_id=item.id,
+            company_id=company.id,
+            price=11.00,
+            effective_date=date(2026, 6, 2)
+        )
+
+        db.session.add(first)
+        db.session.commit()
+
+        db.session.add(second)
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+        db.session.rollback()
+
+
+def test_current_item_price_company_relationship(app):
+    """Test CurrentItemPrice <-> Company relationship."""
+    with app.app_context():
+        company = Company(name="Relationship Current Price Company", admin_email="relcurrent@test.com")
+        db.session.add(company)
+        db.session.commit()
+
+        packaging = Packaging(packaging_type="Relationship Current Price Box", company_id=company.id)
+        db.session.add(packaging)
+        db.session.commit()
+
+        item = Item(
+            name="Relationship Current Price Item",
+            code="RCP001",
+            unit_of_weight=UnitOfWeight.POUND,
+            packaging_id=packaging.id,
+            company_id=company.id
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        cp = CurrentItemPrice(
+            item_id=item.id,
+            company_id=company.id,
+            price=17.50,
+            effective_date=date(2026, 6, 29)
+        )
+        db.session.add(cp)
+        db.session.commit()
+
+        refreshed_company = Company.query.get(company.id)
+        assert refreshed_company is not None
+        assert len(refreshed_company.current_item_prices) == 1
+        assert refreshed_company.current_item_prices[0].item_id == item.id
+        assert refreshed_company.current_item_prices[0].price == 17.50
 
 def test_labor_cost(app):
     """Test creating and retrieving labor cost."""

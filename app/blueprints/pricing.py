@@ -34,6 +34,7 @@ from app.models import (
     LaborCost, 
     Packaging,
     PackagingCost,
+    CurrentItemPrice,
     PriceHistory,
     PriceSheet, 
     RanchPrice, 
@@ -131,25 +132,25 @@ def price():
     page = request.args.get('page', 1, type=int)
     per_page = 15  # Items per page
     use_pagination = request.args.get('paginate', '0').lower() in ('1', 'true', 'yes')
-    
+
     # Get search parameter
     q = request.args.get('q', '').strip()
-    
+
     # Get the current user's company
     company = Company.query.filter_by(id=current_user.company_id).first()
     if not company:
         flash('Company not found.', 'danger')
         return redirect(url_for('main.index'))
-    
+
     # Base query - filtered by company
     query = Item.query.filter_by(company_id=current_user.company_id)
-    
+
     # Apply search filter if provided
     if q:
         query = query.filter(
             (Item.name.ilike(f'%{q}%')) | (Item.code.ilike(f'%{q}%'))
         )
-    
+
     # Apply pagination
     if use_pagination:
         pagination = query.order_by(Item.name).paginate(page=page, per_page=per_page, error_out=False)
@@ -157,7 +158,7 @@ def price():
     else:
         items = query.order_by(Item.name).all()
         pagination = None
-    
+
     # Process items for display
     item_data = []
 
@@ -202,7 +203,7 @@ def price():
 
             if recent_designation_cost:
                 designation_cost = recent_designation_cost.cost
-        
+
         # Skip items that still don't have a cost after trying to calculate it
         if not most_recent_cost:
             continue
@@ -211,7 +212,7 @@ def price():
                             filter_by(item_id=item.id)
                             .order_by(ItemInfo.date.desc(), ItemInfo.id.desc())
                             .first())
-        
+
         if not recent_item_info:
             product_yield = 0
         else:
@@ -255,11 +256,163 @@ def price():
     return render_template('price.html',
                            title='Price',
                            items=items,
-                           pagination=pagination,  # Pass pagination object to template 
+                           pagination=pagination,  # Pass pagination object to template
                            item_data=item_data,
                            company=company,
                            q=q,
                            use_pagination=use_pagination)
+
+@main.route('/current_prices')
+@login_required
+def current_prices():
+    """
+    Display a page showing the current master prices for each item.
+    Uses CurrentItemPrice model as the source of truth.
+    """
+
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # Items per page
+    
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # Get all items for this company
+    items = Item.query.filter_by(company_id=current_user.company_id).order_by(Item.name).all()
+    
+    # Get current prices for each item
+    price_data = []
+    for item in items:
+        current_price = CurrentItemPrice.query.filter_by(
+            item_id=item.id, 
+            company_id=current_user.company_id
+        ).first()
+        
+        # Add the item info with its current price to the data array
+        price_data.append({
+            'item': item,
+            'current_price': current_price.price if current_price else None,  # Can be None if no price set
+            'effective_date': current_price.effective_date if current_price else None,
+        })
+    
+    return render_template(
+        'current_prices.html',
+        title='Current Prices',
+        price_data=price_data,
+        company=company
+    )
+
+@main.route('/current_prices/export-pdf')
+@login_required
+def export_current_prices_pdf():
+    """
+    Export the current prices as a PDF
+    """
+
+    # Get the current user's company
+    company = Company.query.filter_by(id=current_user.company_id).first()
+    if not company:
+        flash('Company not found.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # Get all items for this company
+    items = Item.query.filter_by(company_id=current_user.company_id).order_by(Item.name).all()
+
+    # Get current prices for each item
+    price_data = []
+    for item in items:
+        current_price = CurrentItemPrice.query.filter_by(
+            item_id=item.id,
+            company_id=current_user.company_id
+        ).first()
+
+        # Add the item info with its current price to the data array
+        price_data.append({
+            'item': item,
+            'current_price': current_price.price if current_price else None,  # Can be None if no price set
+            'effective_date': current_price.effective_date if current_price else None,
+        })
+
+    # Create PDF - using similar formatting to existing export templates
+    pdf = FPDF(orientation="L", unit="mm", format="A4")  # Landscape A4
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # Set font and colors
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, f"{company.name} - Current Prices", 0, 1, 'C')
+    pdf.ln(5)  # Add space after header
+
+    # Add date
+    from datetime import datetime
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"Generated on: {current_date}", 0, 1, 'C')
+    pdf.ln(5)
+
+    # Table setup with columns for better formatting
+    if price_data:
+        col_widths = [70, 25, 25, 30]  # Name, Code, Price, Date
+        headers = ['Item Name', 'Code', 'Current Price', 'Effective Date']
+        
+        # Header row with styling
+        pdf.set_font("Arial", "B", 10)
+        pdf.set_fill_color(52, 73, 94)  # Dark blue-gray
+        pdf.set_text_color(255, 255, 255)  # White text
+
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 8, header, 1, 0, 'C', 1)
+        pdf.ln()
+        pdf.set_text_color(0, 0, 0)  # Reset to black
+        
+        # Table data
+        pdf.set_font("Arial", "", 9)
+        
+        for idx, item_data in enumerate(price_data):
+            # Alternate row colors
+            if idx % 2 == 0:
+                pdf.set_fill_color(245, 245, 245)  # Light gray background for even rows
+                fill = 1
+            else:
+                pdf.set_fill_color(255, 255, 255)  # White background for odd rows
+                fill = 0
+
+            # Add cell with item data 
+            pdf.cell(col_widths[0], 6, item_data['item'].name[:35] + '...' if len(item_data['item'].name) > 35 else item_data['item'].name, 1, 0, 'L', fill)
+            pdf.cell(col_widths[1], 6, str(item_data['item'].code), 1, 0, 'C', fill)
+            
+            # Format price
+            price_cell = f"${item_data['current_price']:.2f}" if item_data['current_price'] else "Not Set"
+            pdf.cell(col_widths[2], 6, price_cell, 1, 0, 'R', fill)
+            
+            # Format date
+            date_cell = item_data['effective_date'].strftime('%Y-%m-%d') if item_data['effective_date'] else "Never"
+            pdf.cell(col_widths[3], 6, date_cell, 1, 0, 'C', fill)
+            pdf.ln()
+
+        # Add footer note
+        pdf.ln(5)
+        pdf.set_font("Arial", "I", 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(0, 5, f'Total Items: {len(price_data)}', 0, 1, 'R')
+    else:
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(0, 10, "No items found.", 0, 1)
+
+    # Generate PDF output
+    pdf_output = bytes(pdf.output(dest='S'))
+
+    # Create response
+    response = make_response(pdf_output)
+    response.headers['Content-Type'] = 'application/pdf'
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'current_prices_{timestamp}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    return response
 
 @main.route('/price/export-pdf')
 @login_required
@@ -445,6 +598,146 @@ def export_price_pdf():
     
     return response
 
+
+@main.route('/pricing_workflow', methods=['GET', 'POST'])
+@login_required
+def pricing_workflow():
+
+    """
+    Guided pricing workflow: update master customer prices from current unit costs
+    with a target dollar margin (for example, +$10.00).
+    """
+
+    master_customer = Customer.query.filter_by(
+        company_id=current_user.company_id,
+        is_master=True
+    ).first()
+
+    if not master_customer:
+        flash('Set a Master Customer first to use Pricing Workflow.', 'warning')
+        return redirect(url_for('main.customer'))
+
+    target_margin = request.values.get('target_margin', default=10.0, type=float)
+    if target_margin is None:
+        target_margin = 10.0
+
+    items = Item.query.filter_by(company_id=current_user.company_id).order_by(Item.name.asc()).all()
+
+    if request.method == 'POST':
+        saved_count = 0
+        skipped_count = 0
+        today = datetime.datetime.utcnow().date()
+
+        for item in items:
+            raw_price = (request.form.get(f'price_input_{item.id}') or '').strip()
+            if not raw_price:
+                skipped_count += 1
+                continue
+
+            try:
+                price = float(raw_price)
+            except ValueError:
+                skipped_count += 1
+                continue
+
+            if price < 0:
+                skipped_count += 1
+                continue
+
+            current_price = CurrentItemPrice.query.filter_by(
+                item_id=item.id,
+                company_id=current_user.company_id
+            ).first()
+
+            if current_price:
+                current_price.price = price
+                current_price.effective_date = today
+            else:
+                db.session.add(
+                    CurrentItemPrice(
+                        item_id=item.id,
+                        company_id=current_user.company_id,
+                        price=price,
+                        effective_date=today
+                    )
+                )
+            saved_count += 1
+
+        db.session.commit()
+
+        if saved_count:
+            flash(
+                f'Saved {saved_count} master price(s). Other customers will use these prices unless overridden.',
+                'success'
+            )
+        else:
+            flash('No valid prices were submitted.', 'warning')
+
+        if skipped_count and saved_count:
+            flash(f'Skipped {skipped_count} item(s) with blank/invalid prices.', 'info')
+
+        return redirect(url_for('main.pricing_workflow', target_margin=target_margin))
+
+    def round_up_to_nearest_quarter(value):
+        return math.ceil(value * 4) / 4
+
+    rows = []
+    for item in items:
+        recent_cost = (
+            ItemTotalCost.query
+            .filter_by(item_id=item.id, company_id=current_user.company_id)
+            .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+            .first()
+        )
+
+        if not recent_cost:
+            update_item_total_cost(item.id)
+            recent_cost = (
+                ItemTotalCost.query
+                .filter_by(item_id=item.id, company_id=current_user.company_id)
+                .order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc())
+                .first()
+            )
+
+        unit_cost = float(recent_cost.total_cost) if recent_cost and recent_cost.total_cost is not None else 0.0
+
+        current_price_row = CurrentItemPrice.query.filter_by(
+            item_id=item.id,
+            company_id=current_user.company_id
+        ).first()
+
+        if current_price_row and current_price_row.price is not None:
+            current_price = float(current_price_row.price)
+        else:
+            fallback_ph = (
+                PriceHistory.query
+                .filter_by(item_id=item.id, company_id=current_user.company_id)
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+                .first()
+            )
+            current_price = float(fallback_ph.price) if fallback_ph and fallback_ph.price is not None else None
+
+        margin = (current_price - unit_cost) if current_price is not None else None
+        suggested_price = round_up_to_nearest_quarter(unit_cost + target_margin)
+
+        rows.append({
+            'item': item,
+            'unit_cost': unit_cost,
+            'current_price': current_price,
+            'margin': margin,
+            'suggested_price': suggested_price
+        })
+
+    rows.sort(key=lambda r: (r['item'].name or '').lower())
+
+    return render_template(
+        'pricing_workflow.html',
+        title='Pricing Workflow',
+        rows=rows,
+        target_margin=target_margin,
+        master_customer=master_customer
+    )
+
 def _generate_price_sheet_pdf_bytes(sheet):
     
     """
@@ -459,46 +752,48 @@ def _generate_price_sheet_pdf_bytes(sheet):
 
     # Build recent dict for each item
     recent = {}
-    master = Customer.query.filter_by(
-        company_id=current_user.company_id,
-        is_master=True
-    ).first()
     
     seven_days_ago_date = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).date()
 
     for item in sheet.items:
-        # Try to get price for master customer first
-        ph = None
-        ph_old = None
-        
-        if master:
-            ph = PriceHistory.query.filter_by(
-                company_id=current_user.company_id,
-                item_id=item.id,
-                customer_id=master.id
-            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
-            
-            ph_old = PriceHistory.query.filter_by(
-                company_id=current_user.company_id,
-                item_id=item.id,
-                customer_id=master.id
-            ).filter(PriceHistory.date <= seven_days_ago_date).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+        sheet_price = PriceHistory.query.filter_by(
+            company_id=current_user.company_id,
+            customer_id=sheet.customer_id,
+            price_sheet_id=sheet.id,
+            item_id=item.id
+        ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
 
-        # Fallback: any customer
-        if not ph:
-            ph = PriceHistory.query.filter_by(
+        customer_latest = None
+        if not sheet_price:
+            customer_latest = (
+                PriceHistory.query
+                .filter_by(
+                    company_id=current_user.company_id,
+                    customer_id=sheet.customer_id,
+                    item_id=item.id
+                )
+                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc())
+                .first()
+            )
+
+        cp = None
+        if not sheet_price and not customer_latest:
+            cp = CurrentItemPrice.query.filter_by(
                 company_id=current_user.company_id,
                 item_id=item.id
-            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
-            
-            ph_old = PriceHistory.query.filter_by(
-                company_id=current_user.company_id,
-                item_id=item.id
-            ).filter(PriceHistory.date <= seven_days_ago_date).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+            ).first()
+
+        ph_old = PriceHistory.query.filter_by(
+            company_id=current_user.company_id,
+            customer_id=sheet.customer_id,
+            item_id=item.id
+        ).filter(PriceHistory.date <= seven_days_ago_date).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+
+        selected = sheet_price or customer_latest
         
         recent[item.id] = {
-            'price': float(ph.price) if ph and ph.price is not None else None,
-            'date': ph.date if ph and ph.date else None,
+            'price': float(selected.price) if selected and selected.price is not None else (float(cp.price) if cp and cp.price is not None else None),
+            'date': selected.date if selected and selected.date else (cp.effective_date if cp and cp.effective_date else None),
             'old_price': float(ph_old.price) if ph_old and ph_old.price is not None else None
         }
 
@@ -812,6 +1107,12 @@ def price_sheet():
     # get all the customer names for the existing sheets
     customer_names = {c.id: c.name for c in customers}
 
+    # Group price sheets by customer for display purposes
+    from collections import defaultdict
+    grouped_sheets = defaultdict(list)
+    for sheet in price_sheets:
+        grouped_sheets[sheet.customer_id].append(sheet)
+
     if form.validate_on_submit():
         # create new sheet
         sheet = PriceSheet(
@@ -843,7 +1144,8 @@ def price_sheet():
       title        = 'Price Sheets',
       form         = form,
       price_sheets = price_sheets,
-      customer_names = customer_names
+      customer_names = customer_names,
+      grouped_sheets = grouped_sheets  # For grouping in template
     )
 
 @main.route('/edit_price_sheet/<int:sheet_id>', methods=['GET', 'POST'])
@@ -901,22 +1203,56 @@ def edit_price_sheet(sheet_id):
 
         # Otherwise, saving prices
         for item in sheet.items:
+            cp_sel = request.form.get(f'current_price_{item.id}')
             sel = request.form.get(f'price_select_{item.id}')
             inp = request.form.get(f'price_input_{item.id}')
-            #raw = (inp or sel or '').strip()
-            raw = (sel or inp or '').strip()
-            try:
-                price = float(raw)
-            except ValueError:
+            
+            # Respect explicit user selection order:
+            # 1) Current Price (QuickBooks), 2) markup select, 3) custom input.
+            price = None
+            
+            if cp_sel and cp_sel != '':
+                try:
+                    price = float(cp_sel)
+                except ValueError:
+                    continue
+            elif sel and sel != '':
+                try:
+                    price = float(sel)
+                except ValueError:
+                    continue
+            elif inp and inp != '':
+                try:
+                    price = float(inp)
+                except ValueError:
+                    continue
+            
+            # If neither field has a valid value, skip this item
+            if price is None:
                 continue
-            ph = PriceHistory(
-                date=datetime.datetime.utcnow().date(),
+
+            # Keep one row per sheet+item so edits on another sheet don't rewrite history.
+            ph = PriceHistory.query.filter_by(
                 company_id=current_user.company_id,
                 customer_id=sheet.customer_id,
-                item_id=item.id,
-                price=price
-            )
-            db.session.add(ph)
+                price_sheet_id=sheet.id,
+                item_id=item.id
+            ).first()
+
+            if ph:
+                ph.price = price
+                ph.date = datetime.datetime.utcnow().date()
+            else:
+                db.session.add(
+                    PriceHistory(
+                        date=datetime.datetime.utcnow().date(),
+                        company_id=current_user.company_id,
+                        customer_id=sheet.customer_id,
+                        price_sheet_id=sheet.id,
+                        item_id=item.id,
+                        price=price
+                    )
+                )
         db.session.commit()
         flash('Prices saved!', 'success')
         return redirect(url_for('main.edit_price_sheet', sheet_id=sheet.id))
@@ -943,54 +1279,67 @@ def edit_price_sheet(sheet_id):
                 .all()
             )
 
-    # build markup options at 25%,30%,35%,40%,45% 
+    # build markup options at 25%,30%,35%,40%,45%
     percents = [25, 30, 35, 40, 45]
     markup_opts = {}
 
     # get the most recent price for each item in the sheet
     recent_prices = {}
+
+    # get all current prices for items in this company (to populate the dropdown)
+    current_prices = {}
     
     # get the unit cost for each item in the sheet
     unit_costs = {}
 
+    # For each item, get current price from CurrentItemPrice and build markup options
     for item in sheet.items:
-        # find master customer for the current company
-        master_customer = Customer.query.filter_by(company_id=current_user.company_id, is_master=True).first()
+        # Get price history for the specific sheet/customer (this is what the frontend uses for display)
+        current_price = PriceHistory.query.filter_by(
+            item_id=item.id,
+            customer_id=sheet.customer_id,
+            company_id=current_user.company_id,
+            price_sheet_id=sheet.id
+        ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
 
-        # latest PriceHistory entry for this sheet-item
-        if master_customer:
-            last_ph = PriceHistory.query \
-                .filter_by(item_id=item.id, company_id=current_user.company_id, customer_id=master_customer.id) \
-                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
-                .first()
-            recent_prices[item.id] = last_ph.price if last_ph else None
-
-            # if there is a master customer, but they don't have a price for this item,
-            # just use the latest price for the item
-            if not last_ph:
-                last_ph = PriceHistory.query \
-                    .filter_by(item_id=item.id, company_id=current_user.company_id) \
-                    .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
-                    .first()
-                recent_prices[item.id] = last_ph.price if last_ph else None
-
+        if current_price:
+            recent_prices[item.id] = current_price.price
         else:
-            # if no master customer, just use the latest price for the item
-            last_ph = PriceHistory.query \
-                .filter_by(item_id=item.id, company_id=current_user.company_id) \
-                .order_by(PriceHistory.date.desc(), PriceHistory.id.desc()) \
-                .first()
-            recent_prices[item.id] = last_ph.price if last_ph else None
+            # Fallback to latest known customer price, then master company price.
+            customer_latest = PriceHistory.query.filter_by(
+                item_id=item.id,
+                customer_id=sheet.customer_id,
+                company_id=current_user.company_id
+            ).order_by(PriceHistory.date.desc(), PriceHistory.id.desc()).first()
+
+            if customer_latest:
+                recent_prices[item.id] = customer_latest.price
+            else:
+                last_cp = CurrentItemPrice.query.filter_by(
+                    item_id=item.id,
+                    company_id=current_user.company_id
+                ).first()
+                recent_prices[item.id] = last_cp.price if last_cp else None
+
+        # Get all prices that were used in the system for this item that could have been selected as current prices
+        # This is what we'll use to populate the dropdown in the template
+        item_current_prices = CurrentItemPrice.query.filter_by(
+            item_id=item.id,
+            company_id=current_user.company_id
+        ).order_by(CurrentItemPrice.effective_date.desc()).all()
+        
+        # Store a list of available prices for this item so the frontend can show them as options
+        current_prices[item.id] = [cp.price for cp in item_current_prices]
 
         # most recent cost
         itc = ItemTotalCost.query.filter_by(
             item_id=item.id, company_id=current_user.company_id
         ).order_by(ItemTotalCost.date.desc(), ItemTotalCost.id.desc()).first()
         base = itc.total_cost if itc else 0
-        
+
         # store the unit cost
         unit_costs[item.id] = base
-        
+
         opts = []
         for pct in percents:
             raw = base * (1 + pct/100)
@@ -1008,6 +1357,7 @@ def edit_price_sheet(sheet_id):
       history_opts=history_opts,
       markup_opts=markup_opts,
       recent_prices=recent_prices,
+      current_prices=current_prices,
       unit_costs=unit_costs,
       available_items=available_items
     )
@@ -1092,11 +1442,100 @@ def delete_price_sheet(sheet_id):
         company_id=current_user.company_id
     ).first_or_404()
 
+    PriceHistory.query.filter_by(
+        company_id=current_user.company_id,
+        price_sheet_id=sheet.id
+    ).delete()
+
     db.session.delete(sheet)
     db.session.commit()
 
     flash(f'Price Sheet "{sheet.name}" deleted!', 'success')
     return redirect(url_for('main.price_sheet'))
+
+@main.route('/duplicate_price_sheet', methods=['POST'])
+@login_required
+def duplicate_price_sheet():
+    """
+    Duplicate an existing price sheet with the same items for a new date range.
+    """
+
+    # Get form data
+    source_sheet_id = request.form.get('source_sheet_id')
+    name = request.form.get('name', '').strip()
+    
+    if not source_sheet_id:
+        flash('No source sheet specified.', 'danger')
+        return redirect(url_for('main.price_sheet'))
+    
+    # Find the source sheet
+    source_sheet = PriceSheet.query.filter_by(
+        id=source_sheet_id,
+        company_id=current_user.company_id
+    ).first_or_404()
+    
+    # Validate name
+    if not name:
+        flash('Name is required.', 'danger')
+        return redirect(url_for('main.price_sheet'))
+    
+    # Get dates from form or use current date
+    valid_from_str = request.form.get('valid_from', '').strip()
+    valid_to_str = request.form.get('valid_to', '').strip()
+    
+    try:
+        if valid_from_str:
+            valid_from = datetime.datetime.strptime(valid_from_str, '%Y-%m-%d').date()
+        else:
+            valid_from = source_sheet.valid_from or datetime.datetime.utcnow().date()
+            
+        if valid_to_str:
+            valid_to = datetime.datetime.strptime(valid_to_str, '%Y-%m-%d').date()
+        else:
+            valid_to = source_sheet.valid_to
+    except ValueError:
+        flash('Invalid date format provided.', 'danger')
+        return redirect(url_for('main.price_sheet'))
+    
+    # Create duplicate
+    new_sheet = PriceSheet(
+        name=name,
+        date=datetime.datetime.utcnow().date(),
+        company_id=current_user.company_id,
+        customer_id=source_sheet.customer_id,
+        valid_from=valid_from,
+        valid_to=valid_to
+    )
+    
+    # Copy items from source sheet
+    new_sheet.items = source_sheet.items
+    
+    db.session.add(new_sheet)
+
+    source_prices = PriceHistory.query.filter_by(
+        company_id=current_user.company_id,
+        customer_id=source_sheet.customer_id,
+        price_sheet_id=source_sheet.id
+    ).all()
+
+    db.session.flush()
+
+    for src in source_prices:
+        db.session.add(
+            PriceHistory(
+                item_id=src.item_id,
+                date=datetime.datetime.utcnow().date(),
+                company_id=current_user.company_id,
+                customer_id=source_sheet.customer_id,
+                price_sheet_id=new_sheet.id,
+                price=src.price
+            )
+        )
+
+    db.session.commit()
+    
+    flash(f'Price Sheet "{new_sheet.name}" duplicated successfully!', 'success')
+    return redirect(url_for('main.edit_price_sheet', sheet_id=new_sheet.id))
 
 # Update email_price_sheet route to use template
 @main.route('/email_price_sheet/<int:sheet_id>', methods=['POST'])

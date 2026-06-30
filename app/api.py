@@ -16,6 +16,11 @@ from app.models import (
     InventorySession,
     Supply,
     SupplyInventory,
+    DailyLog,
+    PayGroups,
+    WeeklyLaborEntry,
+    SalesByDesignation,
+    FilmUsage,
     db
 )
 from app.schemas import (
@@ -24,6 +29,11 @@ from app.schemas import (
     SupplyCreateSchema,
     SupplyInventoryCreateSchema,
     InventorySessionCreateSchema,
+    DailyLogCreateSchema,
+    PayGroupCreateSchema,
+    WeeklyLaborEntryCreateSchema,
+    SalesByItemTypeCreateSchema,
+    FilmUsageCreateSchema,
     validate_foreign_key_exists,
 )
 from app.auth_utils import (
@@ -32,13 +42,36 @@ from app.auth_utils import (
     get_api_key_from_request,
     authenticate_api_key_request,
 )
-from datetime import datetime
+from datetime import datetime, date as date_type
 from app.utils.notification_utils import (
     create_receiving_log_notification,
     maybe_create_receiving_log_outlier_notification
 )
 
+"""
+This file contains the API endpoints for the Southern Produce applications.
+It includes routes for managing receiving logs, raw products, brand names, sellers, growers/distributors, items, inventory counts, supplies, and supply inventory counts.
+"""
+
 api = Blueprint('api', __name__)
+
+
+def get_request_company_id():
+    return g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+
+def parse_date_value(raw_value, field_name):
+    try:
+        return date_type.fromisoformat(raw_value)
+    except ValueError as exc:
+        try:
+            return datetime.fromisoformat(raw_value.replace('Z', '+00:00')).date()
+        except ValueError as inner_exc:
+            raise ValueError(f'Invalid {field_name} format. Use YYYY-MM-DD or ISO datetime') from inner_exc
+
+"""
+FUNCTIONS FOR PRODUCERECEIVER
+"""
 
 # Test endpoint for API key authentication
 @api.route('/api/test', methods=['GET'])
@@ -1143,3 +1176,441 @@ def delete_inventory_session(session_id):
     db.session.commit()
 
     return jsonify({'success': True, 'message': f'Inventory session {session_id} deleted'}), 200
+
+
+# LABOR AND SALES ENDPOINTS
+
+@api.route('/api/labor/daily_logs', methods=['GET'])
+@optional_api_key_or_login
+def get_daily_logs():
+    company_id = get_request_company_id()
+
+    query = DailyLog.query.filter_by(company_id=company_id)
+
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            query = query.filter(DailyLog.date >= parse_date_value(start_date, 'start_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            query = query.filter(DailyLog.date <= parse_date_value(end_date, 'end_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    limit = min(request.args.get('limit', default=100, type=int), 1000)
+    logs = query.order_by(DailyLog.date.desc(), DailyLog.id.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': log.id,
+            'date': log.date.isoformat(),
+            'items': log.items,
+            'sales': log.sales,
+            'labor_hours': log.labor_hours,
+            'overtime_hours': log.overtime_hours,
+            'payroll_cost': log.payroll_cost,
+            'number_of_employees': log.number_of_employees,
+            'labor_ratio': log.labor_ratio,
+            'sales_over_labor_cost': log.sales_over_labor_cost,
+            'average_man_hour_cost': log.average_man_hour_cost,
+            'average_case_cost': log.average_case_cost,
+            'average_hours_per_employee': log.average_hours_per_employee,
+        }
+        for log in logs
+    ]), 200
+
+
+@api.route('/api/labor/daily_logs', methods=['POST'])
+@optional_api_key_or_login
+def create_daily_log():
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = DailyLogCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        log = DailyLog(
+            company_id=company_id,
+            date=data.date or datetime.utcnow().date(),
+            items=data.items,
+            sales=data.sales,
+            labor_hours=data.labor_hours,
+            overtime_hours=data.overtime_hours,
+            payroll_cost=data.payroll_cost,
+            number_of_employees=data.number_of_employees,
+            labor_ratio=data.labor_ratio,
+            sales_over_labor_cost=data.sales_over_labor_cost,
+            average_man_hour_cost=data.average_man_hour_cost,
+            average_case_cost=data.average_case_cost,
+            average_hours_per_employee=data.average_hours_per_employee,
+        )
+
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Daily log created successfully',
+            'daily_log': {
+                'id': log.id,
+                'date': log.date.isoformat(),
+                'items': log.items,
+                'sales': log.sales,
+                'labor_hours': log.labor_hours,
+                'overtime_hours': log.overtime_hours,
+                'payroll_cost': log.payroll_cost,
+                'number_of_employees': log.number_of_employees,
+                'labor_ratio': log.labor_ratio,
+                'sales_over_labor_cost': log.sales_over_labor_cost,
+                'average_man_hour_cost': log.average_man_hour_cost,
+                'average_case_cost': log.average_case_cost,
+                'average_hours_per_employee': log.average_hours_per_employee,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating daily log: {e}")
+        return jsonify({'error': 'An error occurred while creating the daily log'}), 500
+
+
+@api.route('/api/labor/pay_groups', methods=['GET'])
+@optional_api_key_or_login
+def get_pay_groups():
+    company_id = get_request_company_id()
+    pay_groups = PayGroups.query.filter_by(company_id=company_id).order_by(PayGroups.name).all()
+
+    return jsonify([
+        {
+            'id': pay_group.id,
+            'name': pay_group.name,
+            'description': pay_group.description,
+        }
+        for pay_group in pay_groups
+    ]), 200
+
+
+@api.route('/api/labor/pay_groups', methods=['POST'])
+@optional_api_key_or_login
+def create_pay_group():
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = PayGroupCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        existing = PayGroups.query.filter_by(company_id=company_id, name=data.name).first()
+        if existing:
+            return jsonify({'error': 'A pay group with this name already exists', 'id': existing.id}), 409
+
+        pay_group = PayGroups(
+            company_id=company_id,
+            name=data.name,
+            description=data.description,
+        )
+        db.session.add(pay_group)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Pay group created successfully',
+            'pay_group': {
+                'id': pay_group.id,
+                'name': pay_group.name,
+                'description': pay_group.description,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating pay group: {e}")
+        return jsonify({'error': 'An error occurred while creating the pay group'}), 500
+
+
+@api.route('/api/labor/weekly_labor_entries', methods=['GET'])
+@optional_api_key_or_login
+def get_weekly_labor_entries():
+    company_id = get_request_company_id()
+
+    query = WeeklyLaborEntry.query.filter_by(company_id=company_id)
+
+    pay_group_id = request.args.get('pay_group_id', type=int)
+    if pay_group_id:
+        query = query.filter_by(pay_group_id=pay_group_id)
+
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            query = query.filter(WeeklyLaborEntry.week_start_date >= parse_date_value(start_date, 'start_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            query = query.filter(WeeklyLaborEntry.week_start_date <= parse_date_value(end_date, 'end_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    limit = min(request.args.get('limit', default=100, type=int), 1000)
+    entries = query.order_by(WeeklyLaborEntry.week_start_date.desc(), WeeklyLaborEntry.id.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': entry.id,
+            'week_start_date': entry.week_start_date.isoformat(),
+            'pay_group_id': entry.pay_group_id,
+            'regular_hours': entry.regular_hours,
+            'overtime_hours': entry.overtime_hours,
+            'pay': entry.pay,
+            'percent_of_sales': entry.percent_of_sales,
+            'cost_per_hour': entry.cost_per_hour,
+            'number_in_pay_group': entry.number_in_pay_group,
+            'number_with_overtime': entry.number_with_overtime,
+            'average_hours_per_employee': entry.average_hours_per_employee,
+        }
+        for entry in entries
+    ]), 200
+
+
+@api.route('/api/labor/weekly_labor_entries', methods=['POST'])
+@optional_api_key_or_login
+def create_weekly_labor_entry():
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = WeeklyLaborEntryCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        pay_group = PayGroups.query.filter_by(id=data.pay_group_id, company_id=company_id).first()
+        if not pay_group:
+            return jsonify({'error': f'Pay group with id {data.pay_group_id} not found'}), 404
+
+        entry = WeeklyLaborEntry(
+            company_id=company_id,
+            week_start_date=data.week_start_date,
+            pay_group_id=data.pay_group_id,
+            regular_hours=data.regular_hours,
+            overtime_hours=data.overtime_hours,
+            pay=data.pay,
+            percent_of_sales=data.percent_of_sales,
+            cost_per_hour=data.cost_per_hour,
+            number_in_pay_group=data.number_in_pay_group,
+            number_with_overtime=data.number_with_overtime,
+            average_hours_per_employee=data.average_hours_per_employee,
+        )
+        db.session.add(entry)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Weekly labor entry created successfully',
+            'weekly_labor_entry': {
+                'id': entry.id,
+                'week_start_date': entry.week_start_date.isoformat(),
+                'pay_group_id': entry.pay_group_id,
+                'regular_hours': entry.regular_hours,
+                'overtime_hours': entry.overtime_hours,
+                'pay': entry.pay,
+                'percent_of_sales': entry.percent_of_sales,
+                'cost_per_hour': entry.cost_per_hour,
+                'number_in_pay_group': entry.number_in_pay_group,
+                'number_with_overtime': entry.number_with_overtime,
+                'average_hours_per_employee': entry.average_hours_per_employee,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating weekly labor entry: {e}")
+        return jsonify({'error': 'An error occurred while creating the weekly labor entry'}), 500
+
+
+@api.route('/api/labor/sales_by_item_type', methods=['GET'])
+@optional_api_key_or_login
+def get_sales_by_item_type():
+    company_id = get_request_company_id()
+
+    query = SalesByItemType.query.filter_by(company_id=company_id)
+
+    item_type_id = request.args.get('item_type_id', type=int)
+    if item_type_id:
+        query = query.filter_by(item_type_id=item_type_id)
+
+    start_date = request.args.get('start_date')
+    if start_date:
+        try:
+            query = query.filter(SalesByItemType.date >= parse_date_value(start_date, 'start_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    end_date = request.args.get('end_date')
+    if end_date:
+        try:
+            query = query.filter(SalesByItemType.date <= parse_date_value(end_date, 'end_date'))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+    limit = min(request.args.get('limit', default=100, type=int), 1000)
+    rows = query.order_by(SalesByItemType.date.desc(), SalesByItemType.id.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': row.id,
+            'date': row.date.isoformat(),
+            'item_type_id': row.item_type_id,
+            'number_of_items': row.number_of_items,
+            'sales': row.sales,
+            'average_price_per_item': row.average_price_per_item,
+            'percent_of_total_sales': row.percent_of_total_sales,
+            'percent_of_total_boxes': row.percent_of_total_boxes,
+        }
+        for row in rows
+    ]), 200
+
+
+@api.route('/api/labor/sales_by_item_type', methods=['POST'])
+@optional_api_key_or_login
+def create_sales_by_item_type():
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = SalesByItemTypeCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        row = SalesByItemType(
+            company_id=company_id,
+            date=data.date,
+            item_type_id=data.item_type_id,
+            number_of_items=data.number_of_items,
+            sales=data.sales,
+            average_price_per_item=data.average_price_per_item,
+            percent_of_total_sales=data.percent_of_total_sales,
+            percent_of_total_boxes=data.percent_of_total_boxes,
+        )
+        db.session.add(row)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Sales by item type created successfully',
+            'sales_by_item_type': {
+                'id': row.id,
+                'date': row.date.isoformat(),
+                'item_type_id': row.item_type_id,
+                'number_of_items': row.number_of_items,
+                'sales': row.sales,
+                'average_price_per_item': row.average_price_per_item,
+                'percent_of_total_sales': row.percent_of_total_sales,
+                'percent_of_total_boxes': row.percent_of_total_boxes,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating sales by item type: {e}")
+        return jsonify({'error': 'An error occurred while creating the sales record'}), 500
+
+
+@api.route('/api/labor/film_usage', methods=['GET'])
+@optional_api_key_or_login
+def get_film_usage():
+    company_id = get_request_company_id()
+    query = FilmUsage.query.filter_by(company_id=company_id)
+
+    month = request.args.get('month', type=int)
+    if month:
+        query = query.filter_by(month=month)
+
+    year = request.args.get('year', type=int)
+    if year:
+        query = query.filter_by(year=year)
+
+    limit = min(request.args.get('limit', default=100, type=int), 1000)
+    usage_rows = query.order_by(FilmUsage.year.desc(), FilmUsage.month.desc(), FilmUsage.id.desc()).limit(limit).all()
+
+    return jsonify([
+        {
+            'id': row.id,
+            'month': row.month,
+            'year': row.year,
+            'number_of_cases': row.number_of_cases,
+            'number_of_rolls': row.number_of_rolls,
+        }
+        for row in usage_rows
+    ]), 200
+
+
+@api.route('/api/labor/film_usage', methods=['POST'])
+@optional_api_key_or_login
+def create_film_usage():
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = FilmUsageCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        existing = FilmUsage.query.filter_by(company_id=company_id, month=data.month, year=data.year).first()
+        if existing:
+            return jsonify({'error': 'Film usage already exists for this month and year', 'id': existing.id}), 409
+
+        row = FilmUsage(
+            company_id=company_id,
+            month=data.month,
+            year=data.year,
+            number_of_cases=data.number_of_cases,
+            number_of_rolls=data.number_of_rolls,
+        )
+        db.session.add(row)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Film usage created successfully',
+            'film_usage': {
+                'id': row.id,
+                'month': row.month,
+                'year': row.year,
+                'number_of_cases': row.number_of_cases,
+                'number_of_rolls': row.number_of_rolls,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating film usage: {e}")
+        return jsonify({'error': 'An error occurred while creating the film usage record'}), 500

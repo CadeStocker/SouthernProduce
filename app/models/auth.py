@@ -17,6 +17,7 @@ class Company(db.Model):
     items = db.relationship('Item', backref='company', lazy=True)
     raw_products = db.relationship('RawProduct', backref='company', lazy=True)
     cost_history = db.relationship('CostHistory', backref='company', lazy=True)
+    current_item_prices = db.relationship('CurrentItemPrice', backref='company', lazy=True)
     price_history = db.relationship('PriceHistory', backref='company', lazy=True)
     customers = db.relationship('Customer', backref='company', lazy=True)
     packaging = db.relationship('Packaging', backref='company', lazy=True)

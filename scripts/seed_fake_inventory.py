@@ -11,7 +11,11 @@ counts spread over the past few months. Safe to re-run; it only appends.
 """
 import random
 import sys
+import os
 from datetime import datetime, timedelta
+
+# Add the project root to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/..')
 
 from app import create_app
 from app.models import db

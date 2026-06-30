@@ -16,6 +16,9 @@
     <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pdfUploadModal">
       Import Costs from PDF
     </button>
+    <a href="{{ url_for('main.pricing_workflow') }}" class="btn btn-success ml-2">
+      Next: Price By Margin
+    </a>
 
     {# Toggle pagination / show all #}
     {% if use_pagination %}

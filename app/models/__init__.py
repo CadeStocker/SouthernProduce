@@ -53,6 +53,7 @@ from app.models.inventory import (
 from app.models.pricing import (
     DesignationCost,
     RanchPrice,
+    CurrentItemPrice,
     PriceHistory,
     PriceSheet,
     PriceSheetBackup,
@@ -64,6 +65,15 @@ from app.models.pricing import (
 from app.models.costing import (
     LaborCost,
     CostHistory,
+)
+
+# Labor API models
+from app.models.labor import (
+    DailyLog,
+    PayGroups,
+    WeeklyLaborEntry,
+    SalesByDesignation,
+    FilmUsage,
 )
 
 # Customer models
@@ -115,6 +125,7 @@ __all__ = [
     # Pricing
     "DesignationCost",
     "RanchPrice",
+    "CurrentItemPrice",
     "PriceHistory",
     "PriceSheet",
     "PriceSheetBackup",
@@ -123,6 +134,12 @@ __all__ = [
     # Costing
     "LaborCost",
     "CostHistory",
+    # Labor API
+    "DailyLog",
+    "PayGroups",
+    "WeeklyLaborEntry",
+    "SalesByItemType",
+    "FilmUsage",
     # Customers
     "Customer",
     "CustomerEmail",

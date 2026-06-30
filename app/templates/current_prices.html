@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Current Prices{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Current Master Prices</h1>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <p class="text-muted">Showing current master prices for all items in your company</p>
+            <p class="text-muted">These prices are used as the default for all customers unless overridden in a price sheet. Prices entered in 'Price By Margin' are set as the current price for each item.</p>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{{ url_for('main.pricing_workflow') }}" class="btn btn-primary mr-2">
+                <i class="fas fa-edit"></i> Edit Prices By Margin
+            </a>
+            <a href="{{ url_for('main.price') }}" class="btn btn-outline-secondary mr-2">
+                <i class="fas fa-list"></i> Full Price List
+            </a>
+            <a href="{{ url_for('main.export_current_prices_pdf') }}" class="btn btn-success">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Code</th>
+                            <th>Alternate Code</th>
+                            <th>Current Price</th>
+                            <th>Effective Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item_data in price_data %}
+                        <tr>
+                            <td>{{ item_data.item.name }}</td>
+                            <td>{{ item_data.item.code }}</td>
+                            <td>{{ item_data.item.alternate_code or '-' }}</td>
+                            <td>${{ item_data.current_price|round(2)|string if item_data.current_price else 'Not Set' }}</td>
+                            <td>{{ item_data.effective_date.strftime('%Y-%m-%d') if item_data.effective_date else 'Never' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if price_data|length == 0 %}
+            <div class="text-center py-5">
+                <p class="text-muted">No items found. Add some items to set current prices.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

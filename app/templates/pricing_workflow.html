@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Pricing Workflow{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h2 class="mb-1">Pricing Workflow</h2>
+      <p class="text-muted mb-0">
+        Master customer: <strong>{{ master_customer.name }}</strong><br>
+        Update raw product costs first, then set item prices to a target dollar margin.
+      </p>
+    </div>
+    <div class="d-flex flex-row">
+      <a href="{{ url_for('main.raw_product') }}" class="btn btn-primary btn-sm">Update Raw Costs</a>
+      <span class="mx-2"></span>
+      <a href="{{ url_for('main.price_sheet') }}" class="btn btn-secondary btn-sm">Price Sheets</a>
+    </div>
+  </div>
+
+  <form method="POST" id="workflow-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-wrap align-items-center">
+        <label for="target-margin" class="mb-2 mb-sm-0 mr-2"><strong>Target margin ($):</strong></label>
+        <input
+          id="target-margin"
+          type="number"
+          name="target_margin"
+          step="0.01"
+          class="form-control mr-2 mb-2 mb-sm-0"
+          style="max-width: 140px;"
+          value="{{ '%.2f'|format(target_margin) }}"
+        >
+        <button type="button" class="btn btn-outline-primary mr-2 mb-2 mb-sm-0" id="apply-target-btn">
+          Apply Target Margin To All
+        </button>
+        <button type="button" class="btn btn-outline-secondary mb-2 mb-sm-0" id="clear-prices-btn">
+          Clear Inputs
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Set Master Prices</strong>
+        <small class="text-muted">Other customers inherit these unless you create overrides.</small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th style="width: 30%;">Item</th>
+                <th style="width: 12%;">Unit Cost</th>
+                <th style="width: 12%;">Current Price</th>
+                <th style="width: 12%;">Current Margin</th>
+                <th style="width: 16%;">Suggested</th>
+                <th style="width: 18%;">New Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td>
+                  <div>{{ row.item.name }}</div>
+                  <small class="text-muted">{{ row.item.alternate_code or 'No alt code' }}</small>
+                </td>
+                <td>$<span id="unit-cost-{{ row.item.id }}">{{ '%.2f'|format(row.unit_cost) }}</span></td>
+                <td>
+                  {% if row.current_price is not none %}
+                    ${{ '%.2f'|format(row.current_price) }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if row.margin is not none %}
+                    {% if row.margin > 0 %}
+                      <span class="text-success">+${{ '%.2f'|format(row.margin) }}</span>
+                    {% elif row.margin < 0 %}
+                      <span class="text-danger">-${{ '%.2f'|format(row.margin|abs) }}</span>
+                    {% else %}
+                      <span class="text-muted">$0.00</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>$<span id="suggested-{{ row.item.id }}">{{ '%.2f'|format(row.suggested_price) }}</span></td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control form-control-sm price-input"
+                    name="price_input_{{ row.item.id }}"
+                    data-item-id="{{ row.item.id }}"
+                    value="{{ '%.2f'|format(row.current_price) if row.current_price is not none else '' }}"
+                    placeholder="Price"
+                  >
+                  <small class="d-block mt-1" id="live-margin-{{ row.item.id }}"></small>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary px-4">Save Master Prices</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  function roundUpQuarter(value) {
+    return Math.ceil(value * 4) / 4;
+  }
+
+  function updateMarginForInput(input) {
+    var itemId = input.getAttribute('data-item-id');
+    var unitCostEl = document.getElementById('unit-cost-' + itemId);
+    var marginEl = document.getElementById('live-margin-' + itemId);
+
+    if (!unitCostEl || !marginEl) {
+      return;
+    }
+
+    var unitCost = parseFloat(unitCostEl.textContent);
+    var priceVal = parseFloat(input.value);
+
+    if (isNaN(priceVal) || isNaN(unitCost)) {
+      marginEl.textContent = '';
+      return;
+    }
+
+    var margin = priceVal - unitCost;
+    if (margin > 0) {
+      marginEl.className = 'd-block mt-1 text-success';
+      marginEl.textContent = '+$' + margin.toFixed(2);
+    } else if (margin < 0) {
+      marginEl.className = 'd-block mt-1 text-danger';
+      marginEl.textContent = '-$' + Math.abs(margin).toFixed(2);
+    } else {
+      marginEl.className = 'd-block mt-1 text-muted';
+      marginEl.textContent = '$0.00';
+    }
+  }
+
+  function applyTargetMargin() {
+    var targetInput = document.getElementById('target-margin');
+    var target = parseFloat(targetInput ? targetInput.value : '0');
+    if (isNaN(target)) {
+      target = 10;
+    }
+
+    document.querySelectorAll('.price-input').forEach(function (input) {
+      var itemId = input.getAttribute('data-item-id');
+      var unitCostEl = document.getElementById('unit-cost-' + itemId);
+      var unitCost = parseFloat(unitCostEl ? unitCostEl.textContent : '0');
+      var nextPrice = roundUpQuarter(unitCost + target);
+      input.value = nextPrice.toFixed(2);
+      updateMarginForInput(input);
+    });
+  }
+
+  function clearInputs() {
+    document.querySelectorAll('.price-input').forEach(function (input) {
+      input.value = '';
+      updateMarginForInput(input);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var applyBtn = document.getElementById('apply-target-btn');
+    var clearBtn = document.getElementById('clear-prices-btn');
+
+    if (applyBtn) {
+      applyBtn.addEventListener('click', applyTargetMargin);
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', clearInputs);
+    }
+
+    document.querySelectorAll('.price-input').forEach(function (input) {
+      input.addEventListener('input', function () {
+        updateMarginForInput(input);
+      });
+      updateMarginForInput(input);
+    });
+  });
+})();
+</script>
+{% endblock %}

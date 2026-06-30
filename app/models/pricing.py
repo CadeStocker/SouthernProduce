@@ -60,24 +60,52 @@ class RanchPrice(db.Model):
 
 
 class PriceHistory(db.Model):
-    """Historical pricing for items per customer."""
+    """
+    Historical pricing for items per customer.
+    Ideally this should just be used for keeping track of prices SENT TO CUSTOMERS, not for internal pricing.
+    """
     __tablename__ = 'price_history'
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    price_sheet_id = db.Column(db.Integer, db.ForeignKey('price_sheet.id'), nullable=True)
     price = db.Column(db.Float, nullable=False)
     
-    def __init__(self, item_id, date, company_id, customer_id, price):
+    def __init__(self, item_id, date, company_id, customer_id, price, price_sheet_id=None):
         self.item_id = item_id
         self.date = date
         self.company_id = company_id
         self.customer_id = customer_id
+        self.price_sheet_id = price_sheet_id
         self.price = price
 
     def __repr__(self):
-        return f"PriceHistory('{self.item_id}', '{self.date}', '{self.company_id}', '{self.customer_id}', '{self.price}')"
+        return (
+            f"PriceHistory('{self.item_id}', '{self.date}', '{self.company_id}', "
+            f"'{self.customer_id}', '{self.price_sheet_id}', '{self.price}')"
+        )
+
+
+class CurrentItemPrice(db.Model):
+    """Current internal/list price for each item (single source of truth)."""
+    __tablename__ = 'current_item_price'
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False, unique=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    effective_date = db.Column(db.Date, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, item_id, company_id, price, effective_date=None):
+        self.item_id = item_id
+        self.company_id = company_id
+        self.price = price
+        self.effective_date = effective_date if effective_date else datetime.utcnow().date()
+
+    def __repr__(self):
+        return f"CurrentItemPrice('{self.item_id}', '{self.company_id}', '{self.price}', '{self.effective_date}')"
 
 
 class PriceSheet(db.Model):

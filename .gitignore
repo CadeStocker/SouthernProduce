@@ -8,3 +8,6 @@ instance/site.db__pycache__/
 
 ProducePricer/instance/receiving_images/*
 instance/receiving_images/*
+
+#temporary
+scripts/seed_fake_items.py

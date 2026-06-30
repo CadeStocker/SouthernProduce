@@ -32,6 +32,7 @@ from app.models import (
     LaborCost,
     Packaging, 
     PackagingCost,
+    CurrentItemPrice,
     PriceHistory,
     PriceSheet, 
     RanchPrice, 
@@ -382,6 +383,9 @@ def delete_item(item_id):
     
     # delete all price history entries for this item
     PriceHistory.query.filter_by(item_id=item_id).delete()
+
+    # delete the current/list price for this item
+    CurrentItemPrice.query.filter_by(item_id=item_id).delete()
     
     # delete all item total cost entries for this item
     ItemTotalCost.query.filter_by(item_id=item_id).delete()
@@ -467,6 +471,9 @@ def delete_multiple_items():
             
             # delete all price history entries for this item
             PriceHistory.query.filter_by(item_id=item.id).delete()
+
+            # delete the current/list price for this item
+            CurrentItemPrice.query.filter_by(item_id=item.id).delete()
             
             # delete all item total cost entries for this item
             ItemTotalCost.query.filter_by(item_id=item.id).delete()

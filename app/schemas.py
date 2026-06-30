@@ -14,7 +14,7 @@ and ensures that the data is valid and safe to process.
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List
-from datetime import datetime as dt_type
+from datetime import datetime as dt_type, date as date_type
 
 # bleach is an optional dependency for sanitizing text fields to prevent XSS attacks.
 # If it's not available, fall back to basic HTML escaping.
@@ -135,6 +135,85 @@ class SupplyInventoryCreateSchema(BaseModel):
         if BLEACH_AVAILABLE:
             return bleach.clean(v, tags=[], strip=True)
         return html.escape(v)
+
+
+class DailyLogCreateSchema(BaseModel):
+    """Schema for creating a daily labor log."""
+
+    model_config = ConfigDict(strict=False)
+
+    date: Optional[date_type] = None
+    items: int = Field(..., ge=0)
+    sales: float = Field(..., ge=0)
+    labor_hours: float = Field(..., ge=0)
+    overtime_hours: float = Field(..., ge=0)
+    payroll_cost: float = Field(..., ge=0)
+    number_of_employees: int = Field(..., ge=0)
+    labor_ratio: float
+    sales_over_labor_cost: float
+    average_man_hour_cost: float
+    average_case_cost: float
+    average_hours_per_employee: float
+
+
+class PayGroupCreateSchema(BaseModel):
+    """Schema for creating a pay group."""
+
+    model_config = ConfigDict(strict=False)
+
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=255)
+
+    @field_validator('name', 'description')
+    @classmethod
+    def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if BLEACH_AVAILABLE:
+            return bleach.clean(v, tags=[], strip=True)
+        return html.escape(v)
+
+
+class WeeklyLaborEntryCreateSchema(BaseModel):
+    """Schema for creating a weekly labor summary entry."""
+
+    model_config = ConfigDict(strict=False)
+
+    week_start_date: date_type
+    pay_group_id: int = Field(..., gt=0)
+    regular_hours: float = Field(..., ge=0)
+    overtime_hours: float = Field(..., ge=0)
+    pay: float = Field(..., ge=0)
+    percent_of_sales: float
+    cost_per_hour: float = Field(..., ge=0)
+    number_in_pay_group: int = Field(..., ge=0)
+    number_with_overtime: int = Field(..., ge=0)
+    average_hours_per_employee: float = Field(..., ge=0)
+
+
+class SalesByItemTypeCreateSchema(BaseModel):
+    """Schema for creating sales by item type."""
+
+    model_config = ConfigDict(strict=False)
+
+    date: date_type
+    item_type_id: int = Field(..., gt=0)
+    number_of_items: int = Field(..., ge=0)
+    sales: float = Field(..., ge=0)
+    average_price_per_item: float = Field(..., ge=0)
+    percent_of_total_sales: float
+    percent_of_total_boxes: float
+
+
+class FilmUsageCreateSchema(BaseModel):
+    """Schema for creating monthly film usage counts."""
+
+    model_config = ConfigDict(strict=False)
+
+    month: int = Field(..., ge=1, le=12)
+    year: int = Field(..., ge=2000)
+    number_of_cases: int = Field(..., ge=0)
+    number_of_rolls: int = Field(..., ge=0)
 
 
 def validate_foreign_key_exists(model_class, field_id: int, company_id: int, field_name: str):
