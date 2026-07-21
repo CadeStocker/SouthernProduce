@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Film Usage{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="mb-4">Film Usage</h1>
+
+  <!-- Year Filter -->
+  <form method="GET" action="{{ url_for('main.labor_film_usage') }}" class="form-inline mb-4">
+    <label class="mr-2">Year</label>
+    <select name="year" class="form-control mr-2">
+      <option value="">All Years</option>
+      {% for y in years %}
+        <option value="{{ y }}" {% if year_filter == y %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-outline-primary mr-2">Filter</button>
+    {% if year_filter %}
+      <a href="{{ url_for('main.labor_film_usage') }}" class="btn btn-link">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if records %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <strong>Film Usage ({{ records|length }} record{{ 's' if records|length != 1 else '' }})</strong>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Month</th>
+                <th>Cases</th>
+                <th>Rolls</th>
+                <th>Cases / Roll</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in records %}
+              <tr>
+                <td>{{ record.year }}</td>
+                <td>{{ record.month }}</td>
+                <td>{{ record.number_of_cases }}</td>
+                <td>{{ record.number_of_rolls }}</td>
+                <td>
+                  {% if record.number_of_rolls and record.number_of_rolls > 0 %}
+                    {{ "%.1f"|format(record.number_of_cases / record.number_of_rolls) }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('main.delete_labor_film_usage', record_id=record.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Delete film usage record for {{ record.month }}/{{ record.year }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No film usage records found{% if year_filter %} for {{ year_filter }}{% endif %}.
+      Film usage is submitted from the <strong>Labor</strong> iPad app via the API.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

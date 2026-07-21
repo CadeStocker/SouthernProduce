@@ -4,4 +4,4 @@
 from app.blueprints._blueprint import main
 
 # Import all sub-modules so their @main.route decorators are registered
-from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, notifications
+from app.blueprints import ai, auth, company, customers, email_templates, inventory, items, labor, notifications, packaging, pricing, raw_products, receiving

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Daily Labor Logs{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5" style="max-width: 95%;">
+  <h1 class="mb-4">Daily Labor Logs</h1>
+
+  <!-- Date Range Filter -->
+  <form method="GET" action="{{ url_for('main.labor_daily_logs') }}" class="form-inline mb-4">
+    <label class="mr-2">From</label>
+    <input type="date" name="start_date" class="form-control mr-2" value="{{ start_date }}">
+    <label class="mr-2">To</label>
+    <input type="date" name="end_date" class="form-control mr-2" value="{{ end_date }}">
+    <button type="submit" class="btn btn-outline-primary mr-2">Filter</button>
+    {% if start_date or end_date %}
+      <a href="{{ url_for('main.labor_daily_logs') }}" class="btn btn-link">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if logs %}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Daily Logs ({{ logs|length }} record{{ 's' if logs|length != 1 else '' }})</strong>
+        <small class="text-muted">Submitted via iPad app</small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Sales</th>
+                <th>Labor Hrs</th>
+                <th>OT Hrs</th>
+                <th>Payroll Cost</th>
+                <th>Employees</th>
+                <th>Labor Ratio</th>
+                <th>Sales/Labor</th>
+                <th>Avg $/Hr</th>
+                <th>Avg $/Case</th>
+                <th>Avg Hrs/Emp</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in logs %}
+              <tr>
+                <td>{{ log.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ log.items }}</td>
+                <td>${{ "%.2f"|format(log.sales) }}</td>
+                <td>{{ "%.2f"|format(log.labor_hours) }}</td>
+                <td>{{ "%.2f"|format(log.overtime_hours) }}</td>
+                <td>${{ "%.2f"|format(log.payroll_cost) }}</td>
+                <td>{{ log.number_of_employees }}</td>
+                <td>{{ "%.4f"|format(log.labor_ratio) }}</td>
+                <td>{{ "%.2f"|format(log.sales_over_labor_cost) }}</td>
+                <td>${{ "%.2f"|format(log.average_man_hour_cost) }}</td>
+                <td>${{ "%.2f"|format(log.average_case_cost) }}</td>
+                <td>{{ "%.2f"|format(log.average_hours_per_employee) }}</td>
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('main.delete_labor_daily_log', log_id=log.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Delete daily log for {{ log.date.strftime('%Y-%m-%d') }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No daily logs found{% if start_date or end_date %} for the selected date range{% endif %}.
+      Daily logs are submitted from the <strong>Labor</strong> iPad app via the API.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

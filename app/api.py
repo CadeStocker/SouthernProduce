@@ -26,6 +26,7 @@ from app.models import (
 from app.schemas import (
     ReceivingLogCreateSchema,
     ItemInventoryCreateSchema,
+    SalesRecordCreateSchema,
     SupplyCreateSchema,
     SupplyInventoryCreateSchema,
     InventorySessionCreateSchema,
@@ -1453,7 +1454,7 @@ def create_weekly_labor_entry():
 def get_sales_by_item_type():
     company_id = get_request_company_id()
 
-    query = SalesByItemType.query.filter_by(company_id=company_id)
+    query = SalesByDesignation.query.filter_by(company_id=company_id)
 
     item_type_id = request.args.get('item_type_id', type=int)
     if item_type_id:
@@ -1462,19 +1463,19 @@ def get_sales_by_item_type():
     start_date = request.args.get('start_date')
     if start_date:
         try:
-            query = query.filter(SalesByItemType.date >= parse_date_value(start_date, 'start_date'))
+            query = query.filter(SalesByDesignation.date >= parse_date_value(start_date, 'start_date'))
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
 
     end_date = request.args.get('end_date')
     if end_date:
         try:
-            query = query.filter(SalesByItemType.date <= parse_date_value(end_date, 'end_date'))
+            query = query.filter(SalesByDesignation.date <= parse_date_value(end_date, 'end_date'))
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
 
     limit = min(request.args.get('limit', default=100, type=int), 1000)
-    rows = query.order_by(SalesByItemType.date.desc(), SalesByItemType.id.desc()).limit(limit).all()
+    rows = query.order_by(SalesByDesignation.date.desc(), SalesByDesignation.id.desc()).limit(limit).all()
 
     return jsonify([
         {
@@ -1501,12 +1502,12 @@ def create_sales_by_item_type():
             return jsonify({'error': 'No data provided'}), 400
 
         try:
-            data = SalesByItemTypeCreateSchema(**raw_data)
+            data = SalesRecordCreateSchema(**raw_data)
         except ValidationError as e:
             errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
             return jsonify({'error': 'Invalid input', 'details': errors}), 400
 
-        row = SalesByItemType(
+        row = SalesByDesignation(
             company_id=company_id,
             date=data.date,
             item_type_id=data.item_type_id,

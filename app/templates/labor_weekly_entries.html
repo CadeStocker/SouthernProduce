@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Weekly Labor Entries{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5" style="max-width: 95%;">
+  <h1 class="mb-4">Weekly Labor Entries</h1>
+
+  <!-- Filters -->
+  <form method="GET" action="{{ url_for('main.labor_weekly_entries') }}" class="form-inline mb-4 flex-wrap">
+    <label class="mr-2">Pay Group</label>
+    <select name="pay_group_id" class="form-control mr-3 mb-2">
+      <option value="">All</option>
+      {% for pg in pay_groups %}
+        <option value="{{ pg.id }}" {% if selected_pay_group_id == pg.id %}selected{% endif %}>
+          {{ pg.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <label class="mr-2">From</label>
+    <input type="date" name="start_date" class="form-control mr-2 mb-2" value="{{ start_date }}">
+    <label class="mr-2">To</label>
+    <input type="date" name="end_date" class="form-control mr-2 mb-2" value="{{ end_date }}">
+    <button type="submit" class="btn btn-outline-primary mr-2 mb-2">Filter</button>
+    {% if start_date or end_date or selected_pay_group_id %}
+      <a href="{{ url_for('main.labor_weekly_entries') }}" class="btn btn-link mb-2">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if entries %}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Weekly Entries ({{ entries|length }} record{{ 's' if entries|length != 1 else '' }})</strong>
+        <a href="{{ url_for('main.labor_pay_groups') }}" class="btn btn-outline-secondary btn-sm">
+          Manage Pay Groups
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Week Start</th>
+                <th>Pay Group</th>
+                <th>Regular Hrs</th>
+                <th>OT Hrs</th>
+                <th>Pay</th>
+                <th>% of Sales</th>
+                <th>Cost/Hr</th>
+                <th># in Group</th>
+                <th># with OT</th>
+                <th>Avg Hrs/Emp</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+              <tr>
+                <td>{{ entry.week_start_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ pay_group_map.get(entry.pay_group_id, '—') }}</td>
+                <td>{{ "%.2f"|format(entry.regular_hours) }}</td>
+                <td>{{ "%.2f"|format(entry.overtime_hours) }}</td>
+                <td>${{ "%.2f"|format(entry.pay) }}</td>
+                <td>{{ "%.2f"|format(entry.percent_of_sales) }}%</td>
+                <td>${{ "%.2f"|format(entry.cost_per_hour) }}</td>
+                <td>{{ entry.number_in_pay_group }}</td>
+                <td>{{ entry.number_with_overtime }}</td>
+                <td>{{ "%.2f"|format(entry.average_hours_per_employee) }}</td>
+                <td>
+                  <form method="POST"
+                        action="{{ url_for('main.delete_labor_weekly_entry', entry_id=entry.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Delete weekly entry for week of {{ entry.week_start_date.strftime('%Y-%m-%d') }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No weekly labor entries found{% if start_date or end_date or selected_pay_group_id %} for the selected filters{% endif %}.
+      Weekly entries are submitted from the <strong>Labor</strong> iPad app via the API.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

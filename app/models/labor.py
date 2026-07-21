@@ -148,3 +148,25 @@ class FilmUsage(db.Model):
         self.year = year
         self.number_of_cases = number_of_cases
         self.number_of_rolls = number_of_rolls
+
+
+class SalesRecord(db.Model):
+    """Model for individual sales records."""
+    __tablename__ = 'sales_record'
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    sale_date = db.Column(db.DateTime, nullable=False)
+    item_designation_id = db.Column(db.Integer, db.ForeignKey('designation_cost.id'), nullable=False)
+    quantity_sold = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    total_price = db.Column(db.Float, nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True)
+
+    def __init__(self, company_id, sale_date, item_designation_id, quantity_sold, unit_price, customer_id=None):
+        self.company_id = company_id
+        self.sale_date = sale_date
+        self.item_designation_id = item_designation_id
+        self.quantity_sold = quantity_sold
+        self.unit_price = unit_price
+        self.total_price = quantity_sold * unit_price
+        self.customer_id = customer_id

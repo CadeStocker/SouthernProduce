@@ -28,9 +28,9 @@ except ImportError:
 
 class ReceivingLogCreateSchema(BaseModel):
     """Schema for creating a receiving log with strict validation."""
-    
+
     model_config = ConfigDict(strict=False)
-    
+
     # Required fields with type validation
     raw_product_id: int = Field(..., gt=0, description="ID must be a positive integer")
     pack_size_unit: str = Field(..., min_length=1, max_length=50)
@@ -46,11 +46,11 @@ class ReceivingLogCreateSchema(BaseModel):
     returned: Optional[str] = Field(None, max_length=500)
     datetime: Optional[dt_type] = None
     price_paid: Optional[float] = Field(None, ge=0, description="Price paid per unit (optional)")
-    
+
     @field_validator('pack_size_unit', 'country_of_origin', 'received_by', 'returned')
     @classmethod
     def sanitize_text_fields(cls, v: Optional[str]) -> Optional[str]:
-        
+
         """
         Sanitize text fields to prevent XSS attacks.
         """
@@ -64,13 +64,35 @@ class ReceivingLogCreateSchema(BaseModel):
             # Fallback: escape HTML entities
             sanitized = html.escape(v)
         return sanitized
-    
+
     @field_validator('hold_or_used')
     @classmethod
     def validate_hold_or_used(cls, v: str) -> str:
         """Ensure hold_or_used is only 'hold' or 'used'."""
         if v not in ['hold', 'used']:
             raise ValueError("hold_or_used must be either 'hold' or 'used'")
+        return v
+
+
+class SalesRecordCreateSchema(BaseModel):
+    """Schema for creating a sales record with strict validation."""
+    
+    model_config = ConfigDict(strict=False)
+    
+    # Required fields with type validation
+    customer_id: int = Field(..., gt=0, description="Customer ID must be a positive integer")
+    item_designation_id: int = Field(..., gt=0, description="Item designation ID must be a positive integer")
+    quantity_sold: int = Field(..., ge=0, description="Quantity sold must be non-negative")
+    unit_price: float = Field(..., ge=0, description="Unit price must be non-negative")
+    total_price: float = Field(..., ge=0, description="Total price must be non-negative")
+    sale_date: dt_type = Field(..., description="Date and time of the sale")
+    
+    @field_validator('sale_date')
+    @classmethod
+    def validate_sale_date(cls, v: dt_type) -> dt_type:
+        """Ensure the sale date is not in the future."""
+        if v > dt_type.now():
+            raise ValueError("Sale date cannot be in the future")
         return v
 
 
