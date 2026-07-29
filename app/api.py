@@ -23,6 +23,9 @@ from app.models import (
     FilmUsage,
     db
 )
+from app.models.core import ItemDesignation
+from app.models.customers import Customer
+from app.models.labor import SalesRecord
 from app.schemas import (
     ReceivingLogCreateSchema,
     ItemInventoryCreateSchema,
@@ -48,6 +51,20 @@ from app.utils.notification_utils import (
     create_receiving_log_notification,
     maybe_create_receiving_log_outlier_notification
 )
+
+"""
+Date: July 28 2026
+
+reorganizing the url structures to be grouped in a more reasonable/organized way
+
+breaking them into:
+api/receiving  : receiving log stuff
+api/sales      : anything with sales records, sales by item type, etc
+api/inventory  : anything with inventory counts, supply inventory counts, etc
+api/labor      : anything with labor, pay groups, weekly labor entries, etc
+api/           : base stuff like raw products, brand names, sellers, growers/distributors, items, supplies, etc
+
+"""
 
 """
 This file contains the API endpoints for the Southern Produce applications.
@@ -117,7 +134,7 @@ def require_login():
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
 
-@api.route('/api/receiving_logs', methods=['GET'])
+@api.route('/api/receiving/receiving_logs', methods=['GET'])
 @optional_api_key_or_login
 def get_receiving_logs():
     # Get company_id from either API key (g.company_id) or logged-in user
@@ -147,7 +164,7 @@ def get_receiving_logs():
     
     return jsonify(logs_data)
 
-@api.route('/api/receiving_logs', methods=['POST'])
+@api.route('/api/receiving/receiving_logs', methods=['POST'])
 @optional_api_key_or_login
 def create_receiving_log():
     """Create a new receiving log with input validation."""
@@ -302,6 +319,57 @@ def get_brand_names():
     brands = BrandName.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': b.id, 'name': b.name} for b in brands])
 
+@api.route('/api/customers', methods=['GET'])
+@optional_api_key_or_login
+def get_customers():
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+    customers = Customer.query.filter_by(company_id=company_id).all()
+    return jsonify([{'id': c.id, 'name': c.name} for c in customers])
+
+
+@api.route('/api/customers', methods=['POST'])
+@optional_api_key_or_login
+def create_customer():
+    """Create a new customer."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Customer name is required'}), 400
+
+        name = data['name'].strip()
+        if not name:
+            return jsonify({'error': 'Customer name cannot be empty'}), 400
+
+        # Check if customer already exists for this company
+        existing = Customer.query.filter_by(company_id=company_id, name=name).first()
+        if existing:
+            return jsonify({'error': 'A customer with this name already exists', 'id': existing.id}), 409
+
+        new_customer = Customer(
+            name=name,
+            email=data.get('email'),
+            company_id=company_id
+        )
+
+        db.session.add(new_customer)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Customer created successfully',
+            'customer': {
+                'id': new_customer.id,
+                'name': new_customer.name
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating customer: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the customer'}), 500
+
 @api.route('/api/brand_names', methods=['POST'])
 @optional_api_key_or_login
 def create_brand_name():
@@ -389,14 +457,14 @@ def create_seller():
         current_app.logger.error(f"Error creating seller: {str(e)}")
         return jsonify({'error': 'An error occurred while creating the seller'}), 500
 
-@api.route('/api/growers_distributors', methods=['GET'])
+@api.route('/api/receiving/growers_distributors', methods=['GET'])
 @optional_api_key_or_login
 def get_growers_distributors():
     company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
     growers = GrowerOrDistributor.query.filter_by(company_id=company_id).all()
     return jsonify([{'id': g.id, 'name': g.name, 'city': g.city, 'state': g.state} for g in growers])
 
-@api.route('/api/growers_distributors', methods=['POST'])
+@api.route('/api/receiving/growers_distributors', methods=['POST'])
 @optional_api_key_or_login
 def create_grower_distributor():
     """Create a new grower or distributor."""
@@ -456,7 +524,7 @@ def create_grower_distributor():
         current_app.logger.error(f"Error creating grower/distributor: {str(e)}")
         return jsonify({'error': 'An error occurred while creating the grower/distributor'}), 500
 
-@api.route('/api/receiving_logs/<int:log_id>/images', methods=['POST'])
+@api.route('/api/receiving/receiving_logs/<int:log_id>/images', methods=['POST'])
 @optional_api_key_or_login
 def upload_receiving_images(log_id):
     company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
@@ -543,8 +611,57 @@ def get_items():
     
     return jsonify(items_data), 200
 
+@api.route('/api/item_designations', methods=['GET'])
+@optional_api_key_or_login
+def get_item_designations():
+    """Get all item designations with id, name, and unit for the iOS app."""
 
-@api.route('/api/inventory_counts', methods=['POST'])
+    designations = [
+        {'id': 1, 'name': 'SnakPak', 'unit': 'cases'},
+        {'id': 2, 'name': 'Retail', 'unit': 'lbs'},
+        {'id': 3, 'name': 'FoodService', 'unit': 'lbs'},
+        {'id': 4, 'name': 'Combo', 'unit': 'mixed'},
+        {'id': 5, 'name': 'Mushroom', 'unit': 'lbs'},
+    ]
+
+    return jsonify(designations), 200
+
+
+@api.route('/api/item_designations', methods=['POST'])
+@optional_api_key_or_login
+def create_item_designation():
+    """Create a new item designation (type)."""
+    try:
+        company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Item type name is required'}), 400
+
+        name = data['name'].strip()
+        unit = data.get('unit', 'units').strip()
+
+        if not name:
+            return jsonify({'error': 'Item type name cannot be empty'}), 400
+
+        # For now, return the created item type with a generated ID
+        # In a full implementation, you might store these in a database table
+        next_id = 6  # Start after the hardcoded ones
+        return jsonify({
+            'success': True,
+            'message': 'Item type created successfully',
+            'item_type': {
+                'id': next_id,
+                'name': name,
+                'unit': unit
+            }
+        }), 201
+
+    except Exception as e:
+        current_app.logger.error(f"Error creating item designation: {str(e)}")
+        return jsonify({'error': 'An error occurred while creating the item type'}), 500
+
+@api.route('/api/inventory/inventory_counts', methods=['POST'])
 @optional_api_key_or_login
 def create_inventory_count():
     """Submit an inventory count from the iPad app.
@@ -640,7 +757,7 @@ def create_inventory_count():
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 
-@api.route('/api/inventory_counts', methods=['GET'])
+@api.route('/api/inventory/inventory_counts', methods=['GET'])
 @optional_api_key_or_login
 def get_inventory_counts():
     """Get inventory count history.
@@ -708,7 +825,7 @@ def get_inventory_counts():
 
 # SUPPLY CATALOG ENDPOINTS
 
-@api.route('/api/supplies', methods=['GET'])
+@api.route('/api/inventory/supplies', methods=['GET'])
 @optional_api_key_or_login
 def get_supplies():
     """Get all supplies in the company's catalog.
@@ -744,7 +861,7 @@ def get_supplies():
     ]), 200
 
 
-@api.route('/api/supplies', methods=['POST'])
+@api.route('/api/inventory/supplies', methods=['POST'])
 @optional_api_key_or_login
 def create_supply():
     """Create a new supply in the catalog.
@@ -810,7 +927,7 @@ def create_supply():
 
 # SUPPLY INVENTORY COUNT ENDPOINTS
 
-@api.route('/api/supply_inventory_counts', methods=['POST'])
+@api.route('/api/inventory/supply_inventory_counts', methods=['POST'])
 @optional_api_key_or_login
 def create_supply_inventory_count():
     """Submit a supply inventory count from the iPad.
@@ -879,7 +996,7 @@ def create_supply_inventory_count():
         return jsonify({'error': 'An error occurred while recording the count'}), 500
 
 
-@api.route('/api/supply_inventory_counts', methods=['GET'])
+@api.route('/api/inventory/supply_inventory_counts', methods=['GET'])
 @optional_api_key_or_login
 def get_supply_inventory_counts():
     """Get supply inventory count history.
@@ -938,7 +1055,7 @@ def get_supply_inventory_counts():
 
 # INVENTORY SESSION ENDPOINTS
 
-@api.route('/api/inventory_sessions', methods=['POST'])
+@api.route('/api/inventory/inventory_sessions', methods=['POST'])
 @optional_api_key_or_login
 def create_inventory_session():
     """Submit a complete inventory session (items + supplies) in one request.
@@ -1074,7 +1191,7 @@ def create_inventory_session():
         return jsonify({'error': 'An error occurred while recording the inventory session'}), 500
 
 
-@api.route('/api/inventory_sessions', methods=['GET'])
+@api.route('/api/inventory/inventory_sessions', methods=['GET'])
 @optional_api_key_or_login
 def get_inventory_sessions():
     """List inventory sessions for this company.
@@ -1123,7 +1240,7 @@ def get_inventory_sessions():
     ]), 200
 
 
-@api.route('/api/inventory_sessions/<int:session_id>', methods=['GET'])
+@api.route('/api/inventory/inventory_sessions/<int:session_id>', methods=['GET'])
 @optional_api_key_or_login
 def get_inventory_session(session_id):
     """Return full detail of one inventory session including all line items."""
@@ -1163,7 +1280,7 @@ def get_inventory_session(session_id):
     }), 200
 
 
-@api.route('/api/inventory_sessions/<int:session_id>', methods=['DELETE'])
+@api.route('/api/inventory/inventory_sessions/<int:session_id>', methods=['DELETE'])
 @optional_api_key_or_login
 def delete_inventory_session(session_id):
     """Delete an inventory session and all its line items."""
@@ -1389,6 +1506,103 @@ def get_weekly_labor_entries():
         for entry in entries
     ]), 200
 
+@api.route('/api/sales/records', methods=['GET'])
+@optional_api_key_or_login
+def get_sales_records():
+    company_id = get_request_company_id()
+    query = SalesRecord.query.filter_by(company_id=company_id)
+
+    return jsonify([
+        {
+            'id': record.id,
+            'sale_date': record.sale_date.isoformat(),
+            'company_id': record.company_id,
+            'item_designation_id': record.item_designation_id,
+            'quantity_sold': record.quantity_sold,
+            'unit_price': record.unit_price,
+            'total_price': record.total_price,
+            'customer_id': record.customer_id,
+        }
+        for record in query.order_by(SalesRecord.sale_date.desc(), SalesRecord.id.desc()).all()
+    ]), 200
+
+
+@api.route('/api/sales/records', methods=['POST'])
+@optional_api_key_or_login
+def create_sales_record():
+    """Create a new sales record."""
+    try:
+        company_id = get_request_company_id()
+        raw_data = request.get_json()
+        if not raw_data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        try:
+            data = SalesRecordCreateSchema(**raw_data)
+        except ValidationError as e:
+            errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
+            return jsonify({'error': 'Invalid input', 'details': errors}), 400
+
+        # Verify customer exists if provided
+        if data.customer_id and data.customer_id > 0:
+            customer = Customer.query.filter_by(id=data.customer_id, company_id=company_id).first()
+            if not customer:
+                return jsonify({'error': f'Customer with id {data.customer_id} not found'}), 404
+
+        sale = SalesRecord(
+            company_id=company_id,
+            sale_date=data.sale_date or datetime.utcnow(),
+            item_designation_id=data.item_designation_id,
+            quantity_sold=data.quantity_sold,
+            unit_price=data.unit_price,
+            customer_id=data.customer_id if data.customer_id and data.customer_id > 0 else None,
+        )
+        db.session.add(sale)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Sale record created successfully',
+            'sale_record': {
+                'id': sale.id,
+                'sale_date': sale.sale_date.isoformat(),
+                'item_designation_id': sale.item_designation_id,
+                'quantity_sold': sale.quantity_sold,
+                'unit_price': sale.unit_price,
+                'total_price': sale.total_price,
+                'customer_id': sale.customer_id,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating sales record: {e}")
+        return jsonify({'error': 'An error occurred while creating the sales record'}), 500
+
+
+@api.route('/api/sales/records/<int:record_id>', methods=['DELETE'])
+@optional_api_key_or_login
+def delete_sales_record(record_id):
+    """Delete a sales record."""
+    try:
+        company_id = get_request_company_id()
+        sale = SalesRecord.query.filter_by(id=record_id, company_id=company_id).first()
+
+        if not sale:
+            return jsonify({'error': 'Sales record not found'}), 404
+
+        db.session.delete(sale)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Sales record {record_id} deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting sales record: {e}")
+        return jsonify({'error': 'An error occurred while deleting the sales record'}), 500
 
 @api.route('/api/labor/weekly_labor_entries', methods=['POST'])
 @optional_api_key_or_login
@@ -1449,9 +1663,9 @@ def create_weekly_labor_entry():
         return jsonify({'error': 'An error occurred while creating the weekly labor entry'}), 500
 
 
-@api.route('/api/labor/sales_by_item_type', methods=['GET'])
+@api.route('/api/labor/sales_by_item_designation', methods=['GET'])
 @optional_api_key_or_login
-def get_sales_by_item_type():
+def get_sales_by_item_designation():
     company_id = get_request_company_id()
 
     query = SalesByDesignation.query.filter_by(company_id=company_id)
@@ -1492,9 +1706,9 @@ def get_sales_by_item_type():
     ]), 200
 
 
-@api.route('/api/labor/sales_by_item_type', methods=['POST'])
+@api.route('/api/labor/sales_by_item_designation', methods=['POST'])
 @optional_api_key_or_login
-def create_sales_by_item_type():
+def create_sales_by_item_designation():
     try:
         company_id = get_request_company_id()
         raw_data = request.get_json()
@@ -1522,8 +1736,8 @@ def create_sales_by_item_type():
 
         return jsonify({
             'success': True,
-            'message': 'Sales by item type created successfully',
-            'sales_by_item_type': {
+            'message': 'Sales by item designation created successfully',
+            'sales_by_item_designation': {
                 'id': row.id,
                 'date': row.date.isoformat(),
                 'item_type_id': row.item_type_id,
@@ -1537,8 +1751,8 @@ def create_sales_by_item_type():
 
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Error creating sales by item type: {e}")
-        return jsonify({'error': 'An error occurred while creating the sales record'}), 500
+        current_app.logger.error(f"Error creating sales by item designation: {e}")
+        return jsonify({'error': 'An error occurred while creating the sales by item designation record'}), 500
 
 
 @api.route('/api/labor/film_usage', methods=['GET'])

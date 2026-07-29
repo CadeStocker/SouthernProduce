@@ -26,17 +26,17 @@ class TestAPIAuthentication:
     """Test that all API endpoints require authentication."""
     
     def test_get_receiving_logs_requires_auth(self, client):
-        """GET /api/receiving_logs should reject unauthenticated requests."""
-        response = client.get('/api/receiving_logs')
+        """GET /api/receiving/receiving_logs should reject unauthenticated requests."""
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 401
         data = json.loads(response.data)
         assert 'error' in data
         assert data['error'] == 'Unauthorized'
     
     def test_post_receiving_logs_requires_auth(self, client):
-        """POST /api/receiving_logs should reject unauthenticated requests."""
+        """POST /api/receiving/receiving_logs should reject unauthenticated requests."""
         payload = {'raw_product_id': 1, 'pack_size': 50}
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         assert response.status_code == 401
@@ -59,13 +59,13 @@ class TestAPIAuthentication:
         assert response.status_code == 401
     
     def test_get_growers_distributors_requires_auth(self, client):
-        """GET /api/growers_distributors should reject unauthenticated requests."""
-        response = client.get('/api/growers_distributors')
+        """GET /api/receiving/growers_distributors should reject unauthenticated requests."""
+        response = client.get('/api/receiving/growers_distributors')
         assert response.status_code == 401
     
     def test_upload_images_requires_auth(self, client):
-        """POST /api/receiving_logs/<id>/images should reject unauthenticated requests."""
-        response = client.post('/api/receiving_logs/1/images',
+        """POST /api/receiving/receiving_logs/<id>/images should reject unauthenticated requests."""
+        response = client.post('/api/receiving/receiving_logs/1/images',
                               data={'images': (io.BytesIO(b"fake image"), 'test.jpg')})
         assert response.status_code == 401
 
@@ -176,7 +176,7 @@ class TestAPIAuthorization:
             'password': 'password123'
         })
         
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 200
         data = json.loads(response.data)
         
@@ -200,7 +200,7 @@ class TestAPIAuthorization:
             'images': (io.BytesIO(b"fake image content"), 'hacker.jpg')
         }
         
-        response = client.post(f'/api/receiving_logs/{log_id}/images', 
+        response = client.post(f'/api/receiving/receiving_logs/{log_id}/images', 
                               data=data,
                               content_type='multipart/form-data')
         
@@ -261,7 +261,7 @@ class TestAPIAuthorization:
             'password': 'password123'
         })
         
-        response = client.get('/api/growers_distributors')
+        response = client.get('/api/receiving/growers_distributors')
         assert response.status_code == 200
         data = json.loads(response.data)
         
@@ -326,7 +326,7 @@ class TestSQLInjection:
         ]
         
         for payload in sql_payloads:
-            response = client.post('/api/receiving_logs', 
+            response = client.post('/api/receiving/receiving_logs', 
                                   json={
                                       'raw_product_id': sql_injection_setup['raw_product_id'],
                                       'pack_size_unit': payload,  # Injection in string field
@@ -347,7 +347,7 @@ class TestSQLInjection:
             
             # If it succeeded, verify the SQL was NOT executed (database still exists)
             if response.status_code == 201:
-                response = client.get('/api/receiving_logs')
+                response = client.get('/api/receiving/receiving_logs')
                 data = json.loads(response.data)
                 # Should get data back (proves SQL wasn't executed to drop tables)
                 assert isinstance(data, list)
@@ -376,7 +376,7 @@ class TestSQLInjection:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -405,7 +405,7 @@ class TestSQLInjection:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -469,7 +469,7 @@ class TestXSSAndMaliciousInput:
         ]
         
         for payload in xss_payloads:
-            response = client.post('/api/receiving_logs', 
+            response = client.post('/api/receiving/receiving_logs', 
                                   json={
                                       'raw_product_id': xss_setup['raw_product_id'],
                                       'pack_size_unit': 'lbs',
@@ -490,7 +490,7 @@ class TestXSSAndMaliciousInput:
             
             if response.status_code == 201:
                 # Verify the data is sanitized (tags removed or escaped)
-                response = client.get('/api/receiving_logs')
+                response = client.get('/api/receiving/receiving_logs')
                 data = json.loads(response.data)
                 
                 # Check that dangerous tags are removed or properly escaped
@@ -551,7 +551,7 @@ class TestXSSAndMaliciousInput:
                 'images': (io.BytesIO(b"fake image"), filename)
             }
             
-            response = client.post(f'/api/receiving_logs/{log_id}/images',
+            response = client.post(f'/api/receiving/receiving_logs/{log_id}/images',
                                   data=data,
                                   content_type='multipart/form-data')
             
@@ -619,7 +619,7 @@ class TestInputValidation:
             'quantity_received': 100
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -652,7 +652,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -679,7 +679,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -707,7 +707,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -735,7 +735,7 @@ class TestInputValidation:
             'received_by': ''  # Empty string
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -766,7 +766,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -794,7 +794,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -823,7 +823,7 @@ class TestInputValidation:
             'received_by': 'Test'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                               json=payload,
                               content_type='application/json')
         
@@ -833,7 +833,7 @@ class TestInputValidation:
     def test_error_messages_dont_leak_sensitive_info(self, client):
         """Test that error messages don't reveal sensitive system information."""
         # Try to access API without auth
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         
         data = json.loads(response.data)
         error_msg = data.get('error', '').lower()
@@ -909,7 +909,7 @@ class TestFileUploadSecurity:
             'images': (io.BytesIO(b""), 'empty.jpg')  # Empty file
         }
         
-        response = client.post(f'/api/receiving_logs/{upload_setup["log_id"]}/images',
+        response = client.post(f'/api/receiving/receiving_logs/{upload_setup["log_id"]}/images',
                               data=data,
                               content_type='multipart/form-data')
         
@@ -923,7 +923,7 @@ class TestFileUploadSecurity:
             'password': 'password'
         })
         
-        response = client.post(f'/api/receiving_logs/{upload_setup["log_id"]}/images',
+        response = client.post(f'/api/receiving/receiving_logs/{upload_setup["log_id"]}/images',
                               data={},
                               content_type='multipart/form-data')
         
@@ -953,7 +953,7 @@ class TestFileUploadSecurity:
                 'images': (io.BytesIO(b"fake content"), filename)
             }
             
-            response = client.post(f'/api/receiving_logs/{upload_setup["log_id"]}/images',
+            response = client.post(f'/api/receiving/receiving_logs/{upload_setup["log_id"]}/images',
                                   data=data,
                                   content_type='multipart/form-data')
             
@@ -975,7 +975,7 @@ class TestFileUploadSecurity:
             'images': (io.BytesIO(large_content), 'large.jpg')
         }
         
-        response = client.post(f'/api/receiving_logs/{upload_setup["log_id"]}/images',
+        response = client.post(f'/api/receiving/receiving_logs/{upload_setup["log_id"]}/images',
                               data=data,
                               content_type='multipart/form-data')
         
@@ -996,7 +996,7 @@ class TestFileUploadSecurity:
             ]
         }
         
-        response = client.post(f'/api/receiving_logs/{upload_setup["log_id"]}/images',
+        response = client.post(f'/api/receiving/receiving_logs/{upload_setup["log_id"]}/images',
                               data=data,
                               content_type='multipart/form-data')
         

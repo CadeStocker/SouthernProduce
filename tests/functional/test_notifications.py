@@ -209,7 +209,7 @@ class TestNotifications:
         }
 
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             data=json.dumps(payload),
             content_type='application/json'
         )
@@ -294,7 +294,7 @@ class TestNotifications:
         }
 
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             data=json.dumps(payload),
             content_type='application/json'
         )
@@ -366,7 +366,7 @@ class TestNotifications:
         }
 
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             data=json.dumps(payload),
             content_type='application/json'
         )

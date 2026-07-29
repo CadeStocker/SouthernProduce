@@ -22,6 +22,7 @@ class ItemDesignation(Enum):
     RETAIL = 'retail'
     FOODSERVICE = 'foodservice'
     COMBO = 'combo'
+    MUSHROOM = 'mushroom'
 
 
 class AIResponse(db.Model):

@@ -66,7 +66,7 @@ class TestAPIKeyAuthentication:
     def test_api_access_without_auth(self, client, app, setup_data):
         """Test that API endpoints reject requests without authentication."""
         with app.app_context():
-            response = client.get('/api/receiving_logs')
+            response = client.get('/api/receiving/receiving_logs')
             assert response.status_code == 401
             data = json.loads(response.data)
             assert 'error' in data
@@ -76,7 +76,7 @@ class TestAPIKeyAuthentication:
         """Test that API endpoints reject invalid API keys."""
         with app.app_context():
             headers = {'X-API-Key': 'invalid-key-12345'}
-            response = client.get('/api/receiving_logs', headers=headers)
+            response = client.get('/api/receiving/receiving_logs', headers=headers)
             assert response.status_code == 401
             data = json.loads(response.data)
             assert 'error' in data
@@ -85,7 +85,7 @@ class TestAPIKeyAuthentication:
         """Test that API endpoints accept valid API keys."""
         with app.app_context():
             headers = {'X-API-Key': setup_data['api_key']}
-            response = client.get('/api/receiving_logs', headers=headers)
+            response = client.get('/api/receiving/receiving_logs', headers=headers)
             # Should succeed (200) or return empty list, but not 401
             assert response.status_code in [200, 401]  # 401 if decorator not yet implemented
 
@@ -98,7 +98,7 @@ class TestAPIKeyAuthentication:
             db.session.commit()
             
             headers = {'X-API-Key': setup_data['api_key']}
-            response = client.get('/api/receiving_logs', headers=headers)
+            response = client.get('/api/receiving/receiving_logs', headers=headers)
             assert response.status_code == 401
             data = json.loads(response.data)
             assert 'error' in data
@@ -110,7 +110,7 @@ class TestAPIKeyAuthentication:
             assert api_key.last_used_at is None
             
             headers = {'X-API-Key': setup_data['api_key']}
-            client.get('/api/receiving_logs', headers=headers)
+            client.get('/api/receiving/receiving_logs', headers=headers)
             
             # Refresh the API key from database
             db.session.refresh(api_key)
@@ -176,7 +176,7 @@ class TestAPIKeyAuthentication:
         """Test fetching growers/distributors using API key."""
         with app.app_context():
             headers = {'X-API-Key': setup_data['api_key']}
-            response = client.get('/api/growers_distributors', headers=headers)
+            response = client.get('/api/receiving/growers_distributors', headers=headers)
             # Will be 401 until decorator is implemented
             assert response.status_code in [200, 401]
 
@@ -219,7 +219,7 @@ class TestAPIKeyAuthentication:
             }
             
             response = client.post(
-                '/api/receiving_logs',
+                '/api/receiving/receiving_logs',
                 data=json.dumps(data),
                 headers=headers
             )
@@ -242,7 +242,7 @@ class TestAPIKeyAuthentication:
             ]
             
             for headers in headers_to_test:
-                response = client.get('/api/receiving_logs', headers=headers)
+                response = client.get('/api/receiving/receiving_logs', headers=headers)
                 # All should work once implemented (or all fail until then)
                 assert response.status_code in [200, 401]
 
@@ -469,7 +469,7 @@ class TestAPIKeySecurityEdgeCases:
             
             for invalid_key in invalid_keys:
                 headers = {'X-API-Key': invalid_key}
-                response = client.get('/api/receiving_logs', headers=headers)
+                response = client.get('/api/receiving/receiving_logs', headers=headers)
                 assert response.status_code == 401
 
     def test_api_key_rate_limiting_placeholder(self, client, app):
@@ -479,10 +479,10 @@ class TestAPIKeySecurityEdgeCases:
 
         with app.app_context():
             for _ in range(2):
-                response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+                response = client.get('/api/receiving/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
                 assert response.status_code == 401
 
-            response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+            response = client.get('/api/receiving/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
             assert response.status_code == 429
             data = json.loads(response.data)
             assert data['error'] == 'Too many invalid API key attempts'
@@ -518,13 +518,13 @@ class TestAPIKeySecurityEdgeCases:
             db.session.commit()
 
             for _ in range(2):
-                response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+                response = client.get('/api/receiving/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
                 assert response.status_code == 401
 
-            response = client.get('/api/receiving_logs', headers={'X-API-Key': valid_key})
+            response = client.get('/api/receiving/receiving_logs', headers={'X-API-Key': valid_key})
             assert response.status_code == 200
 
-            response = client.get('/api/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
+            response = client.get('/api/receiving/receiving_logs', headers={'X-API-Key': 'invalid-key-12345'})
             assert response.status_code == 401
 
     def test_api_key_expiration_placeholder(self, app):

@@ -165,7 +165,7 @@ class TestCreateSellers:
 
 
 class TestCreateGrowersDistributors:
-    """Test POST /api/growers_distributors endpoint."""
+    """Test POST /api/receiving/growers_distributors endpoint."""
     
     def test_create_grower_with_api_key(self, client, app, setup_company_and_user):
         """Test creating a grower/distributor with valid API key."""
@@ -180,7 +180,7 @@ class TestCreateGrowersDistributors:
             db.session.commit()
         
         response = client.post(
-            '/api/growers_distributors',
+            '/api/receiving/growers_distributors',
             json={
                 'name': 'Test Grower Farm',
                 'city': 'Salinas',
@@ -207,7 +207,7 @@ class TestCreateGrowersDistributors:
             db.session.commit()
         
         response = client.post(
-            '/api/growers_distributors',
+            '/api/receiving/growers_distributors',
             json={
                 'name': 'Test Grower',
                 'state': 'CA'

@@ -76,17 +76,17 @@ class ReceivingLogCreateSchema(BaseModel):
 
 class SalesRecordCreateSchema(BaseModel):
     """Schema for creating a sales record with strict validation."""
-    
+
     model_config = ConfigDict(strict=False)
-    
+
     # Required fields with type validation
-    customer_id: int = Field(..., gt=0, description="Customer ID must be a positive integer")
+    customer_id: Optional[int] = Field(None, ge=0, description="Customer ID (optional, 0 means no customer)")
     item_designation_id: int = Field(..., gt=0, description="Item designation ID must be a positive integer")
-    quantity_sold: int = Field(..., ge=0, description="Quantity sold must be non-negative")
+    quantity_sold: float = Field(..., ge=0, description="Quantity sold must be non-negative")
     unit_price: float = Field(..., ge=0, description="Unit price must be non-negative")
     total_price: float = Field(..., ge=0, description="Total price must be non-negative")
     sale_date: dt_type = Field(..., description="Date and time of the sale")
-    
+
     @field_validator('sale_date')
     @classmethod
     def validate_sale_date(cls, v: dt_type) -> dt_type:

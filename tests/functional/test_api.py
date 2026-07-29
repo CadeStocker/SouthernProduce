@@ -46,7 +46,7 @@ class TestReceivingAPI:
             }
 
     def test_get_receiving_logs(self, client, setup_data, app):
-        """Test GET /api/receiving_logs"""
+        """Test GET /api/receiving/receiving_logs"""
         # Login
         client.post('/login', data={'email': 'test@example.com', 'password': 'password'})
         
@@ -78,7 +78,7 @@ class TestReceivingAPI:
             db.session.add(image)
             db.session.commit()
 
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 200
         data = json.loads(response.data)
         
@@ -88,7 +88,7 @@ class TestReceivingAPI:
         assert "test.jpg" in data[0]['images'][0]
 
     def test_create_receiving_log(self, client, setup_data):
-        """Test POST /api/receiving_logs"""
+        """Test POST /api/receiving/receiving_logs"""
         client.post('/login', data={'email': 'test@example.com', 'password': 'password'})
         
         payload = {
@@ -106,7 +106,7 @@ class TestReceivingAPI:
             'returned': 'No'
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                              data=json.dumps(payload),
                              content_type='application/json')
         
@@ -116,7 +116,7 @@ class TestReceivingAPI:
         assert data['message'] == 'Receiving log created successfully'
 
     def test_upload_receiving_images(self, client, setup_data, app, tmp_path):
-        """Test POST /api/receiving_logs/<id>/images"""
+        """Test POST /api/receiving/receiving_logs/<id>/images"""
         client.post('/login', data={'email': 'test@example.com', 'password': 'password'})
         
         # Create a log first
@@ -146,7 +146,7 @@ class TestReceivingAPI:
             'images': (io.BytesIO(b"fake image data"), 'test_image.jpg')
         }
         
-        response = client.post(f'/api/receiving_logs/{log_id}/images', 
+        response = client.post(f'/api/receiving/receiving_logs/{log_id}/images', 
                              data=data,
                              content_type='multipart/form-data')
         
@@ -188,7 +188,7 @@ class TestReceivingAPI:
         assert data[0]['name'] == "Test Seller"
         
         # Test growers
-        response = client.get('/api/growers_distributors')
+        response = client.get('/api/receiving/growers_distributors')
         assert response.status_code == 200
         data = json.loads(response.data)
         assert len(data) == 1

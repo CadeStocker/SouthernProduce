@@ -61,10 +61,10 @@ class TestReceivingAPIErrors:
 
     def test_unauthorized_access(self, client):
         """Test accessing API without login"""
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 401
 
-        response = client.post('/api/receiving_logs', json={})
+        response = client.post('/api/receiving/receiving_logs', json={})
         assert response.status_code == 401
 
     def test_cross_company_isolation(self, client, setup_companies, app):
@@ -94,14 +94,14 @@ class TestReceivingAPIErrors:
         client.post('/login', data=setup_companies['u2'])
         
         # Should see empty list
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 200
         data = json.loads(response.data)
         assert len(data) == 0
         
         # Try to upload image to Company 1's log
         data = {'images': (io.BytesIO(b"data"), 'test.jpg')}
-        response = client.post(f'/api/receiving_logs/{log_id}/images', 
+        response = client.post(f'/api/receiving/receiving_logs/{log_id}/images', 
                              data=data,
                              content_type='multipart/form-data')
         assert response.status_code == 403
@@ -115,7 +115,7 @@ class TestReceivingAPIErrors:
             # Missing other required fields
         }
         
-        response = client.post('/api/receiving_logs', 
+        response = client.post('/api/receiving/receiving_logs', 
                              data=json.dumps(payload),
                              content_type='application/json')
         
@@ -128,7 +128,7 @@ class TestReceivingAPIErrors:
         client.post('/login', data=setup_companies['u1'])
         
         data = {'images': (io.BytesIO(b"data"), 'test.jpg')}
-        response = client.post('/api/receiving_logs/99999/images', 
+        response = client.post('/api/receiving/receiving_logs/99999/images', 
                              data=data,
                              content_type='multipart/form-data')
         
@@ -158,7 +158,7 @@ class TestReceivingAPIErrors:
             db.session.commit()
             log_id = log.id
 
-        response = client.post(f'/api/receiving_logs/{log_id}/images', 
+        response = client.post(f'/api/receiving/receiving_logs/{log_id}/images', 
                              data={},
                              content_type='multipart/form-data')
         

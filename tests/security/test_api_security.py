@@ -76,7 +76,7 @@ class TestAPIAuthentication:
     def test_api_endpoint_without_authentication(self, client):
         """Test that API endpoints reject unauthenticated requests."""
         # Try to access API without any authentication
-        response = client.get('/api/receiving_logs')
+        response = client.get('/api/receiving/receiving_logs')
         assert response.status_code == 401
         data = json.loads(response.data)
         assert 'error' in data
@@ -84,7 +84,7 @@ class TestAPIAuthentication:
     def test_api_endpoint_with_invalid_key(self, client):
         """Test that API endpoints reject invalid API keys."""
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': 'invalid_key_that_does_not_exist'}
         )
         assert response.status_code == 401
@@ -95,7 +95,7 @@ class TestAPIAuthentication:
     def test_api_endpoint_with_valid_key(self, client, app):
         """Test that API endpoints accept valid API keys."""
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key1_value}
         )
         assert response.status_code == 200
@@ -111,7 +111,7 @@ class TestAPIAuthentication:
             db.session.commit()
         
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key1_value}
         )
         assert response.status_code == 401
@@ -124,7 +124,7 @@ class TestAPIAuthentication:
     
     def test_api_key_in_query_parameter(self, client):
         """Test that API key in query parameter works (alternative auth method)."""
-        response = client.get(f'/api/receiving_logs?api_key={self.api_key1_value}')
+        response = client.get(f'/api/receiving/receiving_logs?api_key={self.api_key1_value}')
         # This should either work or be explicitly rejected - either is fine
         # Just ensure it's handled consistently
         assert response.status_code in [200, 401]
@@ -277,10 +277,10 @@ class TestAPICompanyIsolation:
             db.session.commit()
     
     def test_get_receiving_logs_returns_only_own_company_data(self, client):
-        """Test that GET /api/receiving_logs returns only data for authenticated company."""
+        """Test that GET /api/receiving/receiving_logs returns only data for authenticated company."""
         # Company 1 should see only their logs
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key1_value}
         )
         assert response.status_code == 200
@@ -292,7 +292,7 @@ class TestAPICompanyIsolation:
         
         # Company 2 should see only their logs
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key2_value}
         )
         assert response.status_code == 200
@@ -345,7 +345,7 @@ class TestAPICompanyIsolation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key1_value},
             data=json.dumps(log_data),
             content_type='application/json'
@@ -454,7 +454,7 @@ class TestAPIInputValidation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(log_data),
             content_type='application/json'
@@ -465,7 +465,7 @@ class TestAPIInputValidation:
         
         # When retrieved, the script tags should be escaped or sanitized
         response = client.get(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value}
         )
         data = json.loads(response.data)
@@ -488,7 +488,7 @@ class TestAPIInputValidation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(log_data),
             content_type='application/json'
@@ -505,7 +505,7 @@ class TestAPIInputValidation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(incomplete_data),
             content_type='application/json'
@@ -532,7 +532,7 @@ class TestAPIInputValidation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(log_data),
             content_type='application/json'
@@ -557,7 +557,7 @@ class TestAPIInputValidation:
         }
         
         response = client.post(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(log_data),
             content_type='application/json'
@@ -611,7 +611,7 @@ class TestAPIRateLimiting:
         responses = []
         for _ in range(10):
             response = client.get(
-                '/api/receiving_logs',
+                '/api/receiving/receiving_logs',
                 headers={'X-API-Key': self.api_key_value}
             )
             responses.append(response.status_code)
@@ -737,7 +737,7 @@ class TestAPIMethodSecurity:
     def test_delete_method_not_allowed_on_get_endpoint(self, client):
         """Test that DELETE is rejected on GET-only endpoints."""
         response = client.delete(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value}
         )
         
@@ -746,7 +746,7 @@ class TestAPIMethodSecurity:
     def test_put_method_not_allowed_on_post_endpoint(self, client):
         """Test that PUT is rejected where not implemented."""
         response = client.put(
-            '/api/receiving_logs',
+            '/api/receiving/receiving_logs',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps({'test': 'data'}),
             content_type='application/json'

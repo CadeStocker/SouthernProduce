@@ -182,7 +182,7 @@ class TestGetItems:
 
 
 class TestCreateInventoryCount:
-    """Test POST /api/inventory_counts endpoint for recording inventory counts."""
+    """Test POST /api/inventory/inventory_counts endpoint for recording inventory counts."""
     
     @pytest.fixture(autouse=True)
     def setup(self, app):
@@ -246,9 +246,9 @@ class TestCreateInventoryCount:
             db.session.commit()
     
     def test_create_inventory_count_requires_authentication(self, client):
-        """Test that POST /api/inventory_counts requires authentication."""
+        """Test that POST /api/inventory/inventory_counts requires authentication."""
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             data=json.dumps({'item_id': 1, 'quantity': 50}),
             content_type='application/json'
         )
@@ -264,7 +264,7 @@ class TestCreateInventoryCount:
         }
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -290,7 +290,7 @@ class TestCreateInventoryCount:
         count_data = {'quantity': 50}
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -305,7 +305,7 @@ class TestCreateInventoryCount:
         count_data = {'item_id': self.item_id}
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -323,7 +323,7 @@ class TestCreateInventoryCount:
         }
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -341,7 +341,7 @@ class TestCreateInventoryCount:
         }
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -361,7 +361,7 @@ class TestCreateInventoryCount:
         }
         
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data=json.dumps(count_data),
             content_type='application/json'
@@ -377,7 +377,7 @@ class TestCreateInventoryCount:
     def test_create_inventory_count_malformed_json(self, client):
         """Test that malformed JSON is rejected."""
         response = client.post(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value},
             data='{"item_id": "invalid json',
             content_type='application/json'
@@ -422,7 +422,7 @@ class TestCreateInventoryCount:
             }
             
             response = client.post(
-                '/api/inventory_counts',
+                '/api/inventory/inventory_counts',
                 headers={'X-API-Key': self.api_key_value},
                 data=json.dumps(count_data),
                 content_type='application/json'
@@ -438,7 +438,7 @@ class TestCreateInventoryCount:
 
 
 class TestGetInventoryCounts:
-    """Test GET /api/inventory_counts endpoint for retrieving count history."""
+    """Test GET /api/inventory/inventory_counts endpoint for retrieving count history."""
     
     @pytest.fixture(autouse=True)
     def setup(self, app):
@@ -536,14 +536,14 @@ class TestGetInventoryCounts:
             db.session.commit()
     
     def test_get_inventory_counts_requires_authentication(self, client):
-        """Test that GET /api/inventory_counts requires authentication."""
-        response = client.get('/api/inventory_counts')
+        """Test that GET /api/inventory/inventory_counts requires authentication."""
+        response = client.get('/api/inventory/inventory_counts')
         assert response.status_code == 401
     
     def test_get_inventory_counts_returns_all(self, client):
-        """Test that GET /api/inventory_counts returns all counts."""
+        """Test that GET /api/inventory/inventory_counts returns all counts."""
         response = client.get(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value}
         )
         
@@ -560,7 +560,7 @@ class TestGetInventoryCounts:
     def test_get_inventory_counts_filter_by_item(self, client):
         """Test filtering counts by item_id."""
         response = client.get(
-            f'/api/inventory_counts?item_id={self.item1_id}',
+            f'/api/inventory/inventory_counts?item_id={self.item1_id}',
             headers={'X-API-Key': self.api_key_value}
         )
         
@@ -577,7 +577,7 @@ class TestGetInventoryCounts:
         start_date = (now - timedelta(days=1, hours=12)).isoformat()
         
         response = client.get(
-            f'/api/inventory_counts?start_date={start_date}',
+            f'/api/inventory/inventory_counts?start_date={start_date}',
             headers={'X-API-Key': self.api_key_value}
         )
         
@@ -590,7 +590,7 @@ class TestGetInventoryCounts:
     def test_get_inventory_counts_limit(self, client):
         """Test limit parameter."""
         response = client.get(
-            '/api/inventory_counts?limit=1',
+            '/api/inventory/inventory_counts?limit=1',
             headers={'X-API-Key': self.api_key_value}
         )
         
@@ -603,7 +603,7 @@ class TestGetInventoryCounts:
     def test_get_inventory_counts_includes_item_details(self, client):
         """Test that counts include item details."""
         response = client.get(
-            '/api/inventory_counts',
+            '/api/inventory/inventory_counts',
             headers={'X-API-Key': self.api_key_value}
         )
         
