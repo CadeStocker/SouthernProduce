@@ -23,7 +23,7 @@ from app.models import (
     FilmUsage,
     db
 )
-from app.models.core import ItemDesignation
+from app.models.core import ItemDesignation, LABOR_APP_ITEM_DESIGNATIONS
 from app.models.customers import Customer
 from app.models.labor import SalesRecord
 from app.schemas import (
@@ -616,13 +616,7 @@ def get_items():
 def get_item_designations():
     """Get all item designations with id, name, and unit for the iOS app."""
 
-    designations = [
-        {'id': 1, 'name': 'SnakPak', 'unit': 'cases'},
-        {'id': 2, 'name': 'Retail', 'unit': 'lbs'},
-        {'id': 3, 'name': 'FoodService', 'unit': 'lbs'},
-        {'id': 4, 'name': 'Combo', 'unit': 'mixed'},
-        {'id': 5, 'name': 'Mushroom', 'unit': 'lbs'},
-    ]
+    designations = [dict(d) for d in LABOR_APP_ITEM_DESIGNATIONS]
 
     return jsonify(designations), 200
 

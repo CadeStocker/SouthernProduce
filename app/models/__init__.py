@@ -74,6 +74,7 @@ from app.models.labor import (
     WeeklyLaborEntry,
     SalesByDesignation,
     FilmUsage,
+    SalesRecord,
 )
 
 # Customer models
@@ -140,6 +141,7 @@ __all__ = [
     "WeeklyLaborEntry",
     "SalesByItemType",
     "FilmUsage",
+    "SalesRecord",
     # Customers
     "Customer",
     "CustomerEmail",

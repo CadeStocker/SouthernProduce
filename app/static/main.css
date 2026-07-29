@@ -229,6 +229,121 @@ h1, h2, h3, .section-heading, .home-hero__title {
   .home-hero__title { font-size: 1.8rem; }
 }
 
+/* ---- Dashboard section cards ---- */
+/* Card headers stay the app-wide green; each section is distinguished by its
+   icon chip colour below. */
+.dashboard-card {
+  border: none;
+  border-radius: 0.6rem;
+}
+.dashboard-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 600;
+}
+.dashboard-card__icon {
+  background: rgba(255, 255, 255, 0.9);
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.dashboard-card--labor    .dashboard-card__icon { color: #4e73df; }
+.dashboard-card--sales    .dashboard-card__icon { color: #b8860b; }
+.dashboard-card--film     .dashboard-card__icon { color: #117a8b; }
+.dashboard-card--analysis .dashboard-card__icon { color: #6f42c1; }
+
+/* Outline buttons vanish against the green card header, so use a solid light one. */
+.dashboard-card__header .btn-light {
+  font-weight: 600;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+/* ---- Stat tiles ---- */
+.stat-tile {
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 0.85rem 0.75rem;
+  height: 100%;
+}
+.stat-tile__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e3a2b;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.stat-tile__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+.stat-tile__delta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+.stat-tile__delta--up   { color: #1e7e34; }
+.stat-tile__delta--down { color: #c82333; }
+
+/* ---- Dashboard toolbar ---- */
+.dashboard-toolbar {
+  background: #fff;
+  border-radius: 0.6rem;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.06);
+}
+.dashboard-toolbar .btn-group .btn {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+/* Keep dashboard tabs readable against the light page background */
+.dashboard-tabs .nav-link {
+  color: #495057;
+  font-weight: 600;
+  border: none;
+  border-bottom: 3px solid transparent;
+}
+.dashboard-tabs .nav-link:hover {
+  border-bottom-color: #c3e6cb;
+}
+.dashboard-tabs .nav-link.active {
+  color: #1e7e34;
+  background: transparent;
+  border-bottom-color: #28a745;
+}
+
+/* Charts run with maintainAspectRatio:false, so the wrapper must set the height. */
+.chart-holder {
+  position: relative;
+  width: 100%;
+  height: 320px;
+}
+.chart-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 0.5rem;
+}
+.chart-legend__swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+}
+
 /* Sticky table headers for review modal */
 #pdfReviewModal th {
   position: sticky;

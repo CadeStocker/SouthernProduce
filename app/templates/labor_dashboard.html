@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% block title %}LaborApp Analysis{% endblock %}
+
+{#- Reusable metric tile markup -#}
+{% macro metric_tile(metric) %}
+  <div class="col-6 col-md-4 col-xl-2 mb-3">
+    <div class="stat-tile">
+      <div class="stat-tile__label">{{ metric.label }}</div>
+      <div class="stat-tile__value">{{ metric.display }}</div>
+      {% if metric.change is defined and metric.change is not none %}
+        <div class="stat-tile__delta {{ 'stat-tile__delta--up' if metric.improving else 'stat-tile__delta--down' }}">
+          <i class="bi bi-arrow-{{ 'up' if metric.change_up else 'down' }}-right"></i>
+          {{ "%.1f"|format(metric.change) }}%
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro empty_note(text) %}
+  <p class="text-muted text-center my-4">{{ text }}</p>
+{% endmacro %}
+
+{% block content %}
+<div class="container-fluid mt-4" style="max-width: 95%;">
+
+  <h1 class="section-heading mb-1">LaborApp Analysis</h1>
+  <p class="text-muted">Labor efficiency, sales history, and film usage from the data your LaborApp submits.</p>
+
+  <!-- ============ Date range toolbar ============ -->
+  <div class="dashboard-toolbar mb-4">
+    <div class="d-flex flex-wrap align-items-center">
+      <div class="btn-group mr-3 mb-2" role="group" aria-label="Date range presets">
+        {% for key, label in range_presets %}
+          <a href="{{ url_for('main.labor_dashboard', range=key, tab=active_tab) }}"
+             class="btn btn-sm {{ 'btn-primary' if range_key == key else 'btn-outline-secondary' }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+
+      <form method="GET" action="{{ url_for('main.labor_dashboard') }}" class="form-inline mb-2">
+        <input type="hidden" name="range" value="custom">
+        <input type="hidden" name="tab" value="{{ active_tab }}">
+        <label class="mr-2 mb-0 small text-muted" for="start_date">From</label>
+        <input type="date" id="start_date" name="start_date" class="form-control form-control-sm mr-2"
+               value="{{ start_date }}" max="{{ end_date }}">
+        <label class="mr-2 mb-0 small text-muted" for="end_date">To</label>
+        <input type="date" id="end_date" name="end_date" class="form-control form-control-sm mr-2"
+               value="{{ end_date }}">
+        <button type="submit" class="btn btn-sm {{ 'btn-primary' if range_key == 'custom' else 'btn-outline-secondary' }}">Apply</button>
+      </form>
+
+      <div class="ml-auto mb-2 text-muted small">
+        <i class="bi bi-calendar3 mr-1"></i>
+        <strong>{{ range_label }}</strong>
+        {% if totals.days %}<span class="ml-2">{{ totals.days }} day{{ 's' if totals.days != 1 else '' }} logged</span>{% endif %}
+      </div>
+    </div>
+    <div class="small text-muted mt-1">
+      Leave <em>From</em> blank and press Apply for all data. Set both dates the same to view a single day.
+    </div>
+  </div>
+
+  <!-- ============ Section tabs ============ -->
+  <ul class="nav nav-tabs dashboard-tabs mb-4" role="tablist">
+    {% for key, label in [('overview', 'Overview'), ('labor', 'Labor'), ('sales', 'Sales'), ('film', 'Film')] %}
+      <li class="nav-item">
+        <a class="nav-link {{ 'active' if active_tab == key }}" id="tab-{{ key }}" data-toggle="tab"
+           href="#pane-{{ key }}" role="tab" aria-controls="pane-{{ key }}"
+           aria-selected="{{ 'true' if active_tab == key else 'false' }}">{{ label }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="tab-pane fade {{ 'show active' if active_tab == 'overview' }}" id="pane-overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="card dashboard-card dashboard-card--labor mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-speedometer2"></i></span>
+          <span>Key Performance</span>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for metric in overview_metrics %}{{ metric_tile(metric) }}{% endfor %}
+          </div>
+          {% if has_previous_period and previous_days == 0 %}
+            <p class="text-muted small mb-0">No data in the prior period for comparison.</p>
+          {% elif has_previous_period %}
+            <p class="text-muted small mb-0">Change shown vs. the previous {{ previous_days }} logged day{{ 's' if previous_days != 1 else '' }}.</p>
+          {% else %}
+            <p class="text-muted small mb-0">Select a date range to compare against the prior period.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--sales mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-graph-up"></i></span>
+          <span>Sales &amp; Payroll Trend</span>
+        </div>
+        <div class="card-body">
+          {% if charts.labels %}
+            <div class="chart-holder"><canvas id="salesPayrollChart"></canvas></div>
+            <div class="chart-legend">
+              <span><span class="chart-legend__swatch" style="background:#28a745"></span>Sales</span>
+              <span><span class="chart-legend__swatch" style="background:#dc3545"></span>Payroll</span>
+            </div>
+          {% else %}
+            {{ empty_note('No labor logs in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--analysis mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-pie-chart"></i></span>
+          <span>Sales Mix</span>
+        </div>
+        <div class="card-body">
+          {% if by_designation %}
+            <div class="chart-holder" style="height: {{ 34 * by_designation|length + 60 }}px"><canvas id="overviewMixChart"></canvas></div>
+          {% else %}
+            {{ empty_note('No sales records in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LABOR ==================== -->
+    <div class="tab-pane fade {{ 'show active' if active_tab == 'labor' }}" id="pane-labor" role="tabpanel" aria-labelledby="tab-labor">
+      <div class="card dashboard-card dashboard-card--labor mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-people-fill"></i></span>
+          <span>Labor Summary</span>
+          <div class="ml-auto">
+            <a href="{{ url_for('main.labor_daily_logs') }}" class="btn btn-sm btn-light">Daily Logs</a>
+            <a href="{{ url_for('main.labor_weekly_entries') }}" class="btn btn-sm btn-light">Weekly Entries</a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for metric in labor_metrics %}{{ metric_tile(metric) }}{% endfor %}
+          </div>
+          <p class="text-muted small mb-0">Overtime counted at 1.5× when computing adjusted hours, ratios, and per-hour costs.</p>
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--analysis mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-activity"></i></span>
+          <span>Labor Ratio Trend</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Adjusted hours per case — lower is better.</p>
+          {% if charts.labels %}
+            <div class="chart-holder"><canvas id="laborRatioChart"></canvas></div>
+            <div class="chart-legend">
+              <span><span class="chart-legend__swatch" style="background:#28a745"></span>Daily ratio</span>
+              <span><span class="chart-legend__swatch" style="background:#adb5bd"></span>Average {{ "%.3f"|format(charts.average_ratio) }}</span>
+            </div>
+          {% else %}
+            {{ empty_note('No labor logs in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--film mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-clock-history"></i></span>
+          <span>Daily Hours</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Regular vs. overtime.</p>
+          {% if charts.labels %}
+            <div class="chart-holder"><canvas id="hoursChart"></canvas></div>
+          {% else %}
+            {{ empty_note('No labor logs in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SALES ==================== -->
+    <div class="tab-pane fade {{ 'show active' if active_tab == 'sales' }}" id="pane-sales" role="tabpanel" aria-labelledby="tab-sales">
+      <div class="card dashboard-card dashboard-card--sales mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-receipt"></i></span>
+          <span>Sales Summary</span>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for metric in sales_metrics %}{{ metric_tile(metric) }}{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--analysis mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-tags"></i></span>
+          <span>By Item Designation</span>
+        </div>
+        <div class="card-body">
+          {% if by_designation %}
+            <div class="chart-holder" style="height: {{ 34 * by_designation|length + 60 }}px"><canvas id="designationChart"></canvas></div>
+            <div class="table-responsive mt-3">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr><th>Designation</th><th class="text-right">Units</th><th class="text-right">Sales</th><th class="text-right">% of Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in by_designation %}
+                    <tr>
+                      <td>{{ row.name }}</td>
+                      <td class="text-right">{{ "{:,.0f}".format(row.quantity) }}</td>
+                      <td class="text-right">${{ "{:,.2f}".format(row.amount) }}</td>
+                      <td class="text-right">{{ "%.1f"|format(row.percent) }}%</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            {{ empty_note('No sales records in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--labor mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-person-badge"></i></span>
+          <span>Top Customers</span>
+        </div>
+        <div class="card-body">
+          {% if by_customer %}
+            <div class="chart-holder" style="height: {{ 32 * by_customer|length + 60 }}px"><canvas id="customerChart"></canvas></div>
+            <div class="table-responsive mt-3">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr><th>Customer</th><th class="text-right">Units</th><th class="text-right">Sales</th><th class="text-right">% of Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in by_customer %}
+                    <tr>
+                      <td>{{ row.name }}</td>
+                      <td class="text-right">{{ "{:,.0f}".format(row.quantity) }}</td>
+                      <td class="text-right">${{ "{:,.2f}".format(row.amount) }}</td>
+                      <td class="text-right">{{ "%.1f"|format(row.percent) }}%</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            {{ empty_note('No sales records in this period.') }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FILM ==================== -->
+    <div class="tab-pane fade {{ 'show active' if active_tab == 'film' }}" id="pane-film" role="tabpanel" aria-labelledby="tab-film">
+      <div class="card dashboard-card dashboard-card--film mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-box-seam"></i></span>
+          <span>Film Usage by Month</span>
+          <div class="ml-auto">
+            <a href="{{ url_for('main.labor_film_usage') }}" class="btn btn-sm btn-light">Film Records</a>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Cases run, compared across years. Not affected by the date range above.</p>
+          {% if has_film %}
+            <div class="chart-holder"><canvas id="filmChart"></canvas></div>
+          {% else %}
+            {{ empty_note('No film usage recorded yet.') }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card dashboard-card dashboard-card--analysis mb-4">
+        <div class="card-header dashboard-card__header">
+          <span class="dashboard-card__icon"><i class="bi bi-calendar-range"></i></span>
+          <span>Yearly Totals</span>
+        </div>
+        <div class="card-body">
+          {% if film_year_totals %}
+            <div class="row">
+              {% for metric in film_year_totals %}{{ metric_tile(metric) }}{% endfor %}
+            </div>
+          {% else %}
+            {{ empty_note('No film usage recorded yet.') }}
+          {% endif %}
+          <p class="text-muted small mb-0">Bags = cases &times; 50 &bull; Rolls &asymp; bags &divide; 11,000</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const charts = {{ charts|tojson }};
+
+  const GREEN = '#28a745';
+  const RED = '#dc3545';
+  const GREY = '#adb5bd';
+  const SERIES_COLORS = ['#4e73df', '#f0a500', '#17a2b8', '#6f42c1', '#28a745', '#dc3545', '#20c997', '#e83e8c'];
+
+  const money = (value) => '$' + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+  // Charts inside hidden tab panes measure as zero-width, so each pane's charts
+  // are built the first time that pane becomes visible.
+  const builders = { overview: [], labor: [], sales: [], film: [] };
+  const built = {};
+
+  function buildPane(pane) {
+    if (built[pane]) return;
+    built[pane] = true;
+    (builders[pane] || []).forEach(fn => fn());
+  }
+
+  builders.overview.push(function () {
+    const el = document.getElementById('salesPayrollChart');
+    if (!el) return;
+    new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: charts.labels,
+        datasets: [
+          {
+            label: 'Sales', data: charts.sales,
+            borderColor: GREEN, backgroundColor: 'rgba(40,167,69,0.18)',
+            fill: true, tension: 0.35, pointRadius: 0
+          },
+          {
+            label: 'Payroll', data: charts.payroll,
+            borderColor: RED, borderDash: [4, 3], borderWidth: 1.5,
+            fill: false, tension: 0.35, pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + money(c.parsed.y) } }
+        },
+        scales: {
+          x: { ticks: { autoSkip: true, maxTicksLimit: 14, maxRotation: 45, minRotation: 0 } },
+          y: { title: { display: true, text: 'USD' }, ticks: { callback: money } }
+        }
+      }
+    });
+  });
+
+  function horizontalBar(canvasId, labels, values, color) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    const total = values.reduce((sum, v) => sum + v, 0);
+    new Chart(el.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 3 }] },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const pct = total > 0 ? (c.parsed.x / total * 100).toFixed(1) + '%' : '';
+                return money(c.parsed.x) + (pct ? ' (' + pct + ')' : '');
+              }
+            }
+          }
+        },
+        scales: { x: { title: { display: true, text: 'Sales (USD)' }, ticks: { callback: money } } }
+      }
+    });
+  }
+
+  builders.overview.push(() => horizontalBar('overviewMixChart', charts.designation_labels, charts.designation_amounts, GREEN));
+  builders.sales.push(() => horizontalBar('designationChart', charts.designation_labels, charts.designation_amounts, GREEN));
+  builders.sales.push(() => horizontalBar('customerChart', charts.customer_labels, charts.customer_amounts, '#4e73df'));
+
+  builders.labor.push(function () {
+    const el = document.getElementById('laborRatioChart');
+    if (!el) return;
+    new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: charts.labels,
+        datasets: [
+          {
+            label: 'Labor Ratio', data: charts.labor_ratio,
+            borderColor: GREEN, backgroundColor: GREEN,
+            tension: 0.35, pointRadius: 2.5, fill: false
+          },
+          {
+            label: 'Average', data: charts.average_ratio_line,
+            borderColor: GREY, borderDash: [4, 3], borderWidth: 1,
+            pointRadius: 0, fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + c.parsed.y.toFixed(3) } }
+        },
+        scales: {
+          x: { ticks: { autoSkip: true, maxTicksLimit: 14, maxRotation: 45, minRotation: 0 } },
+          y: { title: { display: true, text: 'Adjusted hours / case' } }
+        }
+      }
+    });
+  });
+
+  builders.labor.push(function () {
+    const el = document.getElementById('hoursChart');
+    if (!el) return;
+    new Chart(el.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: charts.labels,
+        datasets: [
+          { label: 'Regular', data: charts.regular_hours, backgroundColor: GREEN },
+          { label: 'Overtime', data: charts.overtime_hours, backgroundColor: 'rgba(220,53,69,0.85)' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          x: { stacked: true, ticks: { autoSkip: true, maxTicksLimit: 14, maxRotation: 45, minRotation: 0 } },
+          y: { stacked: true, title: { display: true, text: 'Hours' } }
+        }
+      }
+    });
+  });
+
+  builders.film.push(function () {
+    const el = document.getElementById('filmChart');
+    if (!el) return;
+    new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: charts.film_months,
+        datasets: charts.film_series.map(function (series, i) {
+          const color = SERIES_COLORS[i % SERIES_COLORS.length];
+          return {
+            label: series.year, data: series.data,
+            borderColor: color, backgroundColor: color,
+            tension: 0.35, pointRadius: 3, fill: false, spanGaps: false
+          };
+        })
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { title: { display: true, text: 'Cases' }, beginAtZero: true } }
+      }
+    });
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    buildPane('{{ active_tab }}');
+    if (window.jQuery) {
+      $('.dashboard-tabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        buildPane(e.target.getAttribute('href').replace('#pane-', ''));
+      });
+    }
+  });
+})();
+</script>
+{% endblock %}

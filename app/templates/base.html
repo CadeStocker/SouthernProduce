@@ -72,6 +72,20 @@
             </li>
 
             <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownLaborApp" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    LaborApp
+                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdownLaborApp">
+                    <a class="dropdown-item" href="{{ url_for('main.labor_dashboard') }}">Dashboard</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{{ url_for('main.labor_daily_logs') }}">Daily Logs</a>
+                    <a class="dropdown-item" href="{{ url_for('main.labor_weekly_entries') }}">Weekly Entries</a>
+                    <a class="dropdown-item" href="{{ url_for('main.labor_pay_groups') }}">Pay Groups</a>
+                    <a class="dropdown-item" href="{{ url_for('main.labor_film_usage') }}">Film Usage</a>
+                </div>
+            </li>
+
+            <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProduceReceiver" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Produce Receiver
                 </a>

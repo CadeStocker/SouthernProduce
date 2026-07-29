@@ -25,6 +25,20 @@ class ItemDesignation(Enum):
     MUSHROOM = 'mushroom'
 
 
+# Item designations served to the LaborApp iOS client by GET /api/item_designations.
+# These IDs are stored verbatim in SalesRecord.item_designation_id, so the mapping
+# must stay stable — do not renumber existing entries.
+LABOR_APP_ITEM_DESIGNATIONS = [
+    {'id': 1, 'name': 'SnakPak', 'unit': 'cases'},
+    {'id': 2, 'name': 'Retail', 'unit': 'lbs'},
+    {'id': 3, 'name': 'FoodService', 'unit': 'lbs'},
+    {'id': 4, 'name': 'Combo', 'unit': 'mixed'},
+    {'id': 5, 'name': 'Mushroom', 'unit': 'lbs'},
+]
+
+LABOR_APP_DESIGNATION_NAMES = {d['id']: d['name'] for d in LABOR_APP_ITEM_DESIGNATIONS}
+
+
 class AIResponse(db.Model):
     """Store AI responses for reference and auditing."""
     __tablename__ = 'ai_response'

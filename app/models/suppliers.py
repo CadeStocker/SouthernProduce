@@ -3,7 +3,6 @@
 
 from app import db
 
-
 class BrandName(db.Model):
     """Brand names for products."""
     __tablename__ = 'brand_name'
