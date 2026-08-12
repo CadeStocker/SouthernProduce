@@ -76,7 +76,13 @@ def create_app(db_uri=None):
     # Configuration
     secret_key = os.environ.get('SECRET_KEY')
     if not secret_key:
-        raise RuntimeError('SECRET_KEY environment variable is not set. Cannot start app.')
+        # Allow development/testing without SECRET_KEY, but warn in production
+        render_data_dir = '/var/data'
+        if os.path.exists(render_data_dir):
+            # Production on Render: SECRET_KEY is required
+            raise RuntimeError('SECRET_KEY environment variable is not set. Cannot start in production.')
+        # Development: use a safe-but-not-secret fallback (will be overridden by tests)
+        secret_key = 'dev-key-not-for-production'
     app.config['SECRET_KEY'] = secret_key
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
