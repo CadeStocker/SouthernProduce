@@ -53,7 +53,7 @@ def logged_in_user(client, app):
         company = Company(name="Test Company", admin_email="test@example.com")
         db.session.add(company)
         db.session.commit()
-        
+
         user = User(
             first_name="Test",
             last_name="User",

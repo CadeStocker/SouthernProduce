@@ -17,8 +17,8 @@ class TestReceivingAPI:
             company = Company(name="Test Co", admin_email="test@co.com")
             db.session.add(company)
             db.session.commit()
-            
-            user = User(first_name="Test", last_name="User", email="test@example.com", 
+
+            user = User(first_name="Test", last_name="User", email="test@example.com",
                         password="password", company_id=company.id)
             db.session.add(user)
             
