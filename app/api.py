@@ -115,7 +115,7 @@ def require_login():
     # Skip authentication for the test endpoint (it has its own decorator)
     if request.endpoint == 'api.test_api_key':
         return None
-        
+
     # Check for API key in request
     api_key_string = get_api_key_from_request()
     if api_key_string:
@@ -130,9 +130,17 @@ def require_login():
             return None
         if error_response:
             return error_response
-    
+
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
+
+    # Session auth: validate CSRF token for non-safe methods
+    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        from flask_wtf.csrf import validate_csrf
+        try:
+            validate_csrf(request.form.get('csrf_token') or request.headers.get('X-CSRFToken'))
+        except Exception:
+            return jsonify({'error': 'CSRF token validation failed'}), 400
 
 # RECEIVING ENDPOINTS
 

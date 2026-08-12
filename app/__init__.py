@@ -74,7 +74,10 @@ def create_app(db_uri=None):
     # --- END: Production Database Configuration ---
 
     # Configuration
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'devkey')
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        raise RuntimeError('SECRET_KEY environment variable is not set. Cannot start app.')
+    app.config['SECRET_KEY'] = secret_key
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
     app.config['NOTIFICATION_OUTLIER_PERCENT_THRESHOLD'] = float(
@@ -147,10 +150,10 @@ def create_app(db_uri=None):
     # Important: Do this INSIDE create_app to avoid circular imports
     from app.routes import main
     from app.api import api
-    
-    # Exempt API from CSRF protection as it will be used by external clients (iPad app)
-    csrf.exempt(api)
-    
+
+    # Register blueprints
+    # Note: API CSRF protection is handled per-request in api.py's before_request
+    # to allow API-key auth but require CSRF for session-based access
     app.register_blueprint(main)
     app.register_blueprint(api)
 

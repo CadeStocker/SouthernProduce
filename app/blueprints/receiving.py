@@ -1074,9 +1074,26 @@ def delete_grower_distributor(grower_id):
 @main.route('/receiving_images/<path:filename>')
 @optional_api_key_or_login
 def get_receiving_image(filename):
+    """
+    Serve a receiving image file, with company-scoped access control.
+    Only users/API keys from the company that owns the image can access it.
+    """
+    from werkzeug.utils import secure_filename
+    import os
 
-    """
-    Serve a receiving image file from the configured directory, with access control for authenticated users or valid API keys.
-    """
+    # Prevent directory traversal
+    safe_filename = secure_filename(filename)
+    if safe_filename != filename:
+        from flask import abort
+        abort(400, 'Invalid filename')
+
+    # Get company ID
+    company_id = g.company_id if hasattr(g, 'company_id') else current_user.company_id
+
+    # Look up the image to verify it belongs to this company
+    image = ReceivingImage.query.filter_by(filename=filename, company_id=company_id).first()
+    if not image:
+        from flask import abort
+        abort(403, 'Access denied')
 
     return send_from_directory(current_app.config['RECEIVING_IMAGES_DIR'], filename)

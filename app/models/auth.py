@@ -55,24 +55,12 @@ class User(db.Model, UserMixin):
         return f"User('{self.first_name}', '{self.last_name}', '{self.email}')"
     
     def check_password(self, password: str) -> bool:
-        """Verify a password against the hash.
-        
-        Supports both bcrypt hashed passwords and legacy plain text passwords.
-        This allows gradual migration to encrypted passwords.
-        """
+        """Verify a password against the bcrypt hash."""
         from app import bcrypt
-        
-        # Try bcrypt verification first (for hashed passwords)
         try:
-            if self.password.startswith('$2b$') or self.password.startswith('$2a$'):
-                # This is a bcrypt hash
-                return bcrypt.check_password_hash(self.password, password)
+            return bcrypt.check_password_hash(self.password, password)
         except (ValueError, AttributeError):
-            pass
-        
-        # Fall back to plain text comparison for legacy accounts
-        # TODO: Remove this after all passwords are migrated to bcrypt
-        return self.password == password
+            return False
     
     def set_password(self, password: str):
         """Set the user's password (hashed with bcrypt)."""

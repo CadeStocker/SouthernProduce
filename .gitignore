@@ -3,6 +3,8 @@
 .env/
 .flaskenv
 site.db
+instance/*.db
+instance/*.db*
 instance/site.db__pycache__/
 *.pyc
 *.md

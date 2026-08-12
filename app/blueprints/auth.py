@@ -10,7 +10,7 @@ from flask import (
     flash,
     current_app
 )
-from itsdangerous import BadSignature, Serializer, SignatureExpired
+from itsdangerous import BadSignature, URLSafeTimedSerializer, SignatureExpired
 from app.models import (
     AIResponse,
     APIKey,
@@ -135,8 +135,8 @@ def signup():
         db.session.add(pending)
         db.session.commit()
 
-        # token and serializer
-        s = Serializer(current_app.config['SECRET_KEY'], salt='user-approval')  # 1 hour expiration
+        # token and serializer with 1-hour expiration
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='user-approval')
         token = s.dumps({'pending_user_id': pending.id})
 
         # send link to admin
@@ -173,16 +173,19 @@ def approve_user(token):
         flash('Not authorized.', 'danger')
         return redirect(url_for('main.home'))
 
-    # deserialize the token
-    s = Serializer(current_app.config['SECRET_KEY'], salt='user-approval')
+    # deserialize the token (1 hour expiration)
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='user-approval')
     try:
         data = s.loads(token, max_age=3600)
     except (BadSignature, SignatureExpired):
         flash('Invalid or expired token.', 'danger')
         return redirect(url_for('main.home'))
 
-    # get the pending user
-    pending = PendingUser.query.get(data.get('pending_user_id'))
+    # get the pending user and verify they belong to this company
+    pending = PendingUser.query.filter_by(
+        id=data.get('pending_user_id'),
+        company_id=current_user.company_id
+    ).first()
     if not pending:
         flash('No pending request found or already processed.', 'warning')
         return redirect(url_for('main.company'))
@@ -219,8 +222,8 @@ def approve_pending(pending_id):
         flash('Not authorized.', 'danger')
         return redirect(url_for('main.company'))
 
-    # get the pending user
-    pending = PendingUser.query.get(pending_id)
+    # get the pending user and verify they belong to this company
+    pending = PendingUser.query.filter_by(id=pending_id, company_id=current_user.company_id).first()
     if not pending:
         flash('Pending user not found.', 'warning')
         return redirect(url_for('main.company'))
@@ -251,8 +254,8 @@ def deny_pending(pending_id):
         flash('Not authorized.', 'danger')
         return redirect(url_for('main.company'))
 
-    # get the pending user
-    pending = PendingUser.query.get(pending_id)
+    # get the pending user and verify they belong to this company
+    pending = PendingUser.query.filter_by(id=pending_id, company_id=current_user.company_id).first()
     if not pending:
         flash('Pending user not found.', 'warning')
     else:
