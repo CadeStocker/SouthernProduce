@@ -134,14 +134,6 @@ def require_login():
     if not current_user.is_authenticated:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # Session auth: validate CSRF token for non-safe methods
-    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-        from flask_wtf.csrf import validate_csrf
-        try:
-            validate_csrf(request.form.get('csrf_token') or request.headers.get('X-CSRFToken'))
-        except Exception:
-            return jsonify({'error': 'CSRF token validation failed'}), 400
-
 # RECEIVING ENDPOINTS
 
 @api.route('/api/receiving/receiving_logs', methods=['GET'])
