@@ -55,7 +55,7 @@ from app.utils.notification_utils import (
 """
 Date: July 28 2026
 
-reorganizing the url structures to be grouped in a more reasonable/organized way
+reorganizing the url structures to be grouped in a more reasonable / organized way
 
 breaking them into:
 api/receiving  : receiving log stuff
@@ -1295,6 +1295,11 @@ def delete_inventory_session(session_id):
 @api.route('/api/labor/daily_logs', methods=['GET'])
 @optional_api_key_or_login
 def get_daily_logs():
+    """
+    Endpoint for viewing daily labor logs
+    Keeps track of labor ratio, etc.
+    """
+
     company_id = get_request_company_id()
 
     query = DailyLog.query.filter_by(company_id=company_id)
@@ -1351,9 +1356,20 @@ def create_daily_log():
             errors = {'.'.join(str(l) for l in err['loc']): err['msg'] for err in e.errors()}
             return jsonify({'error': 'Invalid input', 'details': errors}), 400
 
+        raw_date = raw_data.get('date')
+        if raw_date is None:
+            log_date = datetime.utcnow().date()
+        elif isinstance(raw_date, str):
+            try:
+                log_date = parse_date_value(raw_date, 'date')
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+        else:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD or ISO datetime'}), 400
+
         log = DailyLog(
             company_id=company_id,
-            date=data.date or datetime.utcnow().date(),
+            date=log_date,
             items=data.items,
             sales=data.sales,
             labor_hours=data.labor_hours,
@@ -1394,6 +1410,26 @@ def create_daily_log():
         db.session.rollback()
         current_app.logger.error(f"Error creating daily log: {e}")
         return jsonify({'error': 'An error occurred while creating the daily log'}), 500
+
+
+@api.route('/api/labor/daily_logs/<int:log_id>', methods=['DELETE'])
+@optional_api_key_or_login
+def delete_daily_log(log_id):
+    try:
+        company_id = get_request_company_id()
+        log = DailyLog.query.filter_by(company_id=company_id, id=log_id).first()
+        if not log:
+            return jsonify({'error': 'Daily log not found'}), 404
+
+        db.session.delete(log)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': f'Daily log {log_id} deleted successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting daily log: {e}")
+        return jsonify({'error': 'An error occurred while deleting the daily log'}), 500
 
 
 @api.route('/api/labor/pay_groups', methods=['GET'])
