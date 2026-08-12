@@ -21,7 +21,12 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Daily Logs ({{ logs|length }} record{{ 's' if logs|length != 1 else '' }})</strong>
-        <small class="text-muted">Submitted via iPad app</small>
+        <div>
+          <a href="{{ url_for('main.labor_print_daily', start_date=start_date, end_date=end_date) }}" target="_blank" class="btn btn-sm">
+            Print / Save PDF
+          </a>
+          <small class="text-muted">Submitted via LaborApp</small>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">

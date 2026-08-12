@@ -30,9 +30,14 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Weekly Entries ({{ entries|length }} record{{ 's' if entries|length != 1 else '' }})</strong>
-        <a href="{{ url_for('main.labor_pay_groups') }}" class="btn btn-outline-secondary btn-sm">
-          Manage Pay Groups
-        </a>
+        <div>
+          <a href="{{ url_for('main.labor_print_weekly', start_date=start_date, end_date=end_date) }}" target="_blank" class="btn btn-primary btn-lg fw-bold me-2">
+            Print / Save PDF
+          </a>
+          <a href="{{ url_for('main.labor_pay_groups') }}" class="btn btn-outline-secondary btn-sm">
+            Manage Pay Groups
+          </a>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">

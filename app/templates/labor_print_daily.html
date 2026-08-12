@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #111; font-size: 9pt; margin: 0; -webkit-text-size-adjust: none; }
+h1 { font-size: 16pt; margin: 0 0 3pt; }
+h2 { font-size: 11pt; margin: 14pt 0 2pt; padding-bottom: 2pt; border-bottom: 1.5px solid #111; }
+p { margin: 0; }
+.head { border-bottom: 2px solid #111; padding-bottom: 6pt; margin-bottom: 10pt; }
+.sub { color: #555; font-size: 8.5pt; margin-top: 1pt; }
+.empty { color: #555; font-style: italic; padding: 10pt 0; }
+.foot { color: #555; font-size: 8pt; margin-top: 8pt; }
+table { width: 100%; border-collapse: collapse; margin-top: 6pt; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; color: #333; text-align: right; padding: 3pt 3pt; border-bottom: 1px solid #111; white-space: nowrap; }
+td { text-align: right; padding: 3pt 3pt; border-bottom: 0.5px solid #ddd; white-space: nowrap; }
+th.l, td.l { text-align: left; white-space: normal; }
+tr.total td { font-size: 6pt; font-weight: 700; border-top: 1px solid #111; border-bottom: none; background: #f0f0f0; }
+.stats { margin: 8pt 0 2pt; }
+.stats td { border: none; text-align: left; padding: 4pt 8pt 4pt 0; vertical-align: top; width: 25%; }
+.statlabel { display: block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; color: #555; }
+.statvalue { display: block; font-size: 7.5pt; font-weight: 700; }
+.week { page-break-inside: avoid; margin-bottom: 6pt; }
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>Daily Labor Report</h1>
+  <p class="sub">{{ range_text }} &nbsp;·&nbsp; {{ day_count }} day{{ '' if day_count == 1 else 's' }} of entries</p>
+  <p class="sub">Printed {{ printed_at }}</p>
+</div>
+
+{% if not rows %}
+  <p class="empty">No daily entries fall in this date range.</p>
+{% else %}
+
+  <table class="stats"><tbody>
+    {% for label, value in stats %}
+      {% if loop.index0 % 4 == 0 %}<tr>{% endif %}
+      <td class="stat"><span class="statlabel">{{ label }}</span><span class="statvalue">{{ value }}</span></td>
+      {% if loop.index0 % 4 == 3 %}</tr>{% endif %}
+    {% endfor %}
+  </tbody></table>
+
+  <h2>Daily Detail</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="l">Date</th><th>Items</th><th>Sales</th><th>Reg</th><th>OT</th>
+        <th>Adj Hrs</th><th>Payroll</th><th>$/Hr</th><th>Ratio</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in rows %}
+      <tr>
+        <td class="l">{{ entry.date.strftime('%b %d, %Y') }}</td>
+        <td>{{ '{:,}'.format(entry.items) }}</td>
+        <td>{{ '%.2f'|format(entry.sales)|replace(',', ',') if entry.sales is not none else '0.00' }}</td>
+        <td>{{ '%.1f'|format(entry.labor_hours) }}</td>
+        <td>{{ '%.1f'|format(entry.overtime_hours) }}</td>
+        <td>{{ '%.1f'|format(entry.labor_hours + entry.overtime_hours * overtime_multiplier) }}</td>
+        <td>{{ '$%.2f'|format(entry.payroll_cost) }}</td>
+        <td>{{ '$%.2f'|format(entry.average_man_hour_cost) if entry.average_man_hour_cost else '—' }}</td>
+        <td>{{ '%.3f'|format(entry.labor_ratio) if entry.items > 0 else '—' }}</td>
+      </tr>
+      {% endfor %}
+
+      <tr class="total">
+        <td class="l">Total</td>
+        <td>{{ '{:,}'.format(totals.cases) }}</td>
+        <td>{{ '$%.2f'|format(totals.sales) }}</td>
+        <td>{{ '%.1f'|format(totals.hours) }}</td>
+        <td>{{ '%.1f'|format(totals.overtime) }}</td>
+        <td>{{ '%.1f'|format(totals.adjusted_hours) }}</td>
+        <td>{{ '$%.2f'|format(totals.payroll) }}</td>
+        <td>{% if totals.adjusted_hours > 0 %}{{ '$%.2f'|format(totals.man_hour_cost) }}{% else %}—{% endif %}</td>
+        <td>{% if totals.cases > 0 %}{{ '%.3f'|format(totals.labor_ratio) }}{% else %}—{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="foot">Adjusted labor hours count overtime at 1.5×. Labor ratio is adjusted hours ÷ items sold.</p>
+{% endif %}
+</body>
+</html>

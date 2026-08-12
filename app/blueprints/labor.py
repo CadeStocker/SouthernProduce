@@ -180,6 +180,98 @@ def _aggregate_sales(records, key_fn, name_fn):
     return rows
 
 
+# ---------- Print / report builders and endpoints ----------
+
+from flask import make_response
+
+
+def _escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def _currency(value: float) -> str:
+    return f"${value:,.2f}"
+
+
+def _number(value: float, decimals: int = 1) -> str:
+    fmt = f"%.{decimals}f"
+    return fmt % (value if value is not None else 0)
+
+
+def _percent(value: float) -> str:
+    return f"{value:.1f}%"
+
+
+def _timestamp() -> str:
+    return datetime.now().strftime("%b %d, %Y %I:%M %p")
+
+
+def _report_page(body_html: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8">
+    <style>
+    body {{ font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+           color: #111; font-size: 9pt; margin: 0; -webkit-text-size-adjust: none; }}
+    h1 {{ font-size: 16pt; margin: 0 0 3pt; }}
+    h2 {{ font-size: 11pt; margin: 14pt 0 2pt; padding-bottom: 2pt;
+         border-bottom: 1.5px solid #111; }}
+    p {{ margin: 0; }}
+    .head {{ border-bottom: 2px solid #111; padding-bottom: 6pt; margin-bottom: 10pt; }}
+    .sub {{ color: #555; font-size: 8.5pt; margin-top: 1pt; }}
+    .empty {{ color: #555; font-style: italic; padding: 10pt 0; }}
+    .foot {{ color: #555; font-size: 8pt; margin-top: 8pt; }}
+    table {{ width: 100%; border-collapse: collapse; margin-top: 6pt; }}
+    thead {{ display: table-header-group; }}
+    tr {{ page-break-inside: avoid; }}
+    th {{ font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+         color: #333; text-align: right; padding: 3pt 3pt; border-bottom: 1px solid #111; white-space: nowrap; }}
+    td {{ text-align: right; padding: 3pt 3pt; border-bottom: 0.5px solid #ddd; white-space: nowrap; }}
+    th.l, td.l {{ text-align: left; white-space: normal; }}
+    tr.total td {{ font-size: 6pt; font-weight: 700; border-top: 1px solid #111; border-bottom: none; background: #f0f0f0; }}
+    .stats {{ margin: 8pt 0 2pt; }}
+    .stats td {{ border: none; text-align: left; padding: 4pt 8pt 4pt 0; vertical-align: top; width: 25%; }}
+    .statlabel {{ display: block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; color: #555; }}
+    .statvalue {{ display: block; font-size: 7.5pt; font-weight: 700; }}
+    .week {{ page-break-inside: avoid; margin-bottom: 6pt; }}
+    </style></head>
+    <body>{body_html}</body></html>
+    """
+
+
+def _report_header(title: str, range_text: str, detail: str) -> str:
+    return (
+        f"<div class=\"head\">"
+        f"<h1>{_escape(title)}</h1>"
+        f"<p class=\"sub\">{_escape(range_text)} &nbsp;·&nbsp; {_escape(detail)}</p>"
+        f"<p class=\"sub\">Printed {_escape(_timestamp())}</p>"
+        f"</div>"
+    )
+
+
+def _summary_grid(stats):
+    columns = 4
+    cells = ""
+    for i in range(0, len(stats), columns):
+        row = stats[i:i+columns]
+        line = "<tr>"
+        for label, value in row:
+            line += (
+                f"<td class=\"stat\"><span class=\"statlabel\">{_escape(label)}</span>"
+                f"<span class=\"statvalue\">{_escape(value)}</span></td>"
+            )
+        for _ in range(len(row), columns):
+            line += "<td class=\"stat\"></td>"
+        cells += line + "</tr>"
+    return f"<table class=\"stats\"><tbody>{cells}</tbody></table>"
+
+
+
 @main.route('/labor/dashboard')
 @login_required
 def labor_dashboard():
@@ -536,3 +628,137 @@ def delete_labor_film_usage(record_id):
     db.session.commit()
     flash('Film usage record deleted.', 'success')
     return redirect(url_for('main.labor_film_usage'))
+
+
+# Printable report endpoints
+@main.route('/labor/print/daily')
+@login_required
+def labor_print_daily():
+    """Return a printable daily labor report as HTML for the given date range.
+
+    Query params: `start_date` and `end_date` in YYYY-MM-DD. If omitted, uses
+    the last 30 days.
+    """
+    company_id = current_user.company_id
+    start_raw = request.args.get('start_date')
+    end_raw = request.args.get('end_date')
+    today = date.today()
+    try:
+        start = date.fromisoformat(start_raw) if start_raw else today - timedelta(days=29)
+    except Exception:
+        start = today - timedelta(days=29)
+    try:
+        end = date.fromisoformat(end_raw) if end_raw else today
+    except Exception:
+        end = today
+
+    rows = DailyLog.query.filter_by(company_id=company_id).filter(
+        DailyLog.date >= start, DailyLog.date <= end
+    ).order_by(DailyLog.date).all()
+
+    totals = _labor_totals(rows)
+
+    range_text = f"{_pretty_date(start)} – {_pretty_date(end)}"
+
+    stats = [
+        ("Total Sales", _currency(totals['sales'])),
+        ("Total Payroll", _currency(totals['payroll'])),
+        ("Items Sold", f"{totals['cases']:,}"),
+        ("Adjusted Labor Hours", f"{totals['adjusted_hours']:.1f} h"),
+        ("Labor Ratio", f"{totals['labor_ratio']:.3f}" if totals['cases']>0 else "—"),
+        ("Avg Man-Hour Cost", _currency(totals['man_hour_cost']) if totals['adjusted_hours']>0 else "—"),
+        ("Avg Case Cost", _currency(totals['revenue_per_case']) if totals['cases']>0 else "—"),
+        ("Payroll per Sales $", f"{totals['payroll']/totals['sales']:.2f}" if totals['payroll']>0 and totals['sales']>0 else "—"),
+    ]
+
+    return make_response(render_template(
+        'labor_print_daily.html',
+        rows=rows,
+        totals=totals,
+        range_text=range_text,
+        stats=stats,
+        day_count=len(rows),
+        printed_at=datetime.now().strftime('%b %d, %Y %I:%M %p'),
+        overtime_multiplier=OVERTIME_MULTIPLIER,
+    ))
+
+
+@main.route('/labor/print/weekly')
+@login_required
+def labor_print_weekly():
+    """Return a printable weekly labor report as HTML for the given week range.
+
+    Query params: `start_date` and `end_date` (week start dates). If omitted,
+    returns the last 4 weeks.
+    """
+    company_id = current_user.company_id
+    start_raw = request.args.get('start_date')
+    end_raw = request.args.get('end_date')
+    today = date.today()
+    try:
+        start = date.fromisoformat(start_raw) if start_raw else today - timedelta(days=28)
+    except Exception:
+        start = today - timedelta(days=28)
+    try:
+        end = date.fromisoformat(end_raw) if end_raw else today
+    except Exception:
+        end = today
+
+    weeks = WeeklyLaborEntry.query.filter_by(company_id=company_id).filter(
+        WeeklyLaborEntry.week_start_date >= start, WeeklyLaborEntry.week_start_date <= end
+    ).all()
+
+    weeks_sorted = sorted(weeks, key=lambda w: w.week_start_date)
+
+    range_text = f"{_pretty_date(start)} – {_pretty_date(end)}"
+
+    if not weeks_sorted:
+        return make_response(render_template('labor_print_weekly.html', weeks=[], range_text=range_text, stats=[], week_count=0))
+
+    total_sales = sum(getattr(w, 'sales', 0) for w in weeks_sorted)
+    total_pay = sum(getattr(w, 'pay', 0) for w in weeks_sorted)
+    total_hours = sum((w.regular_hours + w.overtime_hours) for w in weeks_sorted)
+    total_overtime = sum(w.overtime_hours for w in weeks_sorted)
+
+    stats = [
+        ("Total Sales", _currency(total_sales)),
+        ("Total Labor Pay", _currency(total_pay)),
+        ("Labor % of Sales", _percent(_safe_divide(total_pay, total_sales) * 100) if total_sales>0 else "—"),
+        ("Total Hours", f"{total_hours:.1f} h"),
+        ("Overtime Hours", f"{total_overtime:.1f} h"),
+        ("Avg Cost / Hour", _currency(_safe_divide(total_pay, total_hours)) if total_hours>0 else "—"),
+    ]
+
+    # Convert weeks to serializable dicts and preload pay group names for the template
+    pay_group_ids = {w.pay_group_id for w in weeks_sorted}
+    pay_groups = PayGroups.query.filter(PayGroups.id.in_(pay_group_ids)).all() if pay_group_ids else []
+    pay_group_map = {pg.id: pg.name for pg in pay_groups}
+
+    week_items = []
+    for w in weeks_sorted:
+        week_items.append({
+            'week_start_date': w.week_start_date,
+            'week_end_date': w.week_start_date + timedelta(days=6),
+            'sales': getattr(w, 'sales', 0),
+            'pay': w.pay,
+            'regular_hours': w.regular_hours,
+            'overtime_hours': w.overtime_hours,
+            'number_in_pay_group': w.number_in_pay_group,
+            'number_with_overtime': w.number_with_overtime,
+            'pay_group_id': w.pay_group_id,
+        })
+
+    return make_response(render_template(
+        'labor_print_weekly.html',
+        weeks=week_items,
+        range_text=range_text,
+        stats=stats,
+        week_count=len(week_items),
+        total_sales=total_sales,
+        total_pay=total_pay,
+        total_hours=total_hours,
+        total_overtime=total_overtime,
+        pay_group_map=pay_group_map,
+        printed_at=datetime.now().strftime('%b %d, %Y %I:%M %p'),
+        overtime_multiplier=OVERTIME_MULTIPLIER,
+    ))
