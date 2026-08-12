@@ -47,7 +47,8 @@ def create_app(db_uri=None):
     app = Flask(__name__)
     
     # turn back off
-    app.config['DEBUG'] = True
+    # THIS WAS ACCIDENTALLY SET TO TRUE TODO
+    app.config['DEBUG'] = False
 
     # --- START: Production Database Configuration ---
     # This logic checks if it's running on Render by looking for the mounted disk.
