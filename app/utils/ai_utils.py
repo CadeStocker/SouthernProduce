@@ -5,10 +5,15 @@ from app.models import AIResponse
 from flask import jsonify
 import logging
 from app import db
+try:
+    from app import openai_model
+except Exception:
+    # Fallback to a sensible default if the app package doesn't expose openai_model
+    openai_model = "GPT-5.6 Terra"
 
 logger = logging.getLogger(__name__)
 
-def get_ai_response(prompt=None, system_message=None, messages=None, model="GPT-5.6 Terra", response_format=None):
+def get_ai_response(prompt=None, system_message=None, messages=None, model=openai_model, response_format=None):
     """Get a response from OpenAI API with speed optimizations"""
     if system_message is None:
         system_message = "You are a helpful assistant for a produce pricing application."

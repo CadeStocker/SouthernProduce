@@ -28,6 +28,7 @@ migrate = Migrate()
 
 # Initialize OpenAI client (lazy-loaded to handle missing API key)
 openai_client = None
+openai_model = "GPT-5.6 Terra"  # Default model for AI responses
 
 def get_openai_client():
     """Get or create OpenAI client. Handles missing API key gracefully."""
@@ -39,7 +40,7 @@ def get_openai_client():
         else:
             # Return a dummy client that will fail when used
             # This allows the app to start without the API key
-            print("Warning: OPENAI_API_KEY is not set. OpenAI functionality will be disabled.")
+            #print("Warning: OPENAI_API_KEY is not set. OpenAI functionality will be disabled.")
             return None
     return openai_client
 

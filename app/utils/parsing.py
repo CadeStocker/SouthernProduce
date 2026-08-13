@@ -4,6 +4,12 @@ import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from app.utils.ai_utils import get_ai_response
+# Import the app-level model selection so this module uses the single source of truth
+try:
+    from app import openai_model
+except Exception:
+    # Fallback to a sensible default if the app package doesn't expose openai_model
+    openai_model = "GPT-5.6 Terra"
 
 """
 This file helps with taking the parsed contents of a pdf, then sending it to chatgpt
@@ -85,7 +91,7 @@ def _attempt_parse(cleaned_text: str) -> Dict[str, Any]:
     """Helper function to attempt parsing with given text."""
     try:
         response = get_ai_response(
-            model="gpt-4o-mini",
+            model=openai_model,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": (
