@@ -3,6 +3,7 @@ from flask import current_app, url_for
 from app import db
 from app.models import Notification, User
 
+# MAIN COMPANY/APP NOTIFICATIONS
 
 def create_company_notification(company_id, title, message, category='info', link_url=None, commit=True):
     users = User.query.filter_by(company_id=company_id).all()
@@ -25,6 +26,10 @@ def create_company_notification(company_id, title, message, category='info', lin
 
 
 def _get_outlier_threshold():
+    """
+    Get the threshold for price outlier notifications from config, defaulting to 10%.
+    """
+
     try:
         return float(current_app.config.get('NOTIFICATION_OUTLIER_PERCENT_THRESHOLD', 10.0))
     except (TypeError, ValueError):

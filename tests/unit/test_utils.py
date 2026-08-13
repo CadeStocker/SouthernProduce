@@ -58,14 +58,16 @@ class TestMatching:
 # ====================
 
 class TestAIUtils:
-    @patch('app.utils.ai_utils.openai_client')
-    def test_get_ai_response_success(self, mock_openai):
+    @patch('app.utils.ai_utils.get_openai_client')
+    def test_get_ai_response_success(self, mock_get_client):
         """Test successful AI response."""
         # Mock the response structure
+        mock_openai = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Test response content"
         mock_openai.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_openai
         
         result = get_ai_response(prompt="Test prompt")
         
@@ -77,13 +79,23 @@ class TestAIUtils:
         call_args = mock_openai.chat.completions.create.call_args[1]
         assert call_args["messages"][1]["content"] == "Test prompt"
 
-    @patch('app.utils.ai_utils.openai_client')
-    def test_get_ai_response_json_format(self, mock_openai):
+    @patch('app.utils.ai_utils.get_openai_client', return_value=None)
+    def test_get_ai_response_missing_client_config(self, _mock_get_client):
+        """Test graceful handling when OpenAI is not configured."""
+        result = get_ai_response(prompt="Test prompt")
+
+        assert result["success"] is False
+        assert "OPENAI_API_KEY" in result["error"]
+
+    @patch('app.utils.ai_utils.get_openai_client')
+    def test_get_ai_response_json_format(self, mock_get_client):
         """Test AI response with JSON format."""
+        mock_openai = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = '{"key": "value"}'
         mock_openai.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_openai
         
         result = get_ai_response(
             prompt="Test JSON", 
@@ -94,13 +106,15 @@ class TestAIUtils:
         assert result["content"] == '{"key": "value"}'
         assert "response_format" in mock_openai.chat.completions.create.call_args[1]
 
-    @patch('app.utils.ai_utils.openai_client')
-    def test_get_ai_response_invalid_json(self, mock_openai):
+    @patch('app.utils.ai_utils.get_openai_client')
+    def test_get_ai_response_invalid_json(self, mock_get_client):
         """Test AI response with invalid JSON when JSON is expected."""
+        mock_openai = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = 'Invalid JSON'
         mock_openai.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_openai
         
         result = get_ai_response(
             prompt="Test JSON", 
@@ -110,23 +124,27 @@ class TestAIUtils:
         assert result["success"] is False
         assert "OpenAI returned invalid JSON" in result["error"]
 
-    @patch('app.utils.ai_utils.openai_client')
-    def test_get_ai_response_api_error(self, mock_openai):
+    @patch('app.utils.ai_utils.get_openai_client')
+    def test_get_ai_response_api_error(self, mock_get_client):
         """Test handling of OpenAI API errors."""
+        mock_openai = MagicMock()
         mock_openai.chat.completions.create.side_effect = Exception("API Error")
+        mock_get_client.return_value = mock_openai
         
         result = get_ai_response(prompt="Test prompt")
         
         assert result["success"] is False
         assert "API Error" in result["error"]
 
-    @patch('app.utils.ai_utils.openai_client')
-    def test_get_ai_response_truncation(self, mock_openai):
+    @patch('app.utils.ai_utils.get_openai_client')
+    def test_get_ai_response_truncation(self, mock_get_client):
         """Test truncation of long messages."""
+        mock_openai = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Response"
         mock_openai.chat.completions.create.return_value = mock_response
+        mock_get_client.return_value = mock_openai
         
         # Create a very long prompt
         long_prompt = "a" * 20000

@@ -1,6 +1,6 @@
 # Copyright Cade Stocker 2026
 import datetime
-from app import openai_client
+from app import get_openai_client
 from app.models import AIResponse
 from flask import jsonify
 import logging
@@ -8,12 +8,16 @@ from app import db
 
 logger = logging.getLogger(__name__)
 
-def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-4o-mini", response_format=None):
+def get_ai_response(prompt=None, system_message=None, messages=None, model="GPT-5.6 Terra", response_format=None):
     """Get a response from OpenAI API with speed optimizations"""
     if system_message is None:
         system_message = "You are a helpful assistant for a produce pricing application."
     
     try:
+        client = get_openai_client()
+        if client is None:
+            raise RuntimeError("OpenAI is not configured. Set OPENAI_API_KEY in your environment before using AI features.")
+
         if messages is None:
             messages = [
                 {"role": "system", "content": system_message},
@@ -35,7 +39,7 @@ def get_ai_response(prompt=None, system_message=None, messages=None, model="gpt-
         if response_format:
             kwargs["response_format"] = response_format
         
-        response = openai_client.chat.completions.create(**kwargs)
+        response = client.chat.completions.create(**kwargs)
         
         # Response handling code...
         if isinstance(response, dict):

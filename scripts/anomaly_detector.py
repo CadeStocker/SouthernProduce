@@ -40,6 +40,10 @@ class AnomalyDetector:
         self.ewma_alpha = 0.1
 
     def get_jobrun(self, source_table):
+        """
+        track most recent processed ID for each source table to allow incremental processing
+        """
+
         jr = self.JobRun.query.filter_by(source_table=source_table).first()
         if not jr:
             jr = self.JobRun(source_table=source_table)
@@ -48,6 +52,10 @@ class AnomalyDetector:
         return jr
 
     def upsert_entity_stat(self, entity_type, entity_id, metric, value, alpha=None):
+        """
+        update the stats for given metric
+        """
+
         alpha = alpha if alpha is not None else self.ewma_alpha
         stat = self.EntityStat.query.filter_by(entity_type=entity_type, entity_id=entity_id, metric=metric, window='ewma').first()
         if not stat:
@@ -58,6 +66,10 @@ class AnomalyDetector:
         self.db.session.add(stat)
 
     def record_anomaly(self, entity_type, entity_id, metric, expected, actual, z_score=None, rule=None, dollar_impact=None, explanation=None, severity=None):
+        """
+        some heuristics for describing how 'bad' an anomaly is and records it to db
+        """
+
         if severity is None:
             # simple heuristic for severity
             sev = 'low'
@@ -88,10 +100,15 @@ class AnomalyDetector:
         self.db.session.add(anomaly)
 
     def process_price_history(self):
+        """
+        look at all price history records since last run and check for anomalies, updating stats as we go
+        """
+
         jr = self.get_jobrun('price_history')
         last_id = jr.last_processed_id or 0
         query = self.PriceHistory.query.filter(self.PriceHistory.id > last_id).order_by(self.PriceHistory.id)
         max_seen = last_id
+
         for row in query.all():
             max_seen = max(max_seen, row.id)
             item_id = row.item_id
@@ -131,6 +148,10 @@ class AnomalyDetector:
         self.db.session.add(jr)
 
     def process_current_prices(self):
+        """
+        look at all current item prices since last run and check for anomalies, updating stats as we go
+        """
+
         jr = self.get_jobrun('current_item_price')
         last_id = jr.last_processed_id or 0
         query = self.CurrentItemPrice.query.filter(self.CurrentItemPrice.id > last_id).order_by(self.CurrentItemPrice.id)
@@ -160,6 +181,10 @@ class AnomalyDetector:
         self.db.session.add(jr)
 
     def process_cost_history(self):
+        """
+        look at all cost history records since last run and check for anomalies, updating stats as we go
+        """
+
         jr = self.get_jobrun('cost_history')
         last_id = jr.last_processed_id or 0
         query = self.CostHistory.query.filter(self.CostHistory.id > last_id).order_by(self.CostHistory.id)

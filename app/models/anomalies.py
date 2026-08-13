@@ -4,6 +4,14 @@
 from datetime import datetime
 from app import db
 
+"""
+Will use EWMA to keep ongoing stats for each (mean, var, stddev) for each (entity, metric, window)
+
+From this, we can compute z-scores to find outliers in data as soon as they're added. 
+The idea is for this to trigger the app's notifications system, 
+and then for the anomolies to be converted to plain text explanations later if desired.
+"""
+
 
 class EntityStat(db.Model):
     """Rolling statistics for an (entity, metric, window)."""
@@ -12,7 +20,7 @@ class EntityStat(db.Model):
     entity_type = db.Column(db.String(100), nullable=False, index=True)
     entity_id = db.Column(db.Integer, nullable=False, index=True)
     metric = db.Column(db.String(100), nullable=False)
-    window = db.Column(db.String(50), nullable=False, default='ewma')
+    window = db.Column(db.String(50), nullable=False, default='ewma') # window is a string of representing what method was used (ewma, etc.)
     mean = db.Column(db.Float, nullable=True)
     stddev = db.Column(db.Float, nullable=True)
     count = db.Column(db.Integer, nullable=False, default=0)
@@ -21,6 +29,9 @@ class EntityStat(db.Model):
 
     def update_ewma(self, new_value, alpha=0.1):
         """Update mean/stddev using EWMA incremental formulas.
+
+        formula for updates: 
+        alpha * new_value + (1 - alpha) * old_mean
 
         Uses the form from the spec. If no previous stats exist, initialize
         mean to new_value and stddev to 0.

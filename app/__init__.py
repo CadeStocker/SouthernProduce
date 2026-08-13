@@ -39,6 +39,7 @@ def get_openai_client():
         else:
             # Return a dummy client that will fail when used
             # This allows the app to start without the API key
+            print("Warning: OPENAI_API_KEY is not set. OpenAI functionality will be disabled.")
             return None
     return openai_client
 
