@@ -9,7 +9,7 @@ try:
     from app import openai_model
 except Exception:
     # Fallback to a sensible default if the app package doesn't expose openai_model
-    openai_model = "GPT-5.6 Terra"
+    openai_model = "gpt-5.6-terra"
 
 logger = logging.getLogger(__name__)
 

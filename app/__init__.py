@@ -28,7 +28,7 @@ migrate = Migrate()
 
 # Initialize OpenAI client (lazy-loaded to handle missing API key)
 openai_client = None
-openai_model = "GPT-5.6 Terra"  # Default model for AI responses
+openai_model = "gpt-5.6-terra"  # Default model for AI responses
 
 def get_openai_client():
     """Get or create OpenAI client. Handles missing API key gracefully."""
