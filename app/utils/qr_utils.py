@@ -1,10 +1,20 @@
 # Copyright Cade Stocker 2026
-"""QR Code generation utilities for API keys."""
-import qrcode
+"""QR Code generation utilities for API keys.
+
+`qrcode` is an optional dependency; tests and environments that don't
+need QR code generation should still be able to import this module.
+"""
 import io
 import base64
 import json
 from flask import url_for
+
+try:
+    import qrcode
+    QR_AVAILABLE = True
+except Exception:
+    qrcode = None
+    QR_AVAILABLE = False
 
 
 def generate_api_key_qr_code(api_key, device_name, api_base_url=None):
@@ -37,6 +47,9 @@ def generate_api_key_qr_code(api_key, device_name, api_base_url=None):
     # Convert to JSON string
     qr_data = json.dumps(config)
     
+    if not QR_AVAILABLE:
+        raise RuntimeError('qrcode package not available; install qrcode[pil] to enable QR generation')
+
     # Create QR code
     qr = qrcode.QRCode(
         version=None,  # Auto-determine size
@@ -68,6 +81,9 @@ def generate_simple_qr_code(data):
     Returns:
         Base64 encoded PNG image data
     """
+    if not QR_AVAILABLE:
+        raise RuntimeError('qrcode package not available; install qrcode[pil] to enable QR generation')
+
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -98,6 +114,9 @@ def generate_qr_code_bytes(data):
     Returns:
         BytesIO object containing PNG data
     """
+    if not QR_AVAILABLE:
+        raise RuntimeError('qrcode package not available; install qrcode[pil] to enable QR generation')
+
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_H,

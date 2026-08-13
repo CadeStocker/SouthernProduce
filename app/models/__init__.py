@@ -96,6 +96,13 @@ from app.models.receiving import (
     ReceivingImage,
 )
 
+# Anomaly detection models
+from app.models.anomalies import (
+    EntityStat,
+    Anomaly,
+    JobRun,
+)
+
 __all__ = [
     # Database
     "db",
@@ -152,4 +159,8 @@ __all__ = [
     # Receiving
     "ReceivingLog",
     "ReceivingImage",
+    # Anomalies
+    "EntityStat",
+    "Anomaly",
+    "JobRun",
 ]

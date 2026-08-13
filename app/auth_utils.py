@@ -21,10 +21,18 @@ def _get_rate_limit_settings():
 
 
 def _get_client_identifier():
-    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    # Prefer X-Forwarded-For when behind a proxy, but fall back to the
+    # REMOTE_ADDR provided by the WSGI environment which is stable for
+    # the Flask test client (avoids returning different values across
+    # successive test-client requests).
+    forwarded_for = request.headers.get('X-Forwarded-For')
     if forwarded_for:
         return forwarded_for.split(',')[0].strip()
-    return request.remote_addr or 'unknown'
+
+    # REMOTE_ADDR is set by Werkzeug for the test client and by most WSGI
+    # servers; prefer it over request.remote_addr which can be None in tests.
+    remote_addr = request.environ.get('REMOTE_ADDR') or request.remote_addr
+    return remote_addr or 'unknown'
 
 
 def _prune_attempts(attempts, now, window_seconds):
@@ -39,6 +47,11 @@ def record_bad_api_key_attempt():
     attempts = _get_rate_limit_store().setdefault(client_id, deque())
     _prune_attempts(attempts, now, settings['window_seconds'])
     attempts.append(now)
+    # Debugging: log attempt counts to help diagnose test failures
+    try:
+        current_app.logger.debug(f"Bad API key attempt: client_id={client_id} attempts={list(attempts)} max={settings['max_attempts']}")
+    except Exception:
+        pass
     return len(attempts) >= settings['max_attempts']
 
 
@@ -117,7 +130,14 @@ def authenticate_api_key_request(api_key_string=None, require_key=True):
 
     api_key = validate_api_key(api_key_string)
     if not api_key:
-        return None, bad_api_key_response()
+        # If the caller requested a required key, surface the bad-key
+        # response (which records the failed attempt). If this check is
+        # happening as a lightweight pre-flight (e.g. app.before_request
+        # to mark CSRF-valid requests), don't record or return an error
+        # here so the actual route decorator can handle rate-limiting.
+        if require_key:
+            return None, bad_api_key_response()
+        return None, None
 
     return api_key, None
 

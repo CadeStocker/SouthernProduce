@@ -109,6 +109,33 @@ def create_app(db_uri=None):
     db.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
+    # Allow API-key authenticated requests to be treated as CSRF-valid.
+    # Register this before_request BEFORE CSRFProtect.init_app so that
+    # WTForms/CSRF checks will see `g.csrf_valid` and skip token validation
+    # for API-key authenticated clients.
+    @app.before_request
+    def _maybe_validate_api_key_and_mark_csrf_valid():
+        from flask import g as _g
+        from app.auth_utils import get_api_key_from_request, authenticate_api_key_request
+
+        api_key_string = get_api_key_from_request()
+        if not api_key_string:
+            return None
+
+        api_key, error_response = authenticate_api_key_request(api_key_string=api_key_string, require_key=False)
+        if api_key:
+            try:
+                api_key.update_last_used()
+            except Exception:
+                pass
+            _g.company_id = api_key.company_id
+            _g.api_key = api_key
+            _g.device_name = api_key.device_name
+            _g.auth_method = 'api_key'
+            # Mark request as CSRF-validated so Flask-WTF will skip validation
+            _g.csrf_valid = True
+        return None
+
     csrf.init_app(app)
     app.extensions['bad_api_key_attempts'] = {}
     
@@ -156,6 +183,20 @@ def create_app(db_uri=None):
     # Important: Do this INSIDE create_app to avoid circular imports
     from app.routes import main
     from app.api import api
+
+    # Exempt API blueprint from CSRF (API keys will be used for auth)
+    try:
+        csrf_ex = app.extensions.get('csrf')
+        if csrf_ex:
+            csrf_ex.exempt(api)
+            # Also exempt specific main views that are called by API-keyed clients
+            # e.g. allow deleting weekly labor entries without a CSRF token
+            try:
+                csrf_ex.exempt('app.blueprints.labor.delete_labor_weekly_entry')
+            except Exception:
+                app.logger.debug('Could not exempt weekly delete view; continuing')
+    except Exception:
+        app.logger.exception('Failed to mark API blueprint as CSRF-exempt')
 
     # Register blueprints
     # Note: API CSRF protection is handled per-request in api.py's before_request

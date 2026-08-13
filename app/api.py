@@ -131,7 +131,12 @@ def require_login():
         if error_response:
             return error_response
 
-    if not current_user.is_authenticated:
+    # If the request provided an API key header, let the route-level
+    # decorators handle invalid/expired keys (they will return the
+    # appropriate 401/429 responses and perform rate-limiting). Only
+    # return a generic 401 here when there is no API key and the user
+    # is not authenticated via session.
+    if not current_user.is_authenticated and not api_key_string:
         return jsonify({'error': 'Unauthorized'}), 401
 
 # RECEIVING ENDPOINTS
@@ -182,9 +187,22 @@ def create_receiving_log():
             received_by_default = f"{current_user.first_name} {current_user.last_name}"
         
         # Get and validate input data using Pydantic schema
-        raw_data = request.get_json()
+        raw_data = request.get_json(silent=True)
         if not raw_data:
-            return jsonify({'error': 'No data provided'}), 400
+            # If the client submitted form-encoded data (e.g. a browser form),
+            # try to accept that as a fallback by converting `request.form`
+            # into a dict. Otherwise log the raw body for debugging and
+            # return a helpful 400 response.
+            if request.form:
+                raw_data = request.form.to_dict(flat=True)
+                current_app.logger.info('Fallback: received form-encoded data for /api/labor/daily_logs')
+            else:
+                content_type = request.content_type
+                body = request.get_data(as_text=True)
+                current_app.logger.warning(
+                    f"No JSON received for daily_logs POST. Content-Type: {content_type}; Body: {body!r}"
+                )
+                return jsonify({'error': 'No data provided'}), 400
         
         # Validate input schema and types
         try:
