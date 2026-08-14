@@ -1,0 +1,20 @@
+[run_insights] 2026-08-14T16:46:21Z starting
+Traceback (most recent call last):
+  File "/Users/cadestocker/LocalProjects/SouthernProduce/scripts/anomaly_detector.py", line 10, in <module>
+    from app import create_app, db
+ModuleNotFoundError: No module named 'app'
+[run_insights] run failed at Fri Aug 14 12:46:21 EDT 2026
+[run_insights] 2026-08-14T16:46:21Z finished
+[run_insights] 2026-08-14T16:46:46Z starting
+/Users/cadestocker/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /Users/cadestocker/.vscode/tmp/tmp_vscode_1/matplotlib-uu0dyzhu because there was an issue with the default path (/Users/cadestocker/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Matplotlib is building the font cache; this may take a moment.
+/Users/cadestocker/LocalProjects/SouthernProduce/scripts/anomaly_detector.py:199: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  jr.touch(last_id=max_seen if max_seen > last_id else last_id, last_at=datetime.utcnow())
+/Users/cadestocker/LocalProjects/SouthernProduce/scripts/anomaly_detector.py:234: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  jr.touch(last_id=max_seen if max_seen > last_id else last_id, last_at=datetime.utcnow())
+/Users/cadestocker/LocalProjects/SouthernProduce/scripts/anomaly_detector.py:135: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  detected_at=datetime.utcnow(),
+/Users/cadestocker/LocalProjects/SouthernProduce/scripts/anomaly_detector.py:263: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  jr.touch(last_id=max_seen if max_seen > last_id else last_id, last_at=datetime.utcnow())
+[run_insights] 2026-08-14T16:46:53Z finished

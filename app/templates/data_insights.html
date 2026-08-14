@@ -6,6 +6,9 @@
   <p class="text-muted">Recent anomalies and data-consistency findings.</p>
 
   <div class="table-responsive">
+    <form method="post" action="{{ url_for('insights.run_insights_now') }}">
+      <button class="btn btn-primary mb-2" type="submit">Run Data Insights Now</button>
+    </form>
     <table class="table table-sm table-striped">
       <thead>
         <tr>
@@ -22,7 +25,15 @@
         {% for a in anomalies %}
         <tr>
           <td>{{ a.id }}</td>
-          <td>{{ a.entity_type }} #{{ a.entity_id }}</td>
+          <td>
+            {% set meta = entity_map.get(a.entity_type, {}).get(a.entity_id) if entity_map else None %}
+            {% if meta %}
+              <a href="{{ meta.url }}">{{ meta.label }}</a>
+              <small class="text-muted">({{ a.entity_type }} #{{ a.entity_id }})</small>
+            {% else %}
+              {{ a.entity_type }} #{{ a.entity_id }}
+            {% endif %}
+          </td>
           <td>{{ a.metric }}</td>
           <td>{{ a.rule_triggered or 'statistical' }}</td>
           <td>{{ a.severity }}</td>

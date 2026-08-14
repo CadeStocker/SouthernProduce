@@ -185,6 +185,9 @@ def create_app(db_uri=None):
     # Important: Do this INSIDE create_app to avoid circular imports
     from app.routes import main
     from app.api import api
+    # CLI commands
+    from flask.cli import with_appcontext
+    import click
 
     # Exempt API blueprint from CSRF (API keys will be used for auth)
     try:
@@ -205,6 +208,15 @@ def create_app(db_uri=None):
     # to allow API-key auth but require CSRF for session-based access
     app.register_blueprint(main)
     app.register_blueprint(api)
+
+    @app.cli.command('run-insights')
+    @with_appcontext
+    def run_insights_command():
+        """Run the anomaly detector once (CLI)."""
+        from scripts.anomaly_detector import AnomalyDetector
+        detector = AnomalyDetector(db)
+        detector.run()
+        click.echo('Anomaly detector run complete')
 
     # Import all sub-modules to register routes on `main`
     from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, labor, insights
