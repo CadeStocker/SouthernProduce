@@ -7,6 +7,7 @@
 
   <div class="table-responsive">
     <form method="post" action="{{ url_for('insights.run_insights_now') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn btn-primary mb-2" type="submit">Run Data Insights Now</button>
     </form>
     <table class="table table-sm table-striped">

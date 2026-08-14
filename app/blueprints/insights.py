@@ -54,13 +54,24 @@ def run_insights_now():
     try:
         from scripts.anomaly_detector import AnomalyDetector
         # run in background thread so request returns quickly
+        # capture the actual app object so the background thread can push an app context
+        app = current_app._get_current_object()
+
         def _run():
             try:
-                detector = AnomalyDetector(current_app.extensions['sqlalchemy'])
-                detector.run()
-                current_app.logger.info('Anomaly detector manual run finished')
+                with app.app_context():
+                    detector = AnomalyDetector(app.extensions['sqlalchemy'])
+                    detector.run()
+                    app.logger.info('Anomaly detector manual run finished')
             except Exception:
-                current_app.logger.exception('Anomaly detector manual run failed')
+                # ensure logging uses the captured app logger
+                try:
+                    with app.app_context():
+                        app.logger.exception('Anomaly detector manual run failed')
+                except Exception:
+                    # last resort: print to stderr
+                    import traceback, sys
+                    traceback.print_exc(file=sys.stderr)
 
         thread = threading.Thread(target=_run, daemon=True)
         thread.start()
