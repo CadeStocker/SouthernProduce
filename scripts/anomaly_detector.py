@@ -38,6 +38,8 @@ class AnomalyDetector:
         # rule tuning
         self.margin_threshold = 0.20
         self.ewma_alpha = 0.1
+        # statistical tuning
+        self.z_threshold = 2.5
 
     def get_jobrun(self, source_table):
         """
@@ -64,6 +66,41 @@ class AnomalyDetector:
             self.db.session.flush()
         stat.update_ewma(value, alpha=alpha)
         self.db.session.add(stat)
+
+    def check_statistical_anomaly(self, entity_type, entity_id, metric, value, stat):
+        """
+        Compute z-score against existing stat (prior to including new value) and record anomaly if threshold exceeded.
+        """
+        if not stat or stat.mean is None or stat.stddev is None or stat.count < 2:
+            return
+
+        try:
+            std = stat.stddev
+            if not std or std == 0:
+                return
+            z = (float(value) - float(stat.mean)) / float(std)
+        except Exception:
+            return
+
+        if abs(z) >= self.z_threshold:
+            expected = stat.mean
+            # heuristic dollar impact: use ItemTotalCost.total_cost when available for prices
+            dollar_impact = None
+            if metric in ('price', 'price_vs_cost'):
+                try:
+                    itc = self.ItemTotalCost.query.filter_by(item_id=entity_id).order_by(self.ItemTotalCost.date.desc()).first()
+                    volume = itc.total_cost if itc and itc.total_cost else 1
+                except Exception:
+                    volume = 1
+                dollar_impact = abs(float(value) - float(expected)) * float(volume)
+            else:
+                dollar_impact = abs(float(value) - float(expected))
+
+            explanation = (
+                f"{metric} for {entity_type} {entity_id} is {('higher' if float(value) > float(expected) else 'lower')} "
+                f"by {abs(float(value) - float(expected)):.2f} (z={z:.2f}) vs EWMA mean {expected:.2f}."
+            )
+            self.record_anomaly(entity_type, entity_id, metric, expected=expected, actual=value, z_score=z, rule='statistical_zscore', dollar_impact=dollar_impact, explanation=explanation)
 
     def record_anomaly(self, entity_type, entity_id, metric, expected, actual, z_score=None, rule=None, dollar_impact=None, explanation=None, severity=None):
         """
@@ -137,8 +174,23 @@ class AnomalyDetector:
                     explanation = f"margin {margin_pct:.2%} below threshold {self.margin_threshold:.2%} for item {item_id}"
                     self.record_anomaly('item', item_id, 'margin_pct', expected=None, actual=margin_pct, rule='margin_below_threshold', explanation=explanation, dollar_impact=abs(price - expected_cost))
 
+            # cross-app consistency: compare price history price vs current item price
+            try:
+                cip = self.CurrentItemPrice.query.filter_by(item_id=item_id).first()
+                if cip and cip.price and price:
+                    # percent difference
+                    pct_diff = abs(price - cip.price) / cip.price if cip.price != 0 else 0
+                    if pct_diff > 0.10:
+                        explanation = f"PriceHistory price ({price}) differs from CurrentItemPrice ({cip.price}) by {pct_diff:.1%} for item {item_id}"
+                        self.record_anomaly('item', item_id, 'data_consistency_price', expected=cip.price, actual=price, rule='data_consistency', explanation=explanation, dollar_impact=abs(price - cip.price))
+            except Exception:
+                pass
+
             # update entity stats for price
             try:
+                # check statistical anomaly against existing stats before updating
+                stat = self.EntityStat.query.filter_by(entity_type='item', entity_id=item_id, metric='price', window='ewma').first()
+                self.check_statistical_anomaly('item', item_id, 'price', price, stat)
                 self.upsert_entity_stat('item', item_id, 'price', price)
             except Exception:
                 pass
@@ -173,6 +225,8 @@ class AnomalyDetector:
                     self.record_anomaly('item', item_id, 'price_vs_cost', expected=expected_cost, actual=price, rule='price_below_cost', explanation=explanation, dollar_impact=abs(price - expected_cost))
 
             try:
+                stat = self.EntityStat.query.filter_by(entity_type='item', entity_id=item_id, metric='price', window='ewma').first()
+                self.check_statistical_anomaly('item', item_id, 'price', price, stat)
                 self.upsert_entity_stat('item', item_id, 'price', price)
             except Exception:
                 pass
@@ -200,6 +254,8 @@ class AnomalyDetector:
 
             # update stats for raw product cost
             try:
+                stat = self.EntityStat.query.filter_by(entity_type='raw_product', entity_id=raw_id, metric='cost', window='ewma').first()
+                self.check_statistical_anomaly('raw_product', raw_id, 'cost', cost, stat)
                 self.upsert_entity_stat('raw_product', raw_id, 'cost', cost)
             except Exception:
                 pass

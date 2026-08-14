@@ -207,7 +207,12 @@ def create_app(db_uri=None):
     app.register_blueprint(api)
 
     # Import all sub-modules to register routes on `main`
-    from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, labor
+    from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, labor, insights
+    # If a blueprint module defines its own Blueprint instance (like `insights`), register it here
+    try:
+        app.register_blueprint(insights.insights)
+    except Exception:
+        app.logger.debug('Could not register insights blueprint directly; it may use the shared `main` blueprint')
     
     # Add custom Jinja2 filter to convert newlines to <br> tags
     @app.template_filter('nl2br')
