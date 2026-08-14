@@ -52,7 +52,10 @@ class ReceivingLog(db.Model):
             self.datetime = date_time
     
     def get_master_customer_price(self):
-        """Get the market cost for this raw product around the time of this receiving log."""
+        """
+        Get the market cost for this raw product around the time of this receiving log.
+        The most recently entered cost of the raw prod. will be used to compare it
+        """
         from app.models.costing import CostHistory
         
         log_date = self.datetime.date() if self.datetime else None

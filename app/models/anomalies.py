@@ -36,6 +36,7 @@ class EntityStat(db.Model):
         Uses the form from the spec. If no previous stats exist, initialize
         mean to new_value and stddev to 0.
         """
+        
         if self.mean is None or self.count == 0:
             self.mean = float(new_value)
             self.stddev = 0.0

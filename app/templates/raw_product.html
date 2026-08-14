@@ -413,7 +413,7 @@
 
 <!-- PDF Review Modal -->
 <div class="modal fade" id="pdfReviewModal" tabindex="-1" role="dialog" aria-labelledby="pdfReviewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
+  <div class="modal-dialog modal-xl" role="document" style="max-width:1400px;">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="pdfReviewModalLabel">Review Parsed Costs</h5>
@@ -421,34 +421,32 @@
       </div>
       <div class="modal-body">
         <div id="review-info" class="alert alert-info"></div>
-        <h5 class="mt-3">Matched Items to be Created</h5>
-        <p>Review the matched items below. Uncheck any rows you do not want to import. 
-          Please read through all entries to make sure the AI didn't make mistakes.</p>
-        <div class="table-responsive" style="max-height: 250px;">
-          <table class="table table-sm table-striped">
-            <thead>
-              <tr>
-                <th style="width: 60px;">Import?</th>
-                <th>Name from PDF</th>
-                <th>Matched Product</th>
-                <th>Price</th>
-                <th>Match Score</th>
-              </tr>
-            </thead>
-            <tbody id="review-matched-table-body"></tbody>
-          </table>
-        </div>
-        <h5 class="mt-4">Skipped Items</h5>
-        <div class="table-responsive" style="max-height: 150px;">
-          <table class="table table-sm table-bordered">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Reason Skipped</th>
-              </tr>
-            </thead>
-            <tbody id="review-skipped-table-body"></tbody>
-          </table>
+
+        <div class="row">
+          <div class="col-md-6" style="height:640px; overflow:auto;">
+            <h6>Original PDF</h6>
+            <div id="pdf-viewer-container" style="border:1px solid #e1e1e1; height:580px;">
+              <iframe id="pdf-viewer" style="width:100%; height:100%; border:0;" title="PDF Viewer"></iframe>
+            </div>
+          </div>
+          <div class="col-md-6" style="height:640px; overflow:auto;">
+            <h6>Parsed Items (alphabetical)</h6>
+            <p class="text-muted">Click a row or use the keyboard to verify and correct matches. Use Tab to autocomplete from existing products.</p>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">Import?</th>
+                    <th>Name from PDF</th>
+                    <th>Price</th>
+                    <th>Matched Product</th>
+                    <th style="width:90px;">Score</th>
+                  </tr>
+                </thead>
+                <tbody id="parsed-items-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -499,12 +497,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(result.error || 'An unknown error occurred during parsing.');
             }
             
+            const pdfBlobUrl = URL.createObjectURL(pdfFileInput.files[0]);
             parsedDataForSave = {
-                effective_date: result.effective_date,
-                matched_items: result.matched_items
+              effective_date: result.effective_date,
+              parsed_items: result.parsed_items || [],
+              matched_items: result.matched_items || [],
+              pdf_blob_url: pdfBlobUrl
             };
 
-            populateReviewModal(result);
+            populateReviewModal(result, pdfBlobUrl);
             $('#pdfUploadModal').modal('hide');
             $('#pdfReviewModal').modal('show');
 
@@ -519,84 +520,184 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     confirmSaveBtn.addEventListener('click', async function() {
-        const itemsToCreate = [];
-        const checkboxes = document.querySelectorAll('#review-matched-table-body input[type="checkbox"]:checked');
-        
-        checkboxes.forEach(checkbox => {
-            const index = parseInt(checkbox.dataset.index, 10);
-            itemsToCreate.push(parsedDataForSave.matched_items[index]);
+      const itemsToCreate = [];
+
+      // Collect selected rows from unified parsed-items table
+      document.querySelectorAll('#parsed-items-body tr').forEach(row => {
+        const chk = row.querySelector('.row-import-check');
+        if (!chk || !chk.checked) return;
+
+        const name = row.dataset.name || '';
+        const price = row.dataset.price || '';
+        const matchedId = row.dataset.matchedId ? parseInt(row.dataset.matchedId, 10) : null;
+        const matchedName = row.querySelector('.matched-input') ? row.querySelector('.matched-input').value.trim() : '';
+
+        itemsToCreate.push({
+          matched_product_id: matchedId,
+          matched_product_name: matchedName || null,
+          name_from_pdf: name,
+          price_from_pdf: price
+        });
+      });
+
+      if (itemsToCreate.length === 0) {
+        alert('No items selected to save.');
+        return;
+      }
+
+      const payload = {
+        effective_date: parsedDataForSave.effective_date,
+        items_to_create: itemsToCreate
+      };
+
+      try {
+        const response = await fetch("{{ url_for('main.save_parsed_prices') }}", {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+          }
         });
 
-        if (itemsToCreate.length === 0) {
-            alert('No items selected to save.');
-            return;
+        const result = await response.json();
+        if (!response.ok) { throw new Error(result.error || 'Failed to save data.'); }
+
+        alert(result.message);
+        $('#pdfReviewModal').modal('hide');
+        window.location.reload();
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    function populateReviewModal(data, pdfBlobUrl) {
+        const reviewInfo = document.getElementById('review-info');
+        const parsedBody = document.getElementById('parsed-items-body');
+        const pdfViewer = document.getElementById('pdf-viewer');
+
+        reviewInfo.innerHTML = `<strong>Vendor:</strong> ${data.vendor || 'N/A'}<br><strong>Effective Date:</strong> ${data.effective_date || 'N/A'}`;
+
+        if (pdfViewer && pdfBlobUrl) {
+            pdfViewer.src = pdfBlobUrl;
         }
 
-        const payload = {
-            effective_date: parsedDataForSave.effective_date,
-            items_to_create: itemsToCreate
-        };
+        // Build datalist for candidates
+        let existingDatalist = document.getElementById('raw-products-datalist');
+        if (existingDatalist) existingDatalist.remove();
+        const dl = document.createElement('datalist');
+        dl.id = 'raw-products-datalist';
+        const candidates = data.candidates || [];
+        candidates.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.name;
+            opt.dataset.id = c.id;
+            dl.appendChild(opt);
+        });
+        document.getElementById('pdfReviewModal').appendChild(dl);
 
-        try {
-            const response = await fetch("{{ url_for('main.save_parsed_prices') }}", {
-                method: 'POST',
-                body: JSON.stringify(payload),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'
+        // Build parsed items table
+        const parsedItems = data.parsed_items && data.parsed_items.length ? data.parsed_items : (() => {
+            // fallback: merge matched + skipped into unified list
+            const list = [];
+            (data.matched_items || []).forEach(m => list.push({name_from_pdf: m.name_from_pdf, price_from_pdf: m.price_from_pdf, matched_product_name: m.matched_product_name, matched_product_id: m.matched_product_id, match_score: m.match_score}));
+            (data.skipped_items || []).forEach(s => list.push({name_from_pdf: s.name, price_from_pdf: s.price_from_pdf, candidates: s.suggestions || []}));
+            return list;
+        })();
+
+        // Ensure alphabetical by normalized name if server didn't already
+        parsedItems.sort((a,b) => (a.normalized_name || (a.name_from_pdf||'')).localeCompare(b.normalized_name || (b.name_from_pdf||'')));
+
+        let rows = '';
+        parsedItems.forEach(p => {
+            const name = p.name_from_pdf || '';
+            const price = (p.price_from_pdf !== undefined && p.price_from_pdf !== null) ? Number(p.price_from_pdf).toFixed(2) : '';
+            const matchedName = p.matched_product_name || '';
+            const matchedId = p.matched_product_id || '';
+            const score = p.match_score ? Math.round(p.match_score) + '%' : '—';
+            const rowId = `row-${Math.random().toString(36).slice(2,9)}`;
+
+            rows += `
+            <tr id="${rowId}" data-name="${name.replace(/"/g,'&quot;')}" data-price="${price}" data-matched-id="${matchedId}">
+              <td class="text-center"><input type="checkbox" class="row-import-check" checked></td>
+              <td class="pdf-name">${name}</td>
+              <td class="pdf-price">${price ? '$'+price : ''}</td>
+              <td>
+                <div class="input-group">
+                  <input type="text" class="form-control form-control-sm matched-input" list="raw-products-datalist" value="${matchedName}">
+                  <div class="input-group-append"><span class="input-group-text in-use-badge" style="display:none;font-size:11px;">In use</span></div>
+                </div>
+              </td>
+              <td class="text-right"><small class="text-muted">${score}</small></td>
+            </tr>`;
+        });
+
+        parsedBody.innerHTML = rows;
+
+        // Wire up matched-input behavior: set matched id on exact selection and show in-use badge
+        document.querySelectorAll('#parsed-items-body tr').forEach(tr => {
+            const input = tr.querySelector('.matched-input');
+            const badge = tr.querySelector('.in-use-badge');
+
+            input.addEventListener('input', function(e) {
+                const val = this.value.trim();
+                // Find candidate by exact name
+                const cand = candidates.find(c => c.name === val);
+                if (cand && cand.id) {
+                    tr.dataset.matchedId = cand.id;
+                    // Find in_use info from parsed_items candidates if available
+                    let inUse = null;
+                    if (data.parsed_items) {
+                        // search parsed_items candidates for this id
+                        data.parsed_items.forEach(pi => {
+                            (pi.candidates||[]).forEach(cc => { if (cc.id === cand.id && cc.in_use_by) inUse = cc.in_use_by; });
+                        });
+                    }
+                    if (inUse && String(inUse) !== tr.id) {
+                        badge.style.display = 'inline-block';
+                        badge.title = `Already assigned (parsed item id ${inUse})`;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } else {
+                    tr.dataset.matchedId = '';
+                    badge.style.display = 'none';
                 }
             });
 
-            const result = await response.json();
-            if (!response.ok) { throw new Error(result.error || 'Failed to save data.'); }
+            // Tab autocomplete: on Tab, if input partially matches candidate, fill
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    const val = this.value.trim().toLowerCase();
+                    if (!val) return;
+                    const m = candidates.find(c => c.name.toLowerCase().startsWith(val));
+                    if (m) {
+                        e.preventDefault();
+                        this.value = m.name;
+                        const event = new Event('input'); this.dispatchEvent(event);
+                    }
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    // navigate rows: find current tr and focus next/prev matched-input
+                    const all = Array.from(document.querySelectorAll('#parsed-items-body tr'));
+                    const idx = all.indexOf(tr);
+                    const next = e.key === 'ArrowDown' ? all[idx+1] : all[idx-1];
+                    if (next) {
+                        const nextInput = next.querySelector('.matched-input');
+                        if (nextInput) nextInput.focus();
+                    }
+                }
+            });
 
-            alert(result.message);
-            $('#pdfReviewModal').modal('hide');
-            window.location.reload();
-
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    });
-
-    function populateReviewModal(data) {
-    const matchedBody = document.getElementById('review-matched-table-body');
-    const skippedBody = document.getElementById('review-skipped-table-body');
-    const reviewInfo = document.getElementById('review-info');
-    
-    reviewInfo.innerHTML = `<strong>Vendor:</strong> ${data.vendor || 'N/A'}<br><strong>Effective Date:</strong> ${data.effective_date || 'N/A'}`;
-    
-    // Build all matched rows first
-    let matchedRows = '';
-    data.matched_items.forEach((item, index) => {
-        matchedRows += `
-            <tr>
-                <td class="text-center" style="width:60px;">
-  <div class="form-check m-0">
-    <input type="checkbox"
-           class="form-check-input position-static"
-           data-index="${index}" checked>
-  </div>
-</td>
-                <td>${item.name_from_pdf}</td>
-                <td>${item.matched_product_name}</td>
-                <td>$${Number(item.price_from_pdf).toFixed(2)}</td>
-                <td>${Math.round(item.match_score)}%</td>
-            </tr>`;
-    });
-    matchedBody.innerHTML = matchedRows;
-
-    // Build all skipped rows
-    let skippedRows = '';
-    data.skipped_items.forEach(item => {
-        skippedRows += `
-            <tr>
-                <td>${item.name || '<i>Unnamed</i>'}</td>
-                <td>${item.reason}</td>
-            </tr>`;
-    });
-    skippedBody.innerHTML = skippedRows;
-}
+            // Clicking row toggles checkbox
+            tr.addEventListener('click', function(ev) {
+                if (ev.target.tagName.toLowerCase() === 'input' || ev.target.tagName.toLowerCase() === 'button' || ev.target.tagName.toLowerCase() === 'select') return;
+                const chk = tr.querySelector('.row-import-check');
+                if (chk) chk.checked = !chk.checked;
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -761,7 +761,6 @@ def save_bulk_raw_product_costs():
 @main.route('/upload_raw_product_csv', methods=['GET', 'POST'])
 @login_required
 def upload_raw_product_csv():
-
     """
     Upload a CSV file to bulk import raw products and their costs.
     """

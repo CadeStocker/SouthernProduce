@@ -2,7 +2,7 @@
 import datetime
 from flask_mailman import EmailMessage
 from app.utils.pdf_utils import extract_pdf_text
-from app.utils.matching import best_match
+from app.utils.matching import best_match, match_parsed_items, build_quick_entry_list, normalize_name
 from app.utils.parsing import coerce_iso_date, parse_price_list_with_openai
 from app.blueprints._blueprint import main
 
@@ -387,35 +387,108 @@ def parse_price_pdf():
         name_map = {name: rid for (rid, name) in all_products}
         candidate_names = list(name_map.keys());
 
-        # Initialize empty lists
-        matched_items, skipped_items = [], []
-        
-        for it in items:
+        # Build a unified parsed_items list with inline candidate suggestions.
+        parsed_items = []
+
+        # Track which candidate id is already used by which parsed item (by index)
+        in_use_by = {}
+
+        # For each parsed item, compute top matches and annotate
+        from app.utils.matching import top_n_matches
+
+        for idx, it in enumerate(items, start=1):
             name = (it.get("name") or "").strip()
             price = it.get("price_usd")
-            if not name or price is None:
-                skipped_items.append({"name": name, "reason": "Missing name or price"})
-                continue
+            norm = normalize_name(name)
 
-            hit = best_match(name, candidate_names)
-            if not hit:
-                skipped_items.append({"name": name, "reason": "No strong match found"})
-                continue
-            
-            matched_name, score = hit
-            matched_items.append({
+            top = top_n_matches(name, candidate_names, n=5, min_score=0)
+
+            matched_product_id = None
+            matched_product_name = None
+            match_score = None
+
+            if top:
+                # Best candidate
+                best_name, best_score = top[0]
+                best_id = name_map.get(best_name)
+                if best_score >= 60:
+                    matched_product_name = best_name
+                    matched_product_id = best_id
+                    match_score = best_score
+                    # mark usage
+                    if best_id:
+                        in_use_by[best_id] = idx
+
+            # Build candidate objects (do not filter out ones that are in use,
+            # but annotate them so UI can warn the reviewer)
+            cand_objs = []
+            for c in top:
+                cname, cscore = c
+                cid = name_map.get(cname)
+                cand_objs.append({
+                    "id": cid,
+                    "name": cname,
+                    "score": cscore,
+                    "in_use_by": in_use_by.get(cid)
+                })
+
+            parsed_items.append({
+                "id": idx,
                 "name_from_pdf": name,
                 "price_from_pdf": price,
-                "matched_product_name": matched_name,
-                "matched_product_id": name_map[matched_name],
-                "match_score": score
+                "normalized_name": norm,
+                "matched_product_id": matched_product_id,
+                "matched_product_name": matched_product_name,
+                "match_score": match_score,
+                "candidates": cand_objs
             })
+
+        # Now that we have parsed_items and in_use_by annotations, create
+        # backward-compatible matched_items and skipped_items for existing UI/tests.
+        matched_items = []
+        skipped_items = []
+        unmatched_quick = []
+
+        for p in parsed_items:
+            if p.get('matched_product_id'):
+                matched_items.append({
+                    "name_from_pdf": p.get('name_from_pdf'),
+                    "price_from_pdf": p.get('price_from_pdf'),
+                    "matched_product_name": p.get('matched_product_name'),
+                    "matched_product_id": p.get('matched_product_id'),
+                    "match_score": p.get('match_score')
+                })
+            else:
+                # build suggestions for skipped_items using candidate objects
+                sug = [{"name": c['name'], "id": c['id'], "score": c['score']} for c in p.get('candidates', [])]
+                skipped_items.append({
+                    "name": p.get('name_from_pdf'),
+                    "price_from_pdf": p.get('price_from_pdf'),
+                    "reason": "no_confident_match",
+                    "suggestions": sug
+                })
+                unmatched_quick.append({"name_from_pdf": p.get('name_from_pdf'), "price_from_pdf": p.get('price_from_pdf')})
+
+        # Sort parsed_items alphabetically by normalized_name for UI scanning
+        parsed_items.sort(key=lambda x: x.get('normalized_name') or '')
+
+        # Also sort matched and skipped for compatibility/consistency
+        matched_items.sort(key=lambda x: normalize_name(x.get('matched_product_name') or x.get('name_from_pdf') or ''))
+        skipped_items.sort(key=lambda x: normalize_name(x.get('name') or ''))
+
+        quick_entry = build_quick_entry_list(unmatched_quick)
+
+        # Export candidate list (id+name) sorted alphabetically
+        candidates_list = sorted([{"id": rid, "name": name} for (name, rid) in name_map.items()], key=lambda x: normalize_name(x['name']))
 
         return jsonify({
             "vendor": vendor,
             "effective_date": effective_date.isoformat(),
+            "parsed_items": parsed_items,
             "matched_items": matched_items,
-            "skipped_items": skipped_items
+            "skipped_items": skipped_items,
+            "quick_entry": quick_entry,
+            "candidates": candidates_list
         })
 
     except Exception as e:
@@ -440,6 +513,23 @@ def save_parsed_prices():
     for item in items_to_create:
         raw_product_id = item.get('matched_product_id')
         price = item.get('price_from_pdf')
+
+        # If the frontend didn't provide an existing raw_product_id, try to
+        # resolve by exact name; if not found, create a new RawProduct so the
+        # price can be stored against a product record.
+        if not raw_product_id:
+            candidate_name = (item.get('matched_product_name') or item.get('name_from_pdf') or '').strip()
+            if candidate_name:
+                existing = RawProduct.query.filter_by(name=candidate_name, company_id=company_id).first()
+                if existing:
+                    raw_product_id = existing.id
+                else:
+                    # create a minimal RawProduct record
+                    rp = RawProduct(name=candidate_name, company_id=company_id)
+                    db.session.add(rp)
+                    # Flush so we get an id without committing the whole transaction
+                    db.session.flush()
+                    raw_product_id = rp.id
 
         # Final check for duplicates before inserting
         exists = db.session.query(CostHistory.id).filter(
