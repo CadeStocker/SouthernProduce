@@ -941,6 +941,9 @@ class TestReceivingLogView:
             image2 = ReceivingImage(filename='test_image2.jpg', receiving_log_id=log.id, company_id=company_id)
             db.session.add_all([image1, image2])
             db.session.commit()
+            for filename in ('test_image1.jpg', 'test_image2.jpg'):
+                with open(app.config['RECEIVING_IMAGES_DIR'] + '/' + filename, 'wb') as image_file:
+                    image_file.write(b'fake image data')
             log_id = log.id
         
         # View the log
@@ -949,6 +952,10 @@ class TestReceivingLogView:
         assert b'Product Images (2)' in response.data
         assert b'test_image1.jpg' in response.data
         assert b'test_image2.jpg' in response.data
+
+        image_response = client.get('/receiving_images/test_image1.jpg')
+        assert image_response.status_code == 200
+        assert image_response.data == b'fake image data'
     
     def test_view_receiving_log_not_found(self, auth_client, app):
         """Test viewing a non-existent receiving log returns 404."""

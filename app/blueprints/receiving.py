@@ -16,7 +16,8 @@ from flask import (
     send_from_directory,
     url_for,
     flash,
-    current_app
+    current_app,
+    g
 )
 from itsdangerous import BadSignature, Serializer, SignatureExpired
 from app.models import (

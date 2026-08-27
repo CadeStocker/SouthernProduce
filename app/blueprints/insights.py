@@ -51,6 +51,7 @@ def data_insights():
 @login_required
 def run_insights_now():
     """Trigger the anomaly detector to run in background (manual trigger)."""
+    
     try:
         from scripts.anomaly_detector import AnomalyDetector
         # run in background thread so request returns quickly
