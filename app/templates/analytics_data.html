@@ -108,9 +108,9 @@
         </thead>
         <tbody>
           {% set total_customer_revenue = period_totals.revenue %}
-          {% for rank, (customer_id, name, revenue) in top_customers|list|enumerate(1) %}
+          {% for customer_id, name, revenue in top_customers %}
           <tr>
-            <td><strong>#{{ rank }}</strong></td>
+            <td><strong>#{{ loop.index }}</strong></td>
             <td>
               {% if customer_id %}
                 <a href="{{ url_for('main.customer_detail', customer_id=customer_id) }}" class="text-decoration-none">{{ name }}</a>
@@ -149,9 +149,9 @@
         </thead>
         <tbody>
           {% set total_items_qty = period_totals.quantity %}
-          {% for rank, (item_id, name, quantity, revenue) in top_items|list|enumerate(1) %}
+          {% for item_id, name, quantity, revenue in top_items %}
           <tr>
-            <td><strong>#{{ rank }}</strong></td>
+            <td><strong>#{{ loop.index }}</strong></td>
             <td>
               {% if item_id %}
                 <a href="{{ url_for('main.view_item', item_id=item_id) }}" class="text-decoration-none">{{ name }}</a>

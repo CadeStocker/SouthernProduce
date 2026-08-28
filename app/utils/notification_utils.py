@@ -216,7 +216,7 @@ def should_notify_anomaly(anomaly, company_id):
 
     Returns True if notification should be sent, False otherwise.
     """
-    from datetime import timedelta
+    from datetime import datetime, timedelta
     from app.models import Notification
 
     # Always notify high severity anomalies
