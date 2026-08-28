@@ -39,9 +39,16 @@ def analytics_dashboard():
 def api_revenue_trend():
     """Get revenue trend data for chart."""
     company_id = current_user.company_id
-    days = request.args.get('days', 30, type=int)
-    start_date = (datetime.utcnow() - timedelta(days=days)).date()
-    end_date = datetime.utcnow().date()
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if start_date_str and end_date_str:
+        start_date = datetime.fromisoformat(start_date_str).date()
+        end_date = datetime.fromisoformat(end_date_str).date()
+    else:
+        days = request.args.get('days', 30, type=int)
+        start_date = (datetime.utcnow() - timedelta(days=days)).date()
+        end_date = datetime.utcnow().date()
 
     trend = analytics_reports.get_daily_revenue_trend(company_id, start_date, end_date)
     return jsonify([
@@ -60,9 +67,16 @@ def api_top_customers():
     """Get top customers by revenue."""
     company_id = current_user.company_id
     limit = request.args.get('limit', 10, type=int)
-    days = request.args.get('days', 30, type=int)
-    start_date = (datetime.utcnow() - timedelta(days=days)).date()
-    end_date = datetime.utcnow().date()
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if start_date_str and end_date_str:
+        start_date = datetime.fromisoformat(start_date_str).date()
+        end_date = datetime.fromisoformat(end_date_str).date()
+    else:
+        days = request.args.get('days', 30, type=int)
+        start_date = (datetime.utcnow() - timedelta(days=days)).date()
+        end_date = datetime.utcnow().date()
 
     from app.models import Customer
     customers_data = analytics_reports.get_top_customers_by_revenue(
@@ -87,9 +101,16 @@ def api_top_items():
     """Get top items by sales volume."""
     company_id = current_user.company_id
     limit = request.args.get('limit', 10, type=int)
-    days = request.args.get('days', 30, type=int)
-    start_date = (datetime.utcnow() - timedelta(days=days)).date()
-    end_date = datetime.utcnow().date()
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if start_date_str and end_date_str:
+        start_date = datetime.fromisoformat(start_date_str).date()
+        end_date = datetime.fromisoformat(end_date_str).date()
+    else:
+        days = request.args.get('days', 30, type=int)
+        start_date = (datetime.utcnow() - timedelta(days=days)).date()
+        end_date = datetime.utcnow().date()
 
     from app.models import Item
     items_data = analytics_reports.get_top_items_by_sales_volume(
@@ -113,9 +134,16 @@ def api_top_items():
 def api_receiving_costs():
     """Get receiving costs trend."""
     company_id = current_user.company_id
-    days = request.args.get('days', 30, type=int)
-    start_date = (datetime.utcnow() - timedelta(days=days)).date()
-    end_date = datetime.utcnow().date()
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if start_date_str and end_date_str:
+        start_date = datetime.fromisoformat(start_date_str).date()
+        end_date = datetime.fromisoformat(end_date_str).date()
+    else:
+        days = request.args.get('days', 30, type=int)
+        start_date = (datetime.utcnow() - timedelta(days=days)).date()
+        end_date = datetime.utcnow().date()
 
     costs = analytics_reports.get_receiving_costs(company_id, start_date, end_date)
     return jsonify([

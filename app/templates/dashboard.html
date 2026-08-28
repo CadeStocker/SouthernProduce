@@ -2,9 +2,34 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-  <div class="mb-4">
-    <h2>Analytics Dashboard</h2>
-    <p class="text-muted">Key performance indicators and business metrics</p>
+  <div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+      <h2>Analytics Dashboard</h2>
+      <p class="text-muted">Key performance indicators and business metrics</p>
+    </div>
+    <div class="card p-3" style="width: 350px;">
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label mb-1 small">Start Date</label>
+          <input type="date" id="start-date" class="form-control form-control-sm">
+        </div>
+        <div class="col-6">
+          <label class="form-label mb-1 small">End Date</label>
+          <input type="date" id="end-date" class="form-control form-control-sm">
+        </div>
+        <div class="col-12">
+          <button id="apply-dates" class="btn btn-sm btn-primary w-100">Apply</button>
+        </div>
+        <div class="col-12">
+          <small class="text-muted">Quick filters:</small>
+          <div class="btn-group btn-group-sm w-100" role="group">
+            <button type="button" class="btn btn-outline-secondary" data-days="30">30 Days</button>
+            <button type="button" class="btn btn-outline-secondary" data-days="90">90 Days</button>
+            <button type="button" class="btn btn-outline-secondary" data-days="365">1 Year</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- KPI Row -->
@@ -143,86 +168,144 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-// Revenue chart
-fetch('/api/dashboard/revenue_trend?days=30')
-  .then(r => r.json())
-  .then(data => {
-    const ctx = document.getElementById('revenue-chart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.map(d => new Date(d.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})),
-        datasets: [{
-          label: 'Revenue',
-          data: data.map(d => d.revenue),
-          borderColor: '#28a745',
-          backgroundColor: 'rgba(40, 167, 69, 0.1)',
-          tension: 0.4,
-          fill: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, ticks: { callback: v => '$' + v.toFixed(0) } }
+let revenueChart, itemsChart;
+
+function getDateRange() {
+  const startInput = document.getElementById('start-date').value;
+  const endInput = document.getElementById('end-date').value;
+
+  if (startInput && endInput) {
+    return { start_date: startInput, end_date: endInput };
+  }
+
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - 30);
+
+  return {
+    start_date: startDate.toISOString().split('T')[0],
+    end_date: endDate.toISOString().split('T')[0]
+  };
+}
+
+function buildQuery(params = {}) {
+  const dates = getDateRange();
+  const query = new URLSearchParams({ ...params, ...dates });
+  return query.toString();
+}
+
+function loadDashboard() {
+  const dates = getDateRange();
+
+  // Revenue chart
+  fetch('/api/dashboard/revenue_trend?' + buildQuery({ days: 365 }))
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('revenue-chart').getContext('2d');
+      if (revenueChart) revenueChart.destroy();
+      revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => new Date(d.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})),
+          datasets: [{
+            label: 'Revenue',
+            data: data.map(d => d.revenue),
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: v => '$' + v.toFixed(0) } }
+          }
         }
-      }
+      });
     });
-  });
 
-// Top items chart
-fetch('/api/dashboard/top_items?limit=10&days=30')
-  .then(r => r.json())
-  .then(data => {
-    const ctx = document.getElementById('items-chart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.slice(0, 10).map(d => d.item_name.substring(0, 15)),
-        datasets: [{
-          label: 'Quantity Sold',
-          data: data.slice(0, 10).map(d => d.quantity),
-          backgroundColor: '#007bff',
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { beginAtZero: true } }
-      }
+  // Top items chart
+  fetch('/api/dashboard/top_items?' + buildQuery({ limit: 10, days: 365 }))
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('items-chart').getContext('2d');
+      if (itemsChart) itemsChart.destroy();
+      itemsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.slice(0, 10).map(d => d.item_name.substring(0, 15)),
+          datasets: [{
+            label: 'Quantity Sold',
+            data: data.slice(0, 10).map(d => d.quantity),
+            backgroundColor: '#007bff',
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
     });
-  });
 
-// Top customers table
-fetch('/api/dashboard/top_customers?limit=10&days=30')
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.getElementById('top-customers-table');
-    tbody.innerHTML = data.slice(0, 10).map(row => `
-      <tr>
-        <td>${row.customer_name}</td>
-        <td class="text-right">$${row.revenue.toFixed(2)}</td>
-        <td class="text-right">${row.quantity.toFixed(0)}</td>
-      </tr>
-    `).join('');
-  });
+  // Top customers table
+  fetch('/api/dashboard/top_customers?' + buildQuery({ limit: 10, days: 365 }))
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('top-customers-table');
+      tbody.innerHTML = data.slice(0, 10).map(row => `
+        <tr>
+          <td>${row.customer_name}</td>
+          <td class="text-right">$${row.revenue.toFixed(2)}</td>
+          <td class="text-right">${row.quantity.toFixed(0)}</td>
+        </tr>
+      `).join('');
+    });
 
-// Receiving costs table
-fetch('/api/dashboard/receiving_costs?days=30')
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.getElementById('receiving-table');
-    tbody.innerHTML = data.slice(-10).map(row => `
-      <tr>
-        <td>${new Date(row.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</td>
-        <td class="text-right">$${row.total_cost.toFixed(2)}</td>
-        <td class="text-right">${row.quantity.toFixed(0)}</td>
-      </tr>
-    `).join('');
+  // Receiving costs table
+  fetch('/api/dashboard/receiving_costs?' + buildQuery({ days: 365 }))
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('receiving-table');
+      tbody.innerHTML = data.slice(-10).map(row => `
+        <tr>
+          <td>${new Date(row.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</td>
+          <td class="text-right">$${row.total_cost.toFixed(2)}</td>
+          <td class="text-right">${row.quantity.toFixed(0)}</td>
+        </tr>
+      `).join('');
+    });
+}
+
+// Event listeners
+document.getElementById('apply-dates').addEventListener('click', loadDashboard);
+
+document.querySelectorAll('[data-days]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const days = parseInt(btn.dataset.days);
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+
+    document.getElementById('start-date').value = start.toISOString().split('T')[0];
+    document.getElementById('end-date').value = end.toISOString().split('T')[0];
+
+    loadDashboard();
   });
+});
+
+// Initialize with 30-day range
+const now = new Date();
+const thirtyDaysAgo = new Date();
+thirtyDaysAgo.setDate(now.getDate() - 30);
+document.getElementById('start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+document.getElementById('end-date').value = now.toISOString().split('T')[0];
+
+loadDashboard();
 </script>
 {% endblock %}
