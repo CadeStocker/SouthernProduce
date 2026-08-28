@@ -1,56 +1,389 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2>Data Insights</h2>
-  <p class="text-muted">Recent anomalies and data-consistency findings.</p>
-
-  <div class="table-responsive">
-    <form method="post" action="{{ url_for('insights.run_insights_now') }}">
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>Data Insights & Anomalies</h2>
+      <p class="text-muted">Monitor detected data anomalies and mark them as reviewed or fixed.</p>
+    </div>
+    <form method="post" action="{{ url_for('insights.run_insights_now') }}" class="d-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-primary mb-2" type="submit">Run Data Insights Now</button>
+      <button class="btn btn-primary" type="submit">
+        <i class="fas fa-sync-alt"></i> Run Detector Now
+      </button>
     </form>
-    <table class="table table-sm table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Entity</th>
-          <th>Metric</th>
-          <th>Rule</th>
-          <th>Severity</th>
-          <th>Impact</th>
-          <th>Detected</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in anomalies %}
-        <tr>
-          <td>{{ a.id }}</td>
-          <td>
-            {% set meta = entity_map.get(a.entity_type, {}).get(a.entity_id) if entity_map else None %}
-            {% if meta %}
-              <a href="{{ meta.url }}">{{ meta.label }}</a>
-              <small class="text-muted">({{ a.entity_type }} #{{ a.entity_id }})</small>
-            {% else %}
-              {{ a.entity_type }} #{{ a.entity_id }}
+  </div>
+
+  <!-- Status Filter Buttons -->
+  <div class="mb-3" id="status-filters">
+    <button class="btn btn-outline-primary active" data-filter="all">
+      <span class="badge badge-light" id="count-all">0</span> All
+    </button>
+    <button class="btn btn-outline-success" data-filter="open">
+      <span class="badge badge-light" id="count-open">0</span> Open
+    </button>
+    <button class="btn btn-outline-info" data-filter="reviewed">
+      <span class="badge badge-light" id="count-reviewed">0</span> Reviewed
+    </button>
+    <button class="btn btn-outline-secondary" data-filter="fixed">
+      <span class="badge badge-light" id="count-fixed">0</span> Fixed
+    </button>
+  </div>
+
+  <!-- Anomalies List -->
+  <div id="anomalies-list">
+    {% if anomalies %}
+      {% for a in anomalies %}
+      <div class="card mb-3 anomaly-card" data-status="{{ a.status }}" data-id="{{ a.id }}">
+        <div class="card-header bg-light d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="card-title mb-0">
+                {% set meta = entity_map.get(a.entity_type, {}).get(a.entity_id) if entity_map else None %}
+                {% if meta %}
+                  <a href="{{ meta.url }}" class="text-decoration-none">{{ meta.label }}</a>
+                {% else %}
+                  <span>{{ a.entity_type }} #{{ a.entity_id }}</span>
+                {% endif %}
+              </h5>
+              <span class="badge status-badge status-{{ a.status }}">
+                {% if a.status == 'open' %}
+                  <i class="fas fa-circle-exclamation"></i> Open
+                {% elif a.status == 'reviewed' %}
+                  <i class="fas fa-check-circle"></i> Reviewed
+                {% else %}
+                  <i class="fas fa-checkmark-all"></i> Fixed
+                {% endif %}
+              </span>
+              {% if a.severity == 'high' %}
+                <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> High Severity</span>
+              {% elif a.severity == 'medium' %}
+                <span class="badge bg-warning"><i class="fas fa-exclamation"></i> Medium Severity</span>
+              {% else %}
+                <span class="badge bg-info"><i class="fas fa-info-circle"></i> Low Severity</span>
+              {% endif %}
+            </div>
+            <small class="text-muted d-block mt-1">
+              {{ a.metric }} | Rule: {{ a.rule_triggered or 'statistical' }} |
+              Impact: ${{ '%.2f'|format(a.dollar_impact or 0) }} |
+              Detected: {{ a.detected_at.strftime('%Y-%m-%d %H:%M') }}
+            </small>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="collapse"
+                  data-target="#details-{{ a.id }}" aria-expanded="false">
+            <i class="fas fa-chevron-down"></i> Details
+          </button>
+        </div>
+
+        <!-- Collapsible Details -->
+        <div class="collapse" id="details-{{ a.id }}">
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <h6 class="text-muted">Technical Details</h6>
+                <dl class="row small">
+                  <dt class="col-sm-5">Expected Value:</dt>
+                  <dd class="col-sm-7">{{ a.expected_value if a.expected_value is not none else 'N/A' }}</dd>
+
+                  <dt class="col-sm-5">Actual Value:</dt>
+                  <dd class="col-sm-7">{{ a.actual_value if a.actual_value is not none else 'N/A' }}</dd>
+
+                  <dt class="col-sm-5">Z-Score:</dt>
+                  <dd class="col-sm-7">{{ a.z_score if a.z_score is not none else 'N/A' }}</dd>
+                </dl>
+              </div>
+              <div class="col-md-6">
+                <h6 class="text-muted">Review History</h6>
+                <dl class="row small">
+                  {% if a.reviewed_by %}
+                  <dt class="col-sm-5">Reviewed By:</dt>
+                  <dd class="col-sm-7">{{ a.reviewed_by.first_name }} {{ a.reviewed_by.last_name }}</dd>
+
+                  <dt class="col-sm-5">Reviewed At:</dt>
+                  <dd class="col-sm-7">{{ a.reviewed_at.strftime('%Y-%m-%d %H:%M') if a.reviewed_at else 'N/A' }}</dd>
+                  {% endif %}
+
+                  {% if a.fixed_by %}
+                  <dt class="col-sm-5">Fixed By:</dt>
+                  <dd class="col-sm-7">{{ a.fixed_by.first_name }} {{ a.fixed_by.last_name }}</dd>
+
+                  <dt class="col-sm-5">Fixed At:</dt>
+                  <dd class="col-sm-7">{{ a.fixed_at.strftime('%Y-%m-%d %H:%M') if a.fixed_at else 'N/A' }}</dd>
+                  {% endif %}
+                </dl>
+              </div>
+            </div>
+
+            <!-- Explanation & Notes -->
+            {% if a.explanation or a.notes %}
+            <div class="mt-3 p-3 bg-light rounded">
+              {% if a.explanation %}
+              <h6 class="text-muted mb-2">Explanation</h6>
+              <p class="mb-2">{{ a.explanation }}</p>
+              {% endif %}
+
+              {% if a.notes %}
+              <h6 class="text-muted mb-2">Notes</h6>
+              <p class="mb-0">{{ a.notes }}</p>
+              {% endif %}
+            </div>
             {% endif %}
-          </td>
-          <td>{{ a.metric }}</td>
-          <td>{{ a.rule_triggered or 'statistical' }}</td>
-          <td>{{ a.severity }}</td>
-          <td>{{ '%.2f'|format(a.dollar_impact or 0) }}</td>
-          <td>{{ a.detected_at }}</td>
-        </tr>
-        <tr class="table-secondary">
-          <td colspan="7">{{ a.explanation or '' }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="7" class="text-muted">No insights found.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+            <!-- Action Buttons -->
+            <div class="mt-3 pt-3 border-top">
+              <div class="btn-group" role="group">
+                {% if a.status == 'open' %}
+                  <button type="button" class="btn btn-sm btn-outline-info"
+                          data-toggle="modal" data-target="#reviewModal"
+                          onclick="setAnomalyId({{ a.id }})">
+                    <i class="fas fa-eye"></i> Mark as Reviewed
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-success"
+                          data-toggle="modal" data-target="#fixedModal"
+                          onclick="setAnomalyId({{ a.id }})">
+                    <i class="fas fa-check"></i> Mark as Fixed
+                  </button>
+                {% elif a.status == 'reviewed' %}
+                  <button type="button" class="btn btn-sm btn-outline-success"
+                          data-toggle="modal" data-target="#fixedModal"
+                          onclick="setAnomalyId({{ a.id }})">
+                    <i class="fas fa-check"></i> Mark as Fixed
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          onclick="markAnomalyOpen({{ a.id }})">
+                    <i class="fas fa-undo"></i> Revert to Open
+                  </button>
+                {% else %}
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          onclick="markAnomalyOpen({{ a.id }})">
+                    <i class="fas fa-undo"></i> Revert to Open
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info" role="alert">
+        <i class="fas fa-check-circle"></i> No anomalies found. Your data looks clean!
+      </div>
+    {% endif %}
   </div>
 </div>
+
+<!-- Mark as Reviewed Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" role="dialog" aria-labelledby="reviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reviewModalLabel">Mark Anomaly as Reviewed</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">You're marking this anomaly as reviewed. Optionally add notes about your investigation.</p>
+        <div class="form-group">
+          <label for="reviewNotes">Notes (optional)</label>
+          <textarea class="form-control" id="reviewNotes" rows="4"
+                    placeholder="e.g., 'Verified data source is correct' or 'Known issue from testing'"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" onclick="submitReview()">
+          <i class="fas fa-check"></i> Mark as Reviewed
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark as Fixed Modal -->
+<div class="modal fade" id="fixedModal" tabindex="-1" role="dialog" aria-labelledby="fixedModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="fixedModalLabel">Mark Anomaly as Fixed</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">You're marking this anomaly as fixed. Please describe what was done to resolve it.</p>
+        <div class="form-group">
+          <label for="fixedNotes">Resolution Details</label>
+          <textarea class="form-control" id="fixedNotes" rows="4"
+                    placeholder="e.g., 'Corrected data entry' or 'Updated pricing formula'"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="submitFixed()">
+          <i class="fas fa-check"></i> Mark as Fixed
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.status-badge {
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+}
+
+.status-open {
+  background-color: #dc3545;
+  color: white;
+}
+
+.status-reviewed {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.status-fixed {
+  background-color: #28a745;
+  color: white;
+}
+
+.anomaly-card {
+  border-left: 4px solid #6c757d;
+  transition: all 0.2s ease;
+}
+
+.anomaly-card[data-status="open"] {
+  border-left-color: #dc3545;
+}
+
+.anomaly-card[data-status="reviewed"] {
+  border-left-color: #17a2b8;
+}
+
+.anomaly-card[data-status="fixed"] {
+  border-left-color: #28a745;
+}
+
+.anomaly-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#status-filters .btn {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#status-filters .btn.active {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+</style>
+
+<script>
+let currentAnomalyId = null;
+
+function setAnomalyId(id) {
+  currentAnomalyId = id;
+  document.getElementById('reviewNotes').value = '';
+  document.getElementById('fixedNotes').value = '';
+}
+
+function submitReview() {
+  const notes = document.getElementById('reviewNotes').value;
+  updateAnomalyStatus(currentAnomalyId, 'mark_reviewed', notes);
+}
+
+function submitFixed() {
+  const notes = document.getElementById('fixedNotes').value;
+  if (!notes.trim()) {
+    alert('Please provide details about how this anomaly was fixed.');
+    return;
+  }
+  updateAnomalyStatus(currentAnomalyId, 'mark_fixed', notes);
+}
+
+function markAnomalyOpen(id) {
+  if (!confirm('Revert this anomaly to open status?')) {
+    return;
+  }
+  updateAnomalyStatus(id, 'mark_open', '');
+}
+
+function updateAnomalyStatus(id, action, notes) {
+  const endpoint = `/api/anomalies/${id}/${action}`;
+  const payload = { notes: notes };
+
+  fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Failed to update anomaly');
+    return response.json();
+  })
+  .then(data => {
+    // Close any open modals (Bootstrap 4)
+    jQuery('.modal').modal('hide');
+
+    // Reload the page to refresh the full view
+    setTimeout(() => location.reload(), 500);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to update anomaly status. Please try again.');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Filter functionality
+  const filterButtons = document.querySelectorAll('#status-filters .btn');
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const filter = this.getAttribute('data-filter');
+
+      // Update active button
+      filterButtons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      // Filter cards
+      const cards = document.querySelectorAll('.anomaly-card');
+      cards.forEach(card => {
+        if (filter === 'all' || card.getAttribute('data-status') === filter) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Update filter counts
+  function updateCounts() {
+    const cards = document.querySelectorAll('.anomaly-card');
+    const counts = { all: 0, open: 0, reviewed: 0, fixed: 0 };
+
+    cards.forEach(card => {
+      const status = card.getAttribute('data-status');
+      counts.all++;
+      counts[status]++;
+    });
+
+    Object.keys(counts).forEach(status => {
+      const el = document.getElementById(`count-${status}`);
+      if (el) el.textContent = counts[status];
+    });
+  }
+
+  updateCounts();
+});
+</script>
+
 {% endblock %}

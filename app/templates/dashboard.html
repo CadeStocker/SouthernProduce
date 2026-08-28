@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="mb-4">
+    <h2>Analytics Dashboard</h2>
+    <p class="text-muted">Key performance indicators and business metrics</p>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Today's Revenue</h6>
+          <h3 class="text-success">${{ "%.2f"|format(today_summary.revenue) }}</h3>
+          <small class="text-muted">{{ today_summary.transaction_count }} transactions</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Today's Quantity</h6>
+          <h3 class="text-info">{{ "%.0f"|format(today_summary.quantity) }}</h3>
+          <small class="text-muted">units sold</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Last 30 Days Revenue</h6>
+          <h3 class="text-primary">${{ "%.2f"|format(period_totals.revenue) }}</h3>
+          <small class="text-muted">${{ "%.2f"|format(period_totals.avg_daily_revenue) }}/day avg</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title text-muted">30-Day Quantity</h6>
+          <h3 class="text-warning">{{ "%.0f"|format(period_totals.quantity) }}</h3>
+          <small class="text-muted">{{ period_totals.days }} days of data</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Revenue Trend (30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <div id="revenue-chart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Top Items (30 Days)</h5>
+        </div>
+        <div class="card-body">
+          <div id="items-chart" style="height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Row -->
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Top Customers (30 Days)</h5>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Customer</th>
+                <th class="text-right">Revenue</th>
+                <th class="text-right">Quantity</th>
+              </tr>
+            </thead>
+            <tbody id="top-customers-table">
+              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Receiving Costs (30 Days)</h5>
+          <a href="{{ url_for('insights.analytics_data') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th class="text-right">Total Cost</th>
+                <th class="text-right">Quantity</th>
+              </tr>
+            </thead>
+            <tbody id="receiving-table">
+              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <h5>Quick Links</h5>
+          <div class="btn-group" role="group">
+            <a href="{{ url_for('insights.data_insights') }}" class="btn btn-outline-primary">
+              <i class="bi bi-exclamation-triangle"></i> View Anomalies
+            </a>
+            <a href="{{ url_for('insights.analytics_data') }}" class="btn btn-outline-primary">
+              <i class="bi bi-graph-up"></i> Detailed Analytics
+            </a>
+            <a href="{{ url_for('main.labor') }}" class="btn btn-outline-primary">
+              <i class="bi bi-clock"></i> Labor Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Revenue chart
+fetch('/api/dashboard/revenue_trend?days=30')
+  .then(r => r.json())
+  .then(data => {
+    const ctx = document.getElementById('revenue-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(d => new Date(d.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})),
+        datasets: [{
+          label: 'Revenue',
+          data: data.map(d => d.revenue),
+          borderColor: '#28a745',
+          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          tension: 0.4,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '$' + v.toFixed(0) } }
+        }
+      }
+    });
+  });
+
+// Top items chart
+fetch('/api/dashboard/top_items?limit=10&days=30')
+  .then(r => r.json())
+  .then(data => {
+    const ctx = document.getElementById('items-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.slice(0, 10).map(d => d.item_name.substring(0, 15)),
+        datasets: [{
+          label: 'Quantity Sold',
+          data: data.slice(0, 10).map(d => d.quantity),
+          backgroundColor: '#007bff',
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+  });
+
+// Top customers table
+fetch('/api/dashboard/top_customers?limit=10&days=30')
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.getElementById('top-customers-table');
+    tbody.innerHTML = data.slice(0, 10).map(row => `
+      <tr>
+        <td>${row.customer_name}</td>
+        <td class="text-right">$${row.revenue.toFixed(2)}</td>
+        <td class="text-right">${row.quantity.toFixed(0)}</td>
+      </tr>
+    `).join('');
+  });
+
+// Receiving costs table
+fetch('/api/dashboard/receiving_costs?days=30')
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.getElementById('receiving-table');
+    tbody.innerHTML = data.slice(-10).map(row => `
+      <tr>
+        <td>${new Date(row.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</td>
+        <td class="text-right">$${row.total_cost.toFixed(2)}</td>
+        <td class="text-right">${row.quantity.toFixed(0)}</td>
+      </tr>
+    `).join('');
+  });
+</script>
+{% endblock %}

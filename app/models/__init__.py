@@ -103,6 +103,9 @@ from app.models.anomalies import (
     JobRun,
 )
 
+# Analytics models
+from app.models.analytics import AnalyticsFact
+
 __all__ = [
     # Database
     "db",
@@ -163,4 +166,6 @@ __all__ = [
     "EntityStat",
     "Anomaly",
     "JobRun",
+    # Analytics
+    "AnalyticsFact",
 ]

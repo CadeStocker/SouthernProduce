@@ -47,6 +47,14 @@ from app.auth_utils import (
     authenticate_api_key_request,
 )
 from datetime import datetime, date as date_type
+from app.services.analytics_facts import (
+    record_item_sale,
+    record_customer_order,
+    record_receiving,
+    record_inventory_snapshot,
+    record_labor_summary,
+    record_weekly_labor_summary,
+)
 from app.utils.notification_utils import (
     create_receiving_log_notification,
     maybe_create_receiving_log_outlier_notification
@@ -265,6 +273,8 @@ def create_receiving_log():
         )
         
         db.session.add(new_log)
+        db.session.flush()
+        record_receiving(new_log)
         db.session.commit()
 
         try:
@@ -764,8 +774,10 @@ def create_inventory_count():
         )
         
         db.session.add(inventory_count)
+        db.session.flush()
+        record_inventory_snapshot(inventory_count)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Inventory count recorded successfully',
@@ -1194,6 +1206,10 @@ def create_inventory_session():
             db.session.add(row)
             supply_rows.append(row)
 
+        db.session.flush()  # get item row ids before recording facts
+        for row in item_rows:
+            record_inventory_snapshot(row)
+
         db.session.commit()
 
         return jsonify({
@@ -1375,6 +1391,9 @@ def create_sales_record():
             customer_id=data.customer_id if data.customer_id and data.customer_id > 0 else None,
         )
         db.session.add(sale)
+        db.session.flush()
+        record_item_sale(sale)
+        record_customer_order(sale)
         db.session.commit()
 
         return jsonify({
@@ -1456,6 +1475,8 @@ def create_weekly_labor_entry():
             average_hours_per_employee=data.average_hours_per_employee,
         )
         db.session.add(entry)
+        db.session.flush()
+        record_weekly_labor_summary(entry)
         db.session.commit()
 
         return jsonify({
@@ -1742,6 +1763,8 @@ def create_daily_log():
         )
 
         db.session.add(log)
+        db.session.flush()
+        record_labor_summary(log)
         db.session.commit()
 
         return jsonify({

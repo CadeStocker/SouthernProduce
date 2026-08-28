@@ -16,8 +16,9 @@ def make_app():
 
 
 class AnomalyDetector:
-    def __init__(self, session):
+    def __init__(self, session, company_id=None):
         self.db = session
+        self.company_id = company_id
         from app.models import (
             PriceHistory,
             CurrentItemPrice,
@@ -26,6 +27,7 @@ class AnomalyDetector:
             EntityStat,
             Anomaly,
             JobRun,
+            Company,
         )
         self.PriceHistory = PriceHistory
         self.CurrentItemPrice = CurrentItemPrice
@@ -34,6 +36,7 @@ class AnomalyDetector:
         self.EntityStat = EntityStat
         self.Anomaly = Anomaly
         self.JobRun = JobRun
+        self.Company = Company
 
         # rule tuning
         self.margin_threshold = 0.20
@@ -104,7 +107,7 @@ class AnomalyDetector:
 
     def record_anomaly(self, entity_type, entity_id, metric, expected, actual, z_score=None, rule=None, dollar_impact=None, explanation=None, severity=None):
         """
-        some heuristics for describing how 'bad' an anomaly is and records it to db
+        Record anomaly with severity heuristics. Creates notifications if company_id is set.
         """
 
         if severity is None:
@@ -135,6 +138,23 @@ class AnomalyDetector:
             detected_at=datetime.utcnow(),
         )
         self.db.session.add(anomaly)
+        self.db.session.flush()  # Ensure anomaly has an ID for notifications
+
+        # Create notifications if company_id is available
+        if self.company_id:
+            self._create_notification_for_anomaly(anomaly)
+
+    def _create_notification_for_anomaly(self, anomaly):
+        """Create a notification for the anomaly if conditions are met."""
+        try:
+            from app.utils.notification_utils import should_notify_anomaly, create_anomaly_notification
+
+            if should_notify_anomaly(anomaly, self.company_id):
+                create_anomaly_notification(anomaly, self.company_id, commit=False)
+        except Exception as e:
+            # Log but don't fail the detector if notification creation fails
+            import logging
+            logging.error(f"Failed to create anomaly notification: {e}")
 
     def process_price_history(self):
         """
@@ -277,10 +297,24 @@ class AnomalyDetector:
 
 
 def main():
+    """Run anomaly detector for all companies.
+
+    When run as a background job, we detect anomalies for all companies and
+    notify all users in each company.
+    """
     app = make_app()
     with app.app_context():
-        detector = AnomalyDetector(db)
-        detector.run()
+        from app.models import Company
+        companies = Company.query.all()
+
+        for company in companies:
+            try:
+                detector = AnomalyDetector(db, company_id=company.id)
+                detector.run()
+            except Exception as e:
+                print(f'Error running detector for company {company.id}: {e}')
+
+        db.session.commit()
 
 
 if __name__ == '__main__':

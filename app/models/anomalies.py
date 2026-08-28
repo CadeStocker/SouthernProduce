@@ -48,8 +48,10 @@ class EntityStat(db.Model):
         old_mean = self.mean
         old_var = (self.stddev or 0.0) ** 2
         new_mean = alpha * float(new_value) + (1 - alpha) * old_mean
+
         # update variance per EWMA formula
         new_var = (1 - alpha) * (old_var + alpha * (float(new_value) - old_mean) ** 2)
+        
         self.mean = new_mean
         self.stddev = (new_var ** 0.5)
         self.count = self.count + 1
@@ -71,8 +73,17 @@ class Anomaly(db.Model):
     severity = db.Column(db.String(20), nullable=False, default='low')
     dollar_impact = db.Column(db.Float, nullable=True)
     explanation = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='open')
+    status = db.Column(db.String(20), nullable=False, default='open', index=True)
     detected_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    fixed_at = db.Column(db.DateTime, nullable=True)
+    fixed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id], backref='anomalies_reviewed')
+    fixed_by = db.relationship('User', foreign_keys=[fixed_by_id], backref='anomalies_fixed')
 
 
 class JobRun(db.Model):

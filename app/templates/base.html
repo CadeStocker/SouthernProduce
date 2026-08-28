@@ -48,6 +48,16 @@
             </li>
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Analytics
+                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="{{ url_for('dashboard.analytics_dashboard') }}">Dashboard</a>
+                    <a class="dropdown-item" href="{{ url_for('insights.analytics_data') }}">Analytics Data</a>
+                    <a class="dropdown-item" href="{{ url_for('insights.data_insights') }}">Data Insights & Anomalies</a>
+                </div>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Manage Company
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
@@ -55,7 +65,6 @@
                     <a class="dropdown-item" href="/customer">Customers</a>
                     <a class="dropdown-item" href="/email_templates">Email Templates</a>
                     <a class="dropdown-item" href="{{ url_for('main.api_keys') }}">API Keys</a>
-                    <a class="dropdown-item" href="{{ url_for('insights.data_insights') }}">Data Insights</a>
                 </div>
             </li>
             <li class="nav-item dropdown">

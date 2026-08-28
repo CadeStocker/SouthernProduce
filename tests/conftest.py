@@ -103,3 +103,181 @@ def logged_in_user(client, app):
                 return db.session.get(User, self._data['id'])
     
     return LoggedInUserHelper(user_data, app)
+
+class AnalyticsEnv:
+    """Minimal operational graph for analytics fact tests.
+
+    Builds one company plus the reference data every fact source needs, and
+    exposes a helper per operational table so tests can create source rows
+    (already flushed, so they have primary keys) in one line.
+    """
+
+    def __init__(self, suffix=''):
+        from datetime import date, datetime
+        from app.models import (
+            Company, Packaging, Item, RawProduct, BrandName, Seller,
+            GrowerOrDistributor, Customer, DesignationCost, PayGroups,
+            UnitOfWeight, ItemDesignation,
+        )
+
+        self.company = Company(name=f'Fact Co{suffix}', admin_email=f'facts{suffix}@example.com')
+        db.session.add(self.company)
+        db.session.flush()
+
+        self.packaging = Packaging(packaging_type='Box', company_id=self.company.id)
+        self.raw_product = RawProduct(name='Lettuce', company_id=self.company.id)
+        self.brand = BrandName(name='Brand', company_id=self.company.id)
+        self.seller = Seller(name='Seller', company_id=self.company.id)
+        self.grower = GrowerOrDistributor(
+            name='Grower', company_id=self.company.id, city='Salinas', state='CA'
+        )
+        self.customer = Customer(
+            name='Customer', email=f'cust{suffix}@example.com', company_id=self.company.id
+        )
+        self.designation = DesignationCost(
+            item_designation=ItemDesignation.FOODSERVICE,
+            cost=1.0,
+            date=date(2026, 8, 1),
+            company_id=self.company.id,
+        )
+        self.pay_group = PayGroups(company_id=self.company.id, name='Packing')
+        db.session.add_all([
+            self.packaging, self.raw_product, self.brand, self.seller,
+            self.grower, self.customer, self.designation, self.pay_group,
+        ])
+        db.session.flush()
+
+        self.item = Item(
+            name='Sliced Apples',
+            code='APL001',
+            unit_of_weight=UnitOfWeight.POUND,
+            packaging_id=self.packaging.id,
+            company_id=self.company.id,
+            case_weight=25.0,
+        )
+        db.session.add(self.item)
+        db.session.flush()
+
+    def sale(self, quantity=10, unit_price=5.0, with_customer=True, sale_date=None):
+        from datetime import datetime
+        from app.models import SalesRecord
+        record = SalesRecord(
+            company_id=self.company.id,
+            sale_date=sale_date or datetime(2026, 8, 27, 14, 30),
+            item_designation_id=self.designation.id,
+            quantity_sold=quantity,
+            unit_price=unit_price,
+            customer_id=self.customer.id if with_customer else None,
+        )
+        db.session.add(record)
+        db.session.flush()
+        return record
+
+    def receiving(self, quantity=20, price_paid=2.5, received_at=None):
+        from datetime import datetime
+        from app.models import ReceivingLog
+        log = ReceivingLog(
+            raw_product_id=self.raw_product.id,
+            pack_size_unit='lb',
+            pack_size=10.0,
+            brand_name_id=self.brand.id,
+            quantity_received=quantity,
+            seller_id=self.seller.id,
+            temperature=35.0,
+            hold_or_used='used',
+            grower_or_distributor_id=self.grower.id,
+            country_of_origin='USA',
+            received_by='Tester',
+            company_id=self.company.id,
+            price_paid=price_paid,
+            date_time=received_at or datetime(2026, 8, 26, 9, 0),
+        )
+        db.session.add(log)
+        db.session.flush()
+        return log
+
+    def inventory_count(self, quantity=42, count_date=None):
+        from datetime import datetime
+        from app.models import ItemInventory
+        count = ItemInventory(
+            item_id=self.item.id,
+            quantity=quantity,
+            company_id=self.company.id,
+            count_date=count_date or datetime(2026, 8, 25, 8, 0),
+        )
+        db.session.add(count)
+        db.session.flush()
+        return count
+
+    def daily_log(self, log_date=None, sales=10000.0, payroll_cost=2500.0, labor_hours=180.0):
+        from datetime import date
+        from app.models import DailyLog
+        log = DailyLog(
+            company_id=self.company.id,
+            date=log_date or date(2026, 8, 24),
+            items=500,
+            sales=sales,
+            labor_hours=labor_hours,
+            overtime_hours=12.0,
+            payroll_cost=payroll_cost,
+            number_of_employees=20,
+            labor_ratio=0.25,
+            sales_over_labor_cost=4.0,
+            average_man_hour_cost=13.9,
+            average_case_cost=5.0,
+            average_hours_per_employee=9.0,
+        )
+        db.session.add(log)
+        db.session.flush()
+        return log
+
+    def weekly_labor(self, week_start=None, regular_hours=400.0, overtime_hours=35.5, pay=9000.0):
+        from datetime import date
+        from app.models import WeeklyLaborEntry
+        entry = WeeklyLaborEntry(
+            company_id=self.company.id,
+            week_start_date=week_start or date(2026, 8, 17),
+            pay_group_id=self.pay_group.id,
+            regular_hours=regular_hours,
+            overtime_hours=overtime_hours,
+            pay=pay,
+            percent_of_sales=0.22,
+            cost_per_hour=20.7,
+            number_in_pay_group=15,
+            number_with_overtime=4,
+            average_hours_per_employee=29.0,
+        )
+        db.session.add(entry)
+        db.session.flush()
+        return entry
+
+    def item_cost(self, cost_date=None, total_cost=12.75):
+        from datetime import date
+        from app.models import ItemTotalCost
+        cost = ItemTotalCost(
+            item_id=self.item.id,
+            date=cost_date or date(2026, 8, 23),
+            total_cost=total_cost,
+            ranch_cost=0.5,
+            packaging_cost=1.25,
+            raw_product_cost=8.0,
+            labor_cost=2.5,
+            designation_cost=0.5,
+            company_id=self.company.id,
+        )
+        db.session.add(cost)
+        db.session.flush()
+        return cost
+
+
+@pytest.fixture
+def analytics_env_factory(app):
+    """Expose AnalyticsEnv inside an app context so tests can build several."""
+    with app.app_context():
+        yield AnalyticsEnv
+
+
+@pytest.fixture
+def analytics_env(analytics_env_factory):
+    """A single operational graph for analytics fact tests."""
+    return analytics_env_factory()

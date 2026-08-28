@@ -218,13 +218,25 @@ def create_app(db_uri=None):
         detector.run()
         click.echo('Anomaly detector run complete')
 
+    @app.cli.command('backfill-analytics-facts')
+    @with_appcontext
+    def backfill_analytics_facts_command():
+        """Populate AnalyticsFact rows from existing operational tables (CLI)."""
+        from scripts.backfill_analytics_facts import AnalyticsFactBackfill
+        backfill = AnalyticsFactBackfill(db)
+        totals = backfill.run()
+        for source_table, count in totals.items():
+            click.echo(f'{source_table}: {count} facts')
+        click.echo('Analytics fact backfill complete')
+
     # Import all sub-modules to register routes on `main`
-    from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, labor, insights
+    from app.blueprints import auth, ai, raw_products, packaging, items, receiving, pricing, customers, company, email_templates, inventory, labor, insights, dashboard
     # If a blueprint module defines its own Blueprint instance (like `insights`), register it here
     try:
         app.register_blueprint(insights.insights)
+        app.register_blueprint(dashboard.dashboard)
     except Exception:
-        app.logger.debug('Could not register insights blueprint directly; it may use the shared `main` blueprint')
+        app.logger.debug('Could not register insights/dashboard blueprints directly')
     
     # Add custom Jinja2 filter to convert newlines to <br> tags
     @app.template_filter('nl2br')

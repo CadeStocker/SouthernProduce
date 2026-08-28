@@ -181,14 +181,14 @@ def check_and_notify_expiring_api_keys():
     """Check for API keys expiring in the next 7 days and send notifications."""
     from datetime import datetime, timedelta
     from app.models import APIKey
-    
+
     soon = datetime.utcnow() + timedelta(days=7)
     expiring_keys = APIKey.query.filter(
         APIKey.expires_at.isnot(None),
         APIKey.expires_at <= soon,
         APIKey.is_active == True
     ).all()
-    
+
     notifications = []
     for api_key in expiring_keys:
         # Check if we already have a recent notification for this key
@@ -199,9 +199,75 @@ def check_and_notify_expiring_api_keys():
             Notification.message.like(f"%{api_key.device_name}%"),
             Notification.created_at >= datetime.utcnow() - timedelta(days=1)
         ).first()
-        
+
         if not recent_notif:
             notifs = create_api_key_expiration_notification(api_key, commit=True)
             notifications.extend(notifs)
-    
+
     return notifications
+
+
+def should_notify_anomaly(anomaly, company_id):
+    """Check if we should send a notification for this anomaly.
+
+    Throttles notifications to avoid duplicates for the same anomaly type.
+    Sends notifications for high severity anomalies, and only reraises lower
+    severity if they haven't been notified recently.
+
+    Returns True if notification should be sent, False otherwise.
+    """
+    from datetime import timedelta
+    from app.models import Notification
+
+    # Always notify high severity anomalies
+    if anomaly.severity == 'high':
+        return True
+
+    # For medium/low severity, check if we've notified about this entity/metric recently
+    recent_window = timedelta(hours=24)
+    recent_notif = Notification.query.filter(
+        Notification.company_id == company_id,
+        Notification.title.like(f"%{anomaly.metric}%"),
+        Notification.message.like(f"%{anomaly.entity_type}%#{anomaly.entity_id}%"),
+        Notification.created_at >= datetime.utcnow() - recent_window
+    ).first()
+
+    return recent_notif is None
+
+
+def create_anomaly_notification(anomaly, company_id, commit=True):
+    """Create a notification for a detected anomaly.
+
+    Designed to support future user notification preferences (email, SMS, on-site).
+    Currently only creates on-site notifications, but can be extended to route
+    based on user notification settings.
+    """
+    severity_icon = {
+        'high': '🔴',
+        'medium': '🟡',
+        'low': '🔵'
+    }.get(anomaly.severity, '•')
+
+    title = f'{severity_icon} Data Anomaly: {anomaly.metric}'
+
+    message = (
+        f"{anomaly.entity_type} #{anomaly.entity_id}: {anomaly.explanation[:100]}"
+        if anomaly.explanation else
+        f"{anomaly.entity_type} #{anomaly.entity_id}: {anomaly.metric} anomaly detected"
+    )
+
+    category = 'danger' if anomaly.severity == 'high' else 'warning' if anomaly.severity == 'medium' else 'info'
+
+    try:
+        link_url = url_for('insights.data_insights')
+    except RuntimeError:
+        link_url = None
+
+    return create_company_notification(
+        company_id,
+        title,
+        message,
+        category=category,
+        link_url=link_url,
+        commit=commit
+    )

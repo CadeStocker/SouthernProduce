@@ -79,6 +79,7 @@ from app.forms import(
 )
 from flask_login import login_user, login_required, current_user, logout_user
 from app import db, bcrypt
+from app.services.analytics_facts import record_cost_margin
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
@@ -952,6 +953,8 @@ def update_item_total_cost(item_id):
         raw_product_cost=raw_product_cost
     )
     db.session.add(total_cost)
+    db.session.flush()
+    record_cost_margin(total_cost)
     db.session.commit()
     #flash(f'Total cost for item: {item_id} has been updated to ${cost:.2f}.', 'success')
 
