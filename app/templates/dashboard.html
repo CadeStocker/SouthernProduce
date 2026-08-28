@@ -1,166 +1,464 @@
 {% extends 'base.html' %}
 
+{#
+  Cross-domain analytics dashboard.
+
+  One section per domain from services/analytics_domains.py. Each section is
+  filled by its own /api/dashboard/<domain> endpoint returning
+  {summary: {...}, rows: [...]}, so adding a domain means adding a section here
+  plus an endpoint — no changes to the shared JS helpers.
+
+  Charts follow the house data-viz rules: one measure per chart (never a second
+  y-axis), single-series marks in the primary blue, diverging blue/red only where
+  the value is genuinely signed, and status colors always paired with a text
+  label. Every chart is backed by a table beneath it.
+#}
+
+{% macro money(value, dash='—') %}{% if value is none %}{{ dash }}{% else %}${{ "%.2f"|format(value) }}{% endif %}{% endmacro %}
+{% macro num(value, places=0, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value) }}{% endif %}{% endmacro %}
+{% macro pct(value, places=1, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value) }}%{% endif %}{% endmacro %}
+{% macro ratio_pct(value, places=1, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value * 100) }}%{% endif %}{% endmacro %}
+
+{# Deltas are absent whenever a measure is non-numeric in either period, so this
+   always takes the value via .get() and tolerates Undefined. #}
+{% macro delta(value) %}
+  {% if value is not none and value is number and value|abs >= 0.05 %}
+    <small class="viz-delta {{ 'viz-delta-up' if value > 0 else 'viz-delta-down' }}">
+      <i class="bi {{ 'bi-arrow-up-short' if value > 0 else 'bi-arrow-down-short' }}"></i>{{ "%.1f"|format(value|abs) }}%
+    </small>
+  {% endif %}
+{% endmacro %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-  <div class="mb-4 d-flex justify-content-between align-items-center">
+<style>
+  /* Chart chrome and ink in one place. The app ships a single light Bootstrap
+     theme, so there is no dark variant here on purpose — if a dark theme is ever
+     added, these roles are the only values that need a second set. */
+  .viz {
+    --viz-surface:    #ffffff;
+    --viz-ink:        #0b0b0b;
+    --viz-ink-muted:  #898781;
+    --viz-grid:       #e1e0d9;
+    --viz-baseline:   #c3c2b7;
+    --viz-series:     #2a78d6;  /* single-series marks */
+    --viz-pos:        #2a78d6;  /* diverging: increase */
+    --viz-neg:        #e34948;  /* diverging: decrease */
+    --viz-good:       #0ca30c;
+    --viz-warning:    #fab219;
+    --viz-critical:   #d03b3b;
+  }
+  .viz .card-header { background: var(--viz-surface); border-bottom: 1px solid var(--viz-grid); }
+  .viz table { font-variant-numeric: tabular-nums; }
+  .viz .viz-tile-value { font-size: 1.6rem; font-weight: 600; color: var(--viz-ink); line-height: 1.2; }
+  .viz .viz-tile-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--viz-ink-muted); }
+  .viz .viz-tile-sub { font-size: .8rem; color: #52514e; }
+  .viz .viz-delta { font-weight: 600; margin-left: .25rem; white-space: nowrap; }
+  .viz .viz-delta-up { color: #006300; }
+  .viz .viz-delta-down { color: #b02a2a; }
+  .viz .viz-chart { height: 260px; }
+  /* Status dot always sits beside a text label — never color alone. */
+  .viz .viz-dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; margin-right: .35rem; vertical-align: baseline; }
+  .viz .viz-empty { color: var(--viz-ink-muted); font-size: .875rem; }
+  .viz .viz-section-head { border-left: 3px solid var(--viz-series); padding-left: .75rem; }
+  .viz .viz-health { font-size: .8rem; }
+</style>
+
+<div class="container-fluid mt-4 viz">
+
+  <!-- Header + filters (one row, above everything) -->
+  <div class="d-flex justify-content-between align-items-start flex-wrap mb-3">
     <div>
-      <h2>Analytics Dashboard</h2>
-      <p class="text-muted">Key performance indicators and business metrics</p>
+      <h2 class="mb-1">Analytics Dashboard</h2>
+      <p class="text-muted mb-0">
+        Patterns and anomalies across pricing, efficiency, receiving, inventory and sales.
+      </p>
     </div>
-    <div class="card p-3" style="width: 350px;">
-      <div class="row g-2">
-        <div class="col-6">
-          <label class="form-label mb-1 small">Start Date</label>
-          <input type="date" id="start-date" class="form-control form-control-sm">
+    <form class="form-inline" method="get" id="range-form">
+      <div class="btn-group btn-group-sm mr-2" role="group" aria-label="Quick date ranges">
+        <button type="button" class="btn btn-outline-secondary" data-days="7">7d</button>
+        <button type="button" class="btn btn-outline-secondary" data-days="30">30d</button>
+        <button type="button" class="btn btn-outline-secondary" data-days="90">90d</button>
+        <button type="button" class="btn btn-outline-secondary" data-days="365">1y</button>
+      </div>
+      <label class="sr-only" for="start-date">Start date</label>
+      <input type="date" id="start-date" name="start_date" class="form-control form-control-sm mr-1"
+             value="{{ start_date.isoformat() }}">
+      <label class="sr-only" for="end-date">End date</label>
+      <input type="date" id="end-date" name="end_date" class="form-control form-control-sm mr-1"
+             value="{{ end_date.isoformat() }}">
+      <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+    </form>
+  </div>
+
+  <p class="text-muted viz-health mb-3">
+    Showing {{ start_date.strftime('%b %d, %Y') }} – {{ end_date.strftime('%b %d, %Y') }},
+    compared against {{ previous_start.strftime('%b %d') }} – {{ previous_end.strftime('%b %d, %Y') }}.
+  </p>
+
+  <!-- Overview: one headline per domain. Stat tiles, not charts — a single
+       number does not need a plot. -->
+  <div class="row mb-2">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="viz-tile-label">Revenue</div>
+          <div class="viz-tile-value">{{ money(summary.sales.revenue) }}{{ delta(deltas.sales.get('revenue')) }}</div>
+          <div class="viz-tile-sub">
+            {{ num(summary.sales.quantity) }} units · {{ money(summary.sales.avg_daily_revenue) }}/day
+          </div>
         </div>
-        <div class="col-6">
-          <label class="form-label mb-1 small">End Date</label>
-          <input type="date" id="end-date" class="form-control form-control-sm">
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="viz-tile-label">Avg Margin</div>
+          <div class="viz-tile-value">{{ pct(summary.pricing.avg_margin_pct) }}{{ delta(deltas.pricing.get('avg_margin_pct')) }}</div>
+          <div class="viz-tile-sub">
+            {{ summary.pricing.below_cost_count }} below cost ·
+            {{ summary.pricing.thin_margin_count }} thin ·
+            {{ summary.pricing.unpriced_count }} unpriced
+          </div>
         </div>
-        <div class="col-12">
-          <button id="apply-dates" class="btn btn-sm btn-primary w-100">Apply</button>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="viz-tile-label">Man-Hours / Case</div>
+          <div class="viz-tile-value">{{ num(summary.efficiency.man_hours_per_case, 3) }}{{ delta(deltas.efficiency.get('man_hours_per_case')) }}</div>
+          <div class="viz-tile-sub">
+            {{ money(summary.efficiency.cost_per_case) }}/case ·
+            labor {{ ratio_pct(summary.efficiency.labor_ratio) }} of sales
+          </div>
         </div>
-        <div class="col-12">
-          <small class="text-muted">Quick filters:</small>
-          <div class="btn-group btn-group-sm w-100" role="group">
-            <button type="button" class="btn btn-outline-secondary" data-days="30">30 Days</button>
-            <button type="button" class="btn btn-outline-secondary" data-days="90">90 Days</button>
-            <button type="button" class="btn btn-outline-secondary" data-days="365">1 Year</button>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="viz-tile-label">Inbound Spend</div>
+          <div class="viz-tile-value">{{ money(summary.receiving.total_cost) }}{{ delta(deltas.receiving.get('total_cost')) }}</div>
+          <div class="viz-tile-sub">
+            {{ money(summary.receiving.cost_per_unit) }}/unit ·
+            {{ summary.receiving.delivery_count }} deliveries from
+            {{ summary.receiving.supplier_count }} suppliers
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- KPI Row -->
   <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card h-100">
         <div class="card-body">
-          <h6 class="card-title text-muted">Today's Revenue</h6>
-          <h3 class="text-success">${{ "%.2f"|format(today_summary.revenue) }}</h3>
-          <small class="text-muted">{{ today_summary.transaction_count }} transactions</small>
+          <div class="viz-tile-label">Inventory On Hand</div>
+          <div class="viz-tile-value">{{ num(summary.inventory.total_units) }}</div>
+          <div class="viz-tile-sub">
+            {{ summary.inventory.items_counted }} items ·
+            {{ summary.inventory.stale_count }} stale ·
+            {{ summary.inventory.zero_count }} at zero
+            {% if summary.inventory.last_count_date %}
+              · last count {{ summary.inventory.last_count_date.strftime('%b %d') }}
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">Today's Quantity</h6>
-          <h3 class="text-info">{{ "%.0f"|format(today_summary.quantity) }}</h3>
-          <small class="text-muted">units sold</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">Last 30 Days Revenue</h6>
-          <h3 class="text-primary">${{ "%.2f"|format(period_totals.revenue) }}</h3>
-          <small class="text-muted">${{ "%.2f"|format(period_totals.avg_daily_revenue) }}/day avg</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">30-Day Quantity</h6>
-          <h3 class="text-warning">{{ "%.0f"|format(period_totals.quantity) }}</h3>
-          <small class="text-muted">{{ period_totals.days }} days of data</small>
+
+    <!-- Open anomalies by domain -->
+    <div class="col-md-9 mb-3">
+      <div class="card h-100">
+        <div class="card-body py-2">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="viz-tile-label mb-0">Open Anomalies by Area</div>
+            <a href="{{ url_for('insights.data_insights') }}" class="small">Review all</a>
+          </div>
+          <div class="row">
+            {% for domain in domains %}
+              {% set stats = anomaly_summary[domain.key] %}
+              <div class="col">
+                <a class="d-block text-decoration-none text-reset"
+                   href="{{ url_for('insights.data_insights', domain=domain.key) }}">
+                  <div class="viz-tile-sub">{{ domain.label }}</div>
+                  <div style="font-size:1.25rem;font-weight:600;">
+                    {% if stats.high %}
+                      <span class="viz-dot" style="background: var(--viz-critical);"></span>
+                    {% elif stats.open %}
+                      <span class="viz-dot" style="background: var(--viz-warning);"></span>
+                    {% else %}
+                      <span class="viz-dot" style="background: var(--viz-good);"></span>
+                    {% endif %}{{ stats.open }}
+                  </div>
+                  <div class="viz-health text-muted">
+                    {% if stats.open %}
+                      {{ stats.high }} high · {{ money(stats.dollar_impact) }} at stake
+                    {% else %}
+                      clear
+                    {% endif %}
+                  </div>
+                </a>
+              </div>
+            {% endfor %}
+            {% if anomaly_summary.other.open %}
+              <div class="col">
+                <div class="viz-tile-sub">Unclassified</div>
+                <div style="font-size:1.25rem;font-weight:600;">{{ anomaly_summary.other.open }}</div>
+                <div class="viz-health text-muted">detected before areas existed</div>
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Charts Row -->
-  <div class="row mb-4">
-    <div class="col-lg-8">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h5 class="mb-0">Revenue Trend (30 Days)</h5>
-        </div>
-        <div class="card-body">
-          <div id="revenue-chart" style="height: 300px;"></div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h5 class="mb-0">Top Items (30 Days)</h5>
-        </div>
-        <div class="card-body">
-          <div id="items-chart" style="height: 300px;"></div>
-        </div>
-      </div>
-    </div>
+  <!-- Pricing & margin -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-tags"></i> Pricing &amp; Margin</h5>
+    <small class="text-muted">Current list price against the most recent landed cost. Thinnest margins first.</small>
   </div>
-
-  <!-- Tables Row -->
-  <div class="row">
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h5 class="mb-0">Top Customers (30 Days)</h5>
-        </div>
+  <div class="row mb-4">
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Thinnest Margins</strong></div>
+        <div class="card-body"><div class="viz-chart" id="pricing-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Margin Detail</strong></div>
         <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Customer</th>
-                <th class="text-right">Revenue</th>
-                <th class="text-right">Quantity</th>
-              </tr>
-            </thead>
-            <tbody id="top-customers-table">
-              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
-            </tbody>
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Item</th><th>Status</th>
+              <th class="text-right">Cost</th><th class="text-right">Price</th><th class="text-right">Margin</th>
+            </tr></thead>
+            <tbody id="pricing-table"><tr><td colspan="5" class="viz-empty">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
-    <div class="col-lg-6">
-      <div class="card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Receiving Costs (30 Days)</h5>
-          <a href="{{ url_for('insights.analytics_data') }}" class="btn btn-sm btn-outline-secondary">View All</a>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Date</th>
-                <th class="text-right">Total Cost</th>
-                <th class="text-right">Quantity</th>
-              </tr>
-            </thead>
-            <tbody id="receiving-table">
-              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Links -->
-  <div class="row mt-4">
     <div class="col-12">
       <div class="card">
-        <div class="card-body">
-          <h5>Quick Links</h5>
-          <div class="btn-group" role="group">
-            <a href="{{ url_for('insights.data_insights') }}" class="btn btn-outline-primary">
-              <i class="bi bi-exclamation-triangle"></i> View Anomalies
-            </a>
-            <a href="{{ url_for('insights.analytics_data') }}" class="btn btn-outline-primary">
-              <i class="bi bi-graph-up"></i> Detailed Analytics
-            </a>
-            <a href="{{ url_for('main.labor_dashboard') }}" class="btn btn-outline-primary">
-              <i class="bi bi-clock"></i> Labor Dashboard
-            </a>
-          </div>
+        <div class="card-header"><strong>Widest Price Spread Across Customers</strong>
+          <small class="text-muted d-block">A wide spread is not automatically wrong — tiered pricing is normal — but it is where mispricing hides.</small>
         </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Item</th><th class="text-right">Customers</th><th class="text-right">Low</th>
+              <th class="text-right">Avg</th><th class="text-right">High</th><th class="text-right">Spread</th>
+            </tr></thead>
+            <tbody id="dispersion-table"><tr><td colspan="6" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Labor & efficiency -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Labor &amp; Efficiency</h5>
+    <small class="text-muted">Man-hours and payroll per case produced, from daily production logs.</small>
+  </div>
+  <div class="row mb-4">
+    <div class="col-lg-7 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Man-Hours per Case</strong>
+          <small class="text-muted d-block">Lower is better. Days with no cases produced are omitted rather than plotted as zero.</small>
+        </div>
+        <div class="card-body"><div class="viz-chart" id="efficiency-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-lg-5 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Daily Detail</strong></div>
+        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Date</th><th class="text-right">Cases</th><th class="text-right">Hrs/Case</th>
+              <th class="text-right">$/Case</th><th class="text-right">Labor %</th>
+            </tr></thead>
+            <tbody id="efficiency-table"><tr><td colspan="5" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receiving & suppliers -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-truck"></i> Receiving &amp; Suppliers</h5>
+    <small class="text-muted">Inbound spend, cost per unit, and where the money goes.</small>
+  </div>
+  <div class="row mb-4">
+    <div class="col-lg-7 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Inbound Spend per Day</strong></div>
+        <div class="card-body"><div class="viz-chart" id="receiving-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-lg-5 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Top Suppliers by Spend</strong></div>
+        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Supplier</th><th class="text-right">Spend</th>
+              <th class="text-right">Units</th><th class="text-right">$/Unit</th>
+            </tr></thead>
+            <tbody id="suppliers-table"><tr><td colspan="4" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><strong>Cost per Unit by Raw Product</strong></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Raw Product</th><th class="text-right">Deliveries</th><th class="text-right">Units</th>
+              <th class="text-right">Spend</th><th class="text-right">$/Unit</th>
+            </tr></thead>
+            <tbody id="raw-products-table"><tr><td colspan="5" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Inventory</h5>
+    <small class="text-muted">Movement between counts, current levels, and items nobody has counted lately.</small>
+  </div>
+  <div class="row mb-4">
+    <div class="col-lg-7 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Biggest Count-to-Count Moves</strong>
+          <small class="text-muted d-block">Signed change in units between an item's two most recent counts.</small>
+        </div>
+        <div class="card-body"><div class="viz-chart" id="inventory-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-lg-5 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Stale Counts</strong></div>
+        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Item</th><th class="text-right">On Hand</th><th class="text-right">Last Count</th>
+            </tr></thead>
+            <tbody id="stale-table"><tr><td colspan="3" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><strong>Movement Detail</strong></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Item</th><th class="text-right">Previous</th><th class="text-right">Current</th>
+              <th class="text-right">Change</th><th class="text-right">Change %</th>
+            </tr></thead>
+            <tbody id="inventory-table"><tr><td colspan="5" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales & customers -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Sales &amp; Customers</h5>
+    <small class="text-muted">Revenue over time and customer concentration.</small>
+  </div>
+  <div class="row mb-4">
+    <div class="col-lg-7 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Revenue per Day</strong></div>
+        <div class="card-body"><div class="viz-chart" id="sales-chart"></div></div>
+      </div>
+    </div>
+    <div class="col-lg-5 mb-3">
+      <div class="card h-100">
+        <div class="card-header"><strong>Top Customers</strong></div>
+        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr>
+              <th>Customer</th><th class="text-right">Revenue</th><th class="text-right">Units</th>
+            </tr></thead>
+            <tbody id="customers-table"><tr><td colspan="3" class="viz-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Highest-impact open anomalies, all areas -->
+  <div class="viz-section-head mb-2">
+    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Highest-Impact Open Findings</h5>
+    <small class="text-muted">Across every area, ranked by estimated dollars at stake.</small>
+  </div>
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead><tr>
+          <th>Area</th><th>Severity</th><th>What</th><th class="text-right">Impact</th><th>Detected</th>
+        </tr></thead>
+        <tbody id="anomalies-table"><tr><td colspan="5" class="viz-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Data health: which areas actually have data flowing -->
+  <div class="card mb-4">
+    <div class="card-header"><strong>Data Coverage</strong>
+      <small class="text-muted d-block">An area with no facts is wired up but has nothing recorded yet — the usual reason a panel above is empty.</small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr>
+          <th>Area</th><th>Covers</th><th class="text-right">Records</th><th>First</th><th>Latest</th>
+        </tr></thead>
+        <tbody>
+          {% for row in data_health %}
+          <tr>
+            <td><i class="bi {{ row.icon }}"></i> {{ row.label }}</td>
+            <td class="text-muted viz-health">{{ row.blurb }}</td>
+            <td class="text-right">{{ row.fact_count }}</td>
+            <td>{{ row.first_date.strftime('%Y-%m-%d') if row.first_date else '—' }}</td>
+            <td>
+              {% if row.last_date %}
+                {{ row.last_date.strftime('%Y-%m-%d') }}
+              {% else %}
+                <span class="text-muted">no data yet</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="btn-group" role="group">
+        <a href="{{ url_for('insights.data_insights') }}" class="btn btn-outline-primary">
+          <i class="bi bi-exclamation-triangle"></i> Review Anomalies
+        </a>
+        <a href="{{ url_for('insights.analytics_data') }}" class="btn btn-outline-primary">
+          <i class="bi bi-table"></i> Detailed Analytics
+        </a>
+        <a href="{{ url_for('main.labor_dashboard') }}" class="btn btn-outline-primary">
+          <i class="bi bi-clock"></i> Labor Dashboard
+        </a>
       </div>
     </div>
   </div>
@@ -168,144 +466,444 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-let revenueChart, itemsChart;
+(function () {
+  'use strict';
 
-function getDateRange() {
-  const startInput = document.getElementById('start-date').value;
-  const endInput = document.getElementById('end-date').value;
+  const RANGE = {
+    start_date: {{ start_date.isoformat()|tojson }},
+    end_date: {{ end_date.isoformat()|tojson }},
+  };
 
-  if (startInput && endInput) {
-    return { start_date: startInput, end_date: endInput };
+  // Built from url_for with a placeholder id so the route stays the router's
+  // business rather than being hardcoded here.
+  const ITEM_URL_TEMPLATE = {{ url_for('main.view_item', item_id=0)|tojson }};
+  const itemUrl = id => ITEM_URL_TEMPLATE.replace(/0(?=[^0-9]*$)/, String(id));
+
+  const css = getComputedStyle(document.querySelector('.viz'));
+  const ink = role => css.getPropertyValue(role).trim();
+  const INK_MUTED = ink('--viz-ink-muted');
+  const GRID = ink('--viz-grid');
+  const BASELINE = ink('--viz-baseline');
+  const SERIES = ink('--viz-series');
+  const POS = ink('--viz-pos');
+  const NEG = ink('--viz-neg');
+  const STATUS = { good: ink('--viz-good'), warning: ink('--viz-warning'), critical: ink('--viz-critical') };
+
+  const charts = {};
+
+  // ---- formatting -------------------------------------------------------
+
+  const money = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const compactMoney = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {maximumFractionDigits: 0});
+  const numeric = (v, places = 0) => v == null ? '—' : Number(v).toFixed(places);
+  const percent = (v, places = 1) => v == null ? '—' : Number(v).toFixed(places) + '%';
+  const ratioPercent = (v, places = 1) => v == null ? '—' : (Number(v) * 100).toFixed(places) + '%';
+  const shortDate = iso => iso == null ? '—' : new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+  const isoDate = iso => iso == null ? '—' : iso;
+  const truncate = (text, n) => (text || '').length > n ? text.slice(0, n - 1) + '…' : (text || '');
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
   }
 
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - 30);
+  // ---- fetching ---------------------------------------------------------
 
-  return {
-    start_date: startDate.toISOString().split('T')[0],
-    end_date: endDate.toISOString().split('T')[0]
-  };
-}
+  function url(path, params) {
+    const query = new URLSearchParams(Object.assign({}, RANGE, params || {}));
+    return path + '?' + query.toString();
+  }
 
-function buildQuery(params = {}) {
-  const dates = getDateRange();
-  const query = new URLSearchParams({ ...params, ...dates });
-  return query.toString();
-}
-
-function loadDashboard() {
-  const dates = getDateRange();
-
-  // Revenue chart
-  fetch('/api/dashboard/revenue_trend?' + buildQuery({ days: 365 }))
-    .then(r => r.json())
-    .then(data => {
-      const ctx = document.getElementById('revenue-chart').getContext('2d');
-      if (revenueChart) revenueChart.destroy();
-      revenueChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map(d => new Date(d.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})),
-          datasets: [{
-            label: 'Revenue',
-            data: data.map(d => d.revenue),
-            borderColor: '#28a745',
-            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-            tension: 0.4,
-            fill: true,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, ticks: { callback: v => '$' + v.toFixed(0) } }
-          }
+  /** Fetch one endpoint and hand the payload to a renderer.
+   *  A failure blanks only its own panel; the rest of the page stands. */
+  function load(path, params, render, fallbackNodeId, columns) {
+    fetch(url(path, params))
+      .then(response => {
+        if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
+        return response.json();
+      })
+      .then(render)
+      .catch(error => {
+        console.error('Dashboard panel failed:', path, error);
+        if (fallbackNodeId) {
+          fill(fallbackNodeId, [], columns, () => '');
         }
       });
-    });
+  }
 
-  // Top items chart
-  fetch('/api/dashboard/top_items?' + buildQuery({ limit: 10, days: 365 }))
-    .then(r => r.json())
-    .then(data => {
-      const ctx = document.getElementById('items-chart').getContext('2d');
-      if (itemsChart) itemsChart.destroy();
-      itemsChart = new Chart(ctx, {
+  /** Render rows into a tbody, or an honest empty state. */
+  function fill(nodeId, rows, columns, rowHtml) {
+    const tbody = document.getElementById(nodeId);
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="' + columns + '" class="viz-empty">No data in this range.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(rowHtml).join('');
+  }
+
+  // ---- chart defaults ---------------------------------------------------
+
+  /** Shared options. Tooltips are on by default: an HTML chart is interactive.
+   *  Only ever one measure per chart — no second y-axis anywhere.
+   *
+   *  On a horizontal bar the value axis is x and the category axis is y, so the
+   *  value formatting, gridlines and zero baseline all swap sides. */
+  function baseOptions(opts) {
+    const valueFormat = opts.valueFormat || money;
+    const horizontal = !!opts.horizontal;
+
+    const valueAxis = {
+      beginAtZero: opts.beginAtZero !== false,
+      grid: {display: true, color: GRID, drawBorder: false, borderColor: BASELINE},
+      ticks: {color: INK_MUTED, callback: v => valueFormat(v)},
+    };
+    const categoryAxis = {
+      grid: {display: false, drawBorder: false, borderColor: BASELINE},
+      ticks: {color: INK_MUTED, maxRotation: 0, autoSkip: true, maxTicksLimit: 12},
+    };
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      // Crosshair-style shared tooltip on time series; per-mark on categoricals.
+      interaction: horizontal
+        ? {mode: 'nearest', intersect: true}
+        : {mode: 'index', intersect: false},
+      plugins: {
+        legend: {display: false},  // single series — the card title names it
+        tooltip: {
+          backgroundColor: '#0b0b0b',
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: context => opts.label
+              ? opts.label(context)
+              : valueFormat(context.parsed[horizontal ? 'x' : 'y']),
+          },
+        },
+      },
+      scales: horizontal
+        ? {x: valueAxis, y: categoryAxis}
+        : {x: categoryAxis, y: valueAxis},
+    };
+  }
+
+  function draw(nodeId, config) {
+    const node = document.getElementById(nodeId);
+    if (!node) return;
+    if (charts[nodeId]) charts[nodeId].destroy();
+    // Chart.js needs a canvas; the div is the sized container.
+    node.innerHTML = '<canvas></canvas>';
+    charts[nodeId] = new Chart(node.querySelector('canvas'), config);
+  }
+
+  function emptyChart(nodeId, message) {
+    const node = document.getElementById(nodeId);
+    if (!node) return;
+    if (charts[nodeId]) { charts[nodeId].destroy(); delete charts[nodeId]; }
+    node.innerHTML = '<p class="viz-empty d-flex h-100 align-items-center justify-content-center mb-0">'
+      + escapeHtml(message) + '</p>';
+  }
+
+  // 4px rounded data-ends, anchored to the baseline; 2px gap between bars.
+  const BAR_STYLE = {borderRadius: 4, borderSkipped: 'start', maxBarThickness: 22, borderWidth: 0};
+  const LINE_STYLE = {borderWidth: 2, pointRadius: 0, pointHitRadius: 12, tension: 0.3,
+                      pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: '#ffffff'};
+
+  // ---- pricing ----------------------------------------------------------
+
+  /** Margin status. Color never travels alone — every use pairs it with this label. */
+  function marginStatus(row) {
+    if (row.price == null) return {key: 'warning', label: 'Unpriced', icon: 'bi-question-circle'};
+    if (row.margin_pct < 0) return {key: 'critical', label: 'Below cost', icon: 'bi-exclamation-octagon'};
+    if (row.margin_pct < 20) return {key: 'warning', label: 'Thin', icon: 'bi-exclamation-triangle'};
+    return {key: 'good', label: 'OK', icon: 'bi-check-circle'};
+  }
+
+  function renderPricing(payload) {
+    const rows = payload.rows || [];
+    const priced = rows.filter(row => row.margin_pct != null);
+
+    if (!priced.length) {
+      emptyChart('pricing-chart', 'No items have both a landed cost and a current price in this range.');
+    } else {
+      draw('pricing-chart', {
         type: 'bar',
         data: {
-          labels: data.slice(0, 10).map(d => d.item_name.substring(0, 15)),
-          datasets: [{
-            label: 'Quantity Sold',
-            data: data.slice(0, 10).map(d => d.quantity),
-            backgroundColor: '#007bff',
-          }]
+          labels: priced.map(row => truncate(row.item_name, 22)),
+          datasets: [Object.assign({
+            data: priced.map(row => row.margin_pct),
+            backgroundColor: priced.map(row => STATUS[marginStatus(row).key]),
+          }, BAR_STYLE)],
         },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { beginAtZero: true } }
-        }
+        options: Object.assign(baseOptions({
+          horizontal: true,
+          valueFormat: v => percent(v, 0),
+          label: context => {
+            const row = priced[context.dataIndex];
+            return marginStatus(row).label + ' · ' + percent(row.margin_pct)
+              + ' (' + money(row.price) + ' price − ' + money(row.cost) + ' cost)';
+          },
+        }), {indexAxis: 'y'}),
       });
+    }
+
+    fill('pricing-table', rows, 5, row => {
+      const status = marginStatus(row);
+      return '<tr>'
+        + '<td>' + (row.item_id
+            ? '<a href="' + escapeHtml(itemUrl(row.item_id)) + '">' + escapeHtml(row.item_name) + '</a>'
+            : escapeHtml(row.item_name)) + '</td>'
+        + '<td><span class="viz-dot" style="background:' + STATUS[status.key] + '"></span>'
+        + '<i class="bi ' + status.icon + '"></i> ' + status.label + '</td>'
+        + '<td class="text-right">' + money(row.cost) + '</td>'
+        + '<td class="text-right">' + money(row.price) + '</td>'
+        + '<td class="text-right">' + money(row.margin) + ' / ' + percent(row.margin_pct) + '</td>'
+        + '</tr>';
     });
+  }
 
-  // Top customers table
-  fetch('/api/dashboard/top_customers?' + buildQuery({ limit: 10, days: 365 }))
-    .then(r => r.json())
-    .then(data => {
-      const tbody = document.getElementById('top-customers-table');
-      tbody.innerHTML = data.slice(0, 10).map(row => `
-        <tr>
-          <td>${row.customer_name}</td>
-          <td class="text-right">$${row.revenue.toFixed(2)}</td>
-          <td class="text-right">${row.quantity.toFixed(0)}</td>
-        </tr>
-      `).join('');
+  // ---- efficiency -------------------------------------------------------
+
+  function renderEfficiency(payload) {
+    const rows = payload.rows || [];
+    // Days with no cases have no ratio; plotting them as zero would read as
+    // perfect efficiency, so they are dropped from the line.
+    const withRatio = rows.filter(row => row.man_hours_per_case != null);
+
+    if (!withRatio.length) {
+      emptyChart('efficiency-chart', 'No daily production logs with both hours and cases in this range.');
+    } else {
+      draw('efficiency-chart', {
+        type: 'line',
+        data: {
+          labels: withRatio.map(row => shortDate(row.date)),
+          datasets: [Object.assign({
+            data: withRatio.map(row => row.man_hours_per_case),
+            borderColor: SERIES,
+            backgroundColor: SERIES,
+          }, LINE_STYLE)],
+        },
+        options: baseOptions({
+          beginAtZero: false,
+          valueFormat: v => numeric(v, 3),
+          label: context => {
+            const row = withRatio[context.dataIndex];
+            return numeric(row.man_hours_per_case, 3) + ' hrs/case · '
+              + numeric(row.cases) + ' cases · ' + numeric(row.labor_hours, 1) + ' hrs';
+          },
+        }),
+      });
+    }
+
+    fill('efficiency-table', rows, 5, row =>
+      '<tr>'
+      + '<td>' + shortDate(row.date) + '</td>'
+      + '<td class="text-right">' + numeric(row.cases) + '</td>'
+      + '<td class="text-right">' + numeric(row.man_hours_per_case, 3) + '</td>'
+      + '<td class="text-right">' + money(row.cost_per_case) + '</td>'
+      + '<td class="text-right">' + ratioPercent(row.labor_ratio) + '</td>'
+      + '</tr>');
+  }
+
+  // ---- receiving --------------------------------------------------------
+
+  function renderReceiving(payload) {
+    const rows = payload.rows || [];
+    if (!rows.length) {
+      emptyChart('receiving-chart', 'No receiving logs in this range.');
+      return;
+    }
+    draw('receiving-chart', {
+      type: 'bar',
+      data: {
+        labels: rows.map(row => shortDate(row.date)),
+        datasets: [Object.assign({
+          data: rows.map(row => row.total_cost),
+          backgroundColor: SERIES,
+        }, BAR_STYLE)],
+      },
+      options: baseOptions({
+        valueFormat: compactMoney,
+        label: context => {
+          const row = rows[context.dataIndex];
+          return money(row.total_cost) + ' · ' + numeric(row.quantity) + ' units · '
+            + money(row.cost_per_unit) + '/unit';
+        },
+      }),
     });
+  }
 
-  // Receiving costs table
-  fetch('/api/dashboard/receiving_costs?' + buildQuery({ days: 365 }))
-    .then(r => r.json())
-    .then(data => {
-      const tbody = document.getElementById('receiving-table');
-      tbody.innerHTML = data.slice(-10).map(row => `
-        <tr>
-          <td>${new Date(row.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</td>
-          <td class="text-right">$${row.total_cost.toFixed(2)}</td>
-          <td class="text-right">${row.quantity.toFixed(0)}</td>
-        </tr>
-      `).join('');
+  // ---- inventory --------------------------------------------------------
+
+  function renderInventory(payload) {
+    const rows = payload.rows || [];
+
+    if (!rows.length) {
+      emptyChart('inventory-chart', 'Needs at least two counts of the same item in this range.');
+    } else {
+      draw('inventory-chart', {
+        type: 'bar',
+        data: {
+          labels: rows.map(row => truncate(row.item_name, 22)),
+          datasets: [Object.assign({
+            data: rows.map(row => row.change),
+            // Genuinely signed values: diverging blue (up) / red (down).
+            backgroundColor: rows.map(row => row.change >= 0 ? POS : NEG),
+          }, BAR_STYLE, {borderSkipped: false})],
+        },
+        options: Object.assign(baseOptions({
+          horizontal: true,
+          beginAtZero: true,
+          valueFormat: v => numeric(v),
+          label: context => {
+            const row = rows[context.dataIndex];
+            return (row.change >= 0 ? '+' : '') + numeric(row.change) + ' units ('
+              + numeric(row.previous_quantity) + ' → ' + numeric(row.current_quantity) + ')';
+          },
+        }), {indexAxis: 'y'}),
+      });
+    }
+
+    fill('inventory-table', rows, 5, row =>
+      '<tr>'
+      + '<td>' + escapeHtml(row.item_name) + '</td>'
+      + '<td class="text-right">' + numeric(row.previous_quantity) + ' <small class="text-muted">'
+        + shortDate(row.previous_date) + '</small></td>'
+      + '<td class="text-right">' + numeric(row.current_quantity) + ' <small class="text-muted">'
+        + shortDate(row.current_date) + '</small></td>'
+      + '<td class="text-right">' + (row.change >= 0 ? '+' : '') + numeric(row.change) + '</td>'
+      + '<td class="text-right">' + (row.change_pct == null ? '—'
+        : (row.change_pct >= 0 ? '+' : '') + percent(row.change_pct, 0)) + '</td>'
+      + '</tr>');
+  }
+
+  // ---- sales ------------------------------------------------------------
+
+  function renderSales(payload) {
+    const rows = payload.rows || [];
+    if (!rows.length) {
+      emptyChart('sales-chart', 'No sales records in this range.');
+      return;
+    }
+    draw('sales-chart', {
+      type: 'line',
+      data: {
+        labels: rows.map(row => shortDate(row.date)),
+        datasets: [Object.assign({
+          data: rows.map(row => row.revenue),
+          borderColor: SERIES,
+          backgroundColor: 'rgba(42, 120, 214, 0.10)',
+          fill: true,
+        }, LINE_STYLE)],
+      },
+      options: baseOptions({
+        valueFormat: compactMoney,
+        label: context => {
+          const row = rows[context.dataIndex];
+          return money(row.revenue) + ' · ' + numeric(row.quantity) + ' units';
+        },
+      }),
     });
-}
+  }
 
-// Event listeners
-document.getElementById('apply-dates').addEventListener('click', loadDashboard);
+  // ---- anomalies --------------------------------------------------------
 
-document.querySelectorAll('[data-days]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const days = parseInt(btn.dataset.days);
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
+  const SEVERITY = {
+    high: {color: STATUS.critical, icon: 'bi-exclamation-octagon', label: 'High'},
+    medium: {color: STATUS.warning, icon: 'bi-exclamation-triangle', label: 'Medium'},
+    low: {color: STATUS.good, icon: 'bi-info-circle', label: 'Low'},
+  };
 
-    document.getElementById('start-date').value = start.toISOString().split('T')[0];
-    document.getElementById('end-date').value = end.toISOString().split('T')[0];
+  function renderAnomalies(rows) {
+    fill('anomalies-table', rows, 5, row => {
+      const severity = SEVERITY[row.severity] || SEVERITY.low;
+      return '<tr>'
+        + '<td>' + escapeHtml(row.domain_label) + '</td>'
+        + '<td><span class="viz-dot" style="background:' + severity.color + '"></span>'
+        + '<i class="bi ' + severity.icon + '"></i> ' + severity.label + '</td>'
+        + '<td>' + escapeHtml(row.explanation || (row.metric + ' anomaly')) + '</td>'
+        + '<td class="text-right">' + (row.dollar_impact == null ? '—' : money(row.dollar_impact)) + '</td>'
+        + '<td>' + (row.detected_at ? escapeHtml(row.detected_at.slice(0, 10)) : '—') + '</td>'
+        + '</tr>';
+    });
+  }
 
-    loadDashboard();
+  // ---- wire it up -------------------------------------------------------
+
+  function loadAll() {
+    load('/api/dashboard/pricing', {limit: 10}, renderPricing, 'pricing-table', 5);
+    load('/api/dashboard/efficiency', {}, renderEfficiency, 'efficiency-table', 5);
+    load('/api/dashboard/receiving', {}, renderReceiving);
+    load('/api/dashboard/inventory', {limit: 10}, renderInventory, 'inventory-table', 5);
+    load('/api/dashboard/sales', {}, renderSales);
+
+    load('/api/dashboard/price_dispersion', {limit: 10}, rows =>
+      fill('dispersion-table', rows, 6, row =>
+        '<tr>'
+        + '<td>' + escapeHtml(row.item_name) + '</td>'
+        + '<td class="text-right">' + row.customer_count + '</td>'
+        + '<td class="text-right">' + money(row.min_price) + '</td>'
+        + '<td class="text-right">' + money(row.avg_price) + '</td>'
+        + '<td class="text-right">' + money(row.max_price) + '</td>'
+        + '<td class="text-right">' + percent(row.spread_pct, 0) + '</td>'
+        + '</tr>'), 'dispersion-table', 6);
+
+    load('/api/dashboard/suppliers', {limit: 10}, rows =>
+      fill('suppliers-table', rows, 4, row =>
+        '<tr>'
+        + '<td>' + escapeHtml(row.supplier_name) + '</td>'
+        + '<td class="text-right">' + money(row.total_cost) + '</td>'
+        + '<td class="text-right">' + numeric(row.quantity) + '</td>'
+        + '<td class="text-right">' + money(row.cost_per_unit) + '</td>'
+        + '</tr>'), 'suppliers-table', 4);
+
+    load('/api/dashboard/raw_product_costs', {limit: 15}, rows =>
+      fill('raw-products-table', rows, 5, row =>
+        '<tr>'
+        + '<td>' + escapeHtml(row.raw_product_name) + '</td>'
+        + '<td class="text-right">' + row.delivery_count + '</td>'
+        + '<td class="text-right">' + numeric(row.quantity) + '</td>'
+        + '<td class="text-right">' + money(row.total_cost) + '</td>'
+        + '<td class="text-right">' + money(row.cost_per_unit) + '</td>'
+        + '</tr>'), 'raw-products-table', 5);
+
+    load('/api/dashboard/stale_inventory', {stale_days: 30, limit: 15}, rows =>
+      fill('stale-table', rows, 3, row =>
+        '<tr>'
+        + '<td>' + escapeHtml(row.item_name) + '</td>'
+        + '<td class="text-right">' + numeric(row.quantity) + '</td>'
+        + '<td class="text-right">' + isoDate(row.count_date)
+          + ' <small class="text-muted">(' + row.days_since_count + 'd)</small></td>'
+        + '</tr>'), 'stale-table', 3);
+
+    load('/api/dashboard/top_customers', {limit: 10}, rows =>
+      fill('customers-table', rows, 3, row =>
+        '<tr>'
+        + '<td>' + escapeHtml(row.customer_name) + '</td>'
+        + '<td class="text-right">' + money(row.revenue) + '</td>'
+        + '<td class="text-right">' + numeric(row.quantity) + '</td>'
+        + '</tr>'), 'customers-table', 3);
+
+    load('/api/dashboard/anomalies', {limit: 15}, renderAnomalies, 'anomalies-table', 5);
+  }
+
+  // Quick ranges submit the form, so the whole page reloads with server-rendered
+  // KPIs and period comparison consistent with the panels.
+  document.querySelectorAll('[data-days]').forEach(button => {
+    button.addEventListener('click', () => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - parseInt(button.dataset.days, 10));
+      document.getElementById('start-date').value = start.toISOString().slice(0, 10);
+      document.getElementById('end-date').value = end.toISOString().slice(0, 10);
+      document.getElementById('range-form').submit();
+    });
   });
-});
 
-// Initialize with 30-day range
-const now = new Date();
-const thirtyDaysAgo = new Date();
-thirtyDaysAgo.setDate(now.getDate() - 30);
-document.getElementById('start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
-document.getElementById('end-date').value = now.toISOString().split('T')[0];
-
-loadDashboard();
+  loadAll();
+})();
 </script>
 {% endblock %}

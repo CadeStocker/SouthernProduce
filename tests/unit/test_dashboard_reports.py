@@ -234,7 +234,7 @@ def test_get_period_totals(app):
 
 
 def test_get_receiving_costs(app):
-    """Test receiving cost aggregation."""
+    """Receiving spend aggregates the cost column that record_receiving writes."""
     from app.services import analytics_reports
 
     with app.app_context():
@@ -249,20 +249,46 @@ def test_get_receiving_costs(app):
                 date=today,
                 source_table='receiving_log',
                 source_id=i,
-                revenue=50.0,  # cost
+                cost=50.0,
                 quantity=100.0  # quantity received
             )
             db.session.add(fact)
         db.session.commit()
 
-        costs = analytics_reports.get_receiving_costs(company_id)
+        costs = analytics_reports.get_receiving_cost_trend(company_id)
         assert len(costs) == 1
         assert costs[0]['total_cost'] == 100.0  # 2 * 50
         assert costs[0]['quantity'] == 200.0  # 2 * 100
+        assert costs[0]['cost_per_unit'] == 0.5  # 100 / 200
+
+
+def test_get_receiving_costs_ignores_revenue_column(app):
+    """Regression: receiving spend lives in cost, never revenue.
+
+    An earlier version of this report summed revenue, so every receiving figure
+    on the dashboard read as $0.00 no matter how much had been received.
+    """
+    from app.services import analytics_reports
+
+    with app.app_context():
+        db.session.add(AnalyticsFact(
+            fact_type='receiving',
+            company_id=1,
+            date=datetime.utcnow().date(),
+            source_table='receiving_log',
+            source_id=99,
+            cost=250.0,
+            revenue=999.0,  # never a receiving measure
+            quantity=10.0,
+        ))
+        db.session.commit()
+
+        costs = analytics_reports.get_receiving_cost_trend(1)
+        assert costs[0]['total_cost'] == 250.0
 
 
 def test_get_labor_summary(app):
-    """Test labor cost aggregation."""
+    """Labor cost and hours come from the cost and labor_hours columns."""
     from app.services import analytics_reports
 
     with app.app_context():
@@ -277,8 +303,8 @@ def test_get_labor_summary(app):
                 date=today,
                 source_table='daily_log',
                 source_id=i,
-                revenue=50.0,  # labor cost
-                quantity=8.0  # hours
+                cost=50.0,
+                labor_hours=8.0,
             )
             db.session.add(fact)
         db.session.commit()

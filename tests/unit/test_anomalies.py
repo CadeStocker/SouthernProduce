@@ -56,9 +56,10 @@ def test_process_price_history_flags_price_below_cost(app):
         db.session.add(ph)
         db.session.commit()
 
-        detector = AnomalyDetector(db)
-        detector.process_price_history()
-        db.session.commit()
+        # PriceHistoryDetector replaced the old process_price_history method.
+        from scripts.anomaly_detector import PriceHistoryDetector
+        run = AnomalyDetector(db, company_id=1, detectors=(PriceHistoryDetector,))
+        run.run()
 
         a = Anomaly.query.filter_by(entity_type='item', entity_id=3).filter(Anomaly.rule_triggered.in_(['price_below_cost','price_vs_cost'])).first()
         assert a is not None

@@ -1,235 +1,511 @@
 {% extends 'base.html' %}
 
-{% block content %}
-<div class="container-fluid mt-4">
-  <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h2>Analytics Data</h2>
-        <p class="text-muted">Detailed business metrics and performance data</p>
-      </div>
-      <a href="{{ url_for('dashboard.analytics_dashboard') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-graph-up"></i> Back to Dashboard
-      </a>
+{#
+  Row-level detail behind the dashboard, one section per domain. All
+  server-rendered so it prints and copies cleanly; the dashboard is the place for
+  charts and interaction.
+#}
+
+{% macro money(value, dash='—') %}{% if value is none %}{{ dash }}{% else %}${{ "%.2f"|format(value) }}{% endif %}{% endmacro %}
+{% macro num(value, places=0, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value) }}{% endif %}{% endmacro %}
+{% macro pct(value, places=1, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value) }}%{% endif %}{% endmacro %}
+{% macro ratio_pct(value, places=1, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ ("%." ~ places ~ "f")|format(value * 100) }}%{% endif %}{% endmacro %}
+{% macro day(value, dash='—') %}{% if value is none %}{{ dash }}{% else %}{{ value.strftime('%Y-%m-%d') }}{% endif %}{% endmacro %}
+
+{% macro tile(label, value, sub='') %}
+<div class="col-md-3 col-sm-6 mb-3">
+  <div class="card h-100">
+    <div class="card-body">
+      <h6 class="card-title text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;">{{ label }}</h6>
+      <h4 class="mb-1">{{ value }}</h4>
+      {% if sub %}<small class="text-muted">{{ sub }}</small>{% endif %}
     </div>
   </div>
+</div>
+{% endmacro %}
 
-  <!-- Date Range Filter -->
+{% macro section(anchor, icon, title, blurb) %}
+<div class="mb-2" style="border-left:3px solid #2a78d6;padding-left:.75rem;" id="{{ anchor }}">
+  <h5 class="mb-0"><i class="bi {{ icon }}"></i> {{ title }}</h5>
+  <small class="text-muted">{{ blurb }}</small>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="container-fluid mt-4" style="font-variant-numeric: tabular-nums;">
+
+  <div class="d-flex justify-content-between align-items-start flex-wrap mb-3">
+    <div>
+      <h2 class="mb-1">Analytics Detail</h2>
+      <p class="text-muted mb-0">Row-level data behind every dashboard panel — pricing, efficiency, receiving, inventory and sales.</p>
+    </div>
+    <a href="{{ url_for('dashboard.analytics_dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-graph-up"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Date range + jump links -->
   <div class="card mb-4">
-    <div class="card-body">
-      <form method="get" class="form-inline" id="date-filter-form">
-        <label class="mr-2">Date Range:</label>
-        <select name="days" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+      <form method="get" class="form-inline mb-0">
+        <label class="mr-2" for="days">Date range:</label>
+        <select name="days" id="days" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
           <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
           <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
           <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
           <option value="365" {% if days == 365 %}selected{% endif %}>Last 365 days</option>
         </select>
-        <span class="text-muted ml-3">{{ start_date }} to {{ end_date }}</span>
+        <span class="text-muted">{{ start_date }} to {{ end_date }}</span>
       </form>
-    </div>
-  </div>
-
-  <!-- Period Summary -->
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">Total Revenue</h6>
-          <h3 class="text-success">${{ "%.2f"|format(period_totals.revenue) }}</h3>
-          <small class="text-muted">${{ "%.2f"|format(period_totals.avg_daily_revenue) }} per day average</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">Total Quantity</h6>
-          <h3 class="text-info">{{ "%.0f"|format(period_totals.quantity) }}</h3>
-          <small class="text-muted">units sold</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h6 class="card-title text-muted">Days in Period</h6>
-          <h3 class="text-primary">{{ period_totals.days }}</h3>
-          <small class="text-muted">data points</small>
-        </div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Jump to section">
+        <a href="#pricing" class="btn btn-outline-secondary">Pricing</a>
+        <a href="#efficiency" class="btn btn-outline-secondary">Efficiency</a>
+        <a href="#receiving" class="btn btn-outline-secondary">Receiving</a>
+        <a href="#inventory" class="btn btn-outline-secondary">Inventory</a>
+        <a href="#sales" class="btn btn-outline-secondary">Sales</a>
       </div>
     </div>
   </div>
 
-  <!-- Revenue Trend Table -->
+  <!-- ================= Pricing & margin ================= -->
+  {{ section('pricing', 'bi-tags', 'Pricing & Margin',
+             'Current list price against the most recent landed cost. Thinnest margins first.') }}
+  <div class="row">
+    {{ tile('Items Costed', margin_summary.items_costed,
+            (margin_summary.unpriced_count ~ ' with no current price')) }}
+    {{ tile('Avg Margin', pct(margin_summary.avg_margin_pct),
+            'across priced items') }}
+    {{ tile('Below Cost', margin_summary.below_cost_count,
+            'priced at or under landed cost') }}
+    {{ tile('Thin Margin', margin_summary.thin_margin_count,
+            'under 20% margin') }}
+  </div>
+
   <div class="card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Daily Revenue Trend</h5>
-    </div>
+    <div class="card-header bg-light"><h5 class="mb-0">Margin by Item</h5></div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0">
-        <thead class="table-light">
+        <thead class="thead-light">
           <tr>
-            <th>Date</th>
-            <th class="text-right">Revenue</th>
-            <th class="text-right">Quantity</th>
+            <th>Item</th><th>Cost As Of</th>
+            <th class="text-right">Landed Cost</th><th class="text-right">Current Price</th>
+            <th class="text-right">Margin $</th><th class="text-right">Margin %</th>
           </tr>
         </thead>
         <tbody>
-          {% for row in revenue_trend %}
+          {% for row in margins %}
+          <tr>
+            <td>
+              {% if row.item_id %}
+                <a href="{{ url_for('main.view_item', item_id=row.item_id) }}">{{ row.name }}</a>
+              {% else %}{{ row.name }}{% endif %}
+            </td>
+            <td>{{ day(row.cost_date) }}</td>
+            <td class="text-right">{{ money(row.cost) }}</td>
+            <td class="text-right">
+              {% if row.price is none %}
+                <span class="text-muted">not priced</span>
+              {% else %}{{ money(row.price) }}{% endif %}
+            </td>
+            <td class="text-right">{{ money(row.margin) }}</td>
+            <td class="text-right">
+              {% if row.margin_pct is none %}
+                —
+              {% elif row.margin_pct < 0 %}
+                <i class="bi bi-exclamation-octagon"></i> {{ pct(row.margin_pct) }} below cost
+              {% elif row.margin_pct < 20 %}
+                <i class="bi bi-exclamation-triangle"></i> {{ pct(row.margin_pct) }} thin
+              {% else %}
+                {{ pct(row.margin_pct) }}
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-muted">No item costs recorded in this range.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Price Spread Across Customers</h5>
+      <small class="text-muted">A wide spread is not automatically wrong — tiered pricing is normal — but it is where mispricing hides.</small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th>Item</th><th class="text-right">Customers</th><th class="text-right">Low</th>
+            <th class="text-right">Average</th><th class="text-right">High</th><th class="text-right">Spread</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dispersion %}
+          <tr>
+            <td>
+              {% if row.item_id %}
+                <a href="{{ url_for('main.view_item', item_id=row.item_id) }}">{{ row.name }}</a>
+              {% else %}{{ row.name }}{% endif %}
+            </td>
+            <td class="text-right">{{ row.customer_count }}</td>
+            <td class="text-right">{{ money(row.min_price) }}</td>
+            <td class="text-right">{{ money(row.avg_price) }}</td>
+            <td class="text-right">{{ money(row.max_price) }}</td>
+            <td class="text-right">{{ pct(row.spread_pct, 0) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-muted">No item is quoted to more than one customer in this range.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= Labor & efficiency ================= -->
+  {{ section('efficiency', 'bi-speedometer2', 'Labor & Efficiency',
+             'Man-hours and payroll per case produced, from daily production logs.') }}
+  <div class="row">
+    {{ tile('Man-Hours / Case', num(efficiency_summary.man_hours_per_case, 3),
+            num(efficiency_summary.labor_hours, 1) ~ ' hrs over ' ~ num(efficiency_summary.cases) ~ ' cases') }}
+    {{ tile('Payroll / Case', money(efficiency_summary.cost_per_case),
+            money(efficiency_summary.labor_cost) ~ ' total payroll') }}
+    {{ tile('Labor % of Sales', ratio_pct(efficiency_summary.labor_ratio),
+            money(efficiency_summary.sales) ~ ' in sales') }}
+    {{ tile('Sales / Man-Hour', money(efficiency_summary.sales_per_man_hour),
+            efficiency_summary.days ~ ' days logged') }}
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Daily Efficiency</h5>
+      <small class="text-muted">Ratios show a dash when their denominator is zero — a day with hours but no cases has no cost per case, not a cost per case of zero.</small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th>Date</th><th class="text-right">Cases</th><th class="text-right">Labor Hours</th>
+            <th class="text-right">Hrs / Case</th><th class="text-right">Cases / Hr</th>
+            <th class="text-right">Payroll</th><th class="text-right">$ / Case</th>
+            <th class="text-right">Sales</th><th class="text-right">Labor %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in efficiency_trend %}
           <tr>
             <td>{{ row.date.strftime('%Y-%m-%d (%a)') }}</td>
-            <td class="text-right">${{ "%.2f"|format(row.revenue) }}</td>
-            <td class="text-right">{{ "%.0f"|format(row.quantity) }}</td>
+            <td class="text-right">{{ num(row.cases) }}</td>
+            <td class="text-right">{{ num(row.labor_hours, 1) }}</td>
+            <td class="text-right">{{ num(row.man_hours_per_case, 3) }}</td>
+            <td class="text-right">{{ num(row.cases_per_man_hour, 2) }}</td>
+            <td class="text-right">{{ money(row.labor_cost) }}</td>
+            <td class="text-right">{{ money(row.cost_per_case) }}</td>
+            <td class="text-right">{{ money(row.sales) }}</td>
+            <td class="text-right">{{ ratio_pct(row.labor_ratio) }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="3" class="text-muted">No data available</td></tr>
+          <tr><td colspan="9" class="text-muted">No daily production logs in this range.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Top Customers -->
-  <div class="card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Top Customers by Revenue</h5>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-sm table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Rank</th>
-            <th>Customer</th>
-            <th class="text-right">Revenue</th>
-            <th class="text-right">% of Total</th>
-            <th class="text-right">Quantity</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% set total_customer_revenue = period_totals.revenue %}
-          {% for customer_id, name, revenue in top_customers %}
-          <tr>
-            <td><strong>#{{ loop.index }}</strong></td>
-            <td>
-              {% if customer_id %}
-                <a href="{{ url_for('main.customer_detail', customer_id=customer_id) }}" class="text-decoration-none">{{ name }}</a>
-              {% else %}
-                {{ name }}
-              {% endif %}
-            </td>
-            <td class="text-right">${{ "%.2f"|format(revenue) }}</td>
-            <td class="text-right">{{ "%.1f"|format((revenue / total_customer_revenue * 100) if total_customer_revenue > 0 else 0) }}%</td>
-            <td class="text-right">-</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-muted">No customer data</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <!-- ================= Receiving & suppliers ================= -->
+  {{ section('receiving', 'bi-truck', 'Receiving & Suppliers',
+             'Inbound spend, cost per unit, and where the money goes.') }}
+  <div class="row">
+    {{ tile('Inbound Spend', money(receiving_summary.total_cost),
+            receiving_summary.delivery_count ~ ' deliveries') }}
+    {{ tile('Units Received', num(receiving_summary.quantity),
+            money(receiving_summary.cost_per_unit) ~ ' per unit') }}
+    {{ tile('Suppliers', receiving_summary.supplier_count,
+            receiving_summary.raw_product_count ~ ' raw products') }}
+    {{ tile('Receiving Days', receiving_summary.days, 'days with deliveries') }}
   </div>
 
-  <!-- Top Items -->
   <div class="card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Top Items by Sales Volume</h5>
-    </div>
+    <div class="card-header bg-light"><h5 class="mb-0">Daily Inbound Spend</h5></div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Rank</th>
-            <th>Item</th>
-            <th class="text-right">Quantity</th>
-            <th class="text-right">% of Total</th>
-            <th class="text-right">Revenue</th>
-            <th class="text-right">Avg Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% set total_items_qty = period_totals.quantity %}
-          {% for item_id, name, quantity, revenue in top_items %}
-          <tr>
-            <td><strong>#{{ loop.index }}</strong></td>
-            <td>
-              {% if item_id %}
-                <a href="{{ url_for('main.view_item', item_id=item_id) }}" class="text-decoration-none">{{ name }}</a>
-              {% else %}
-                {{ name }}
-              {% endif %}
-            </td>
-            <td class="text-right">{{ "%.0f"|format(quantity) }}</td>
-            <td class="text-right">{{ "%.1f"|format((quantity / total_items_qty * 100) if total_items_qty > 0 else 0) }}%</td>
-            <td class="text-right">${{ "%.2f"|format(revenue) }}</td>
-            <td class="text-right">
-              {% if quantity > 0 %}
-                ${{ "%.2f"|format(revenue / quantity) }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="6" class="text-muted">No item data</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Receiving Costs -->
-  <div class="card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Daily Receiving Costs</h5>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-sm table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th class="text-right">Total Cost</th>
-            <th class="text-right">Quantity</th>
-            <th class="text-right">Cost per Unit</th>
-          </tr>
+        <thead class="thead-light">
+          <tr><th>Date</th><th class="text-right">Total Cost</th><th class="text-right">Quantity</th><th class="text-right">Cost per Unit</th></tr>
         </thead>
         <tbody>
           {% for row in receiving_costs %}
           <tr>
             <td>{{ row.date.strftime('%Y-%m-%d (%a)') }}</td>
-            <td class="text-right">${{ "%.2f"|format(row.total_cost) }}</td>
-            <td class="text-right">{{ "%.0f"|format(row.quantity) }}</td>
-            <td class="text-right">
-              {% if row.quantity > 0 %}
-                ${{ "%.2f"|format(row.total_cost / row.quantity) }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
+            <td class="text-right">{{ money(row.total_cost) }}</td>
+            <td class="text-right">{{ num(row.quantity) }}</td>
+            <td class="text-right">{{ money(row.cost_per_unit) }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="4" class="text-muted">No receiving data</td></tr>
+          <tr><td colspan="4" class="text-muted">No receiving logs in this range.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Links -->
   <div class="row mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-          <h5>Related Pages</h5>
-          <div class="btn-group" role="group">
-            <a href="{{ url_for('dashboard.analytics_dashboard') }}" class="btn btn-outline-primary">
-              <i class="bi bi-graph-up"></i> Dashboard
-            </a>
-            <a href="{{ url_for('insights.data_insights') }}" class="btn btn-outline-primary">
-              <i class="bi bi-exclamation-triangle"></i> Anomalies
-            </a>
-          </div>
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light"><h5 class="mb-0">Suppliers by Spend</h5></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>Supplier</th><th class="text-right">Deliveries</th><th class="text-right">Spend</th><th class="text-right">$ / Unit</th></tr>
+            </thead>
+            <tbody>
+              {% for row in suppliers %}
+              <tr>
+                <td>{{ row.name }}</td>
+                <td class="text-right">{{ row.delivery_count }}</td>
+                <td class="text-right">{{ money(row.total_cost) }}</td>
+                <td class="text-right">{{ money(row.cost_per_unit) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-muted">No supplier spend in this range.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light"><h5 class="mb-0">Cost per Unit by Raw Product</h5></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>Raw Product</th><th class="text-right">Units</th><th class="text-right">Spend</th><th class="text-right">$ / Unit</th></tr>
+            </thead>
+            <tbody>
+              {% for row in raw_product_costs %}
+              <tr>
+                <td>{{ row.name }}</td>
+                <td class="text-right">{{ num(row.quantity) }}</td>
+                <td class="text-right">{{ money(row.total_cost) }}</td>
+                <td class="text-right">{{ money(row.cost_per_unit) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-muted">No raw product costs in this range.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Inventory ================= -->
+  {{ section('inventory', 'bi-box-seam', 'Inventory',
+             'Current on-hand levels and movement between counts.') }}
+  <div class="row">
+    {{ tile('Units On Hand', num(inventory_summary.total_units),
+            inventory_summary.items_counted ~ ' items counted') }}
+    {{ tile('Stale Counts', inventory_summary.stale_count, 'not counted in 30+ days') }}
+    {{ tile('At Zero', inventory_summary.zero_count, 'items counted at zero') }}
+    {{ tile('Last Count', day(inventory_summary.last_count_date),
+            inventory_summary.negative_count ~ ' negative counts') }}
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light"><h5 class="mb-0">Current Levels</h5></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>Item</th><th class="text-right">On Hand</th><th class="text-right">Counted</th></tr>
+            </thead>
+            <tbody>
+              {% for row in inventory_levels %}
+              <tr>
+                <td>
+                  {% if row.item_id %}
+                    <a href="{{ url_for('main.view_item', item_id=row.item_id) }}">{{ row.name }}</a>
+                  {% else %}{{ row.name }}{% endif %}
+                </td>
+                <td class="text-right">{{ num(row.quantity) }}</td>
+                <td class="text-right">{{ day(row.count_date) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3" class="text-muted">No inventory counts recorded.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Count-to-Count Movement</h5>
+          <small class="text-muted">Items with only one count in range are not listed — there is nothing to compare.</small>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>Item</th><th class="text-right">Previous</th><th class="text-right">Current</th><th class="text-right">Change</th></tr>
+            </thead>
+            <tbody>
+              {% for row in inventory_movement %}
+              <tr>
+                <td>{{ row.name }}</td>
+                <td class="text-right">{{ num(row.previous_quantity) }} <small class="text-muted">{{ day(row.previous_date) }}</small></td>
+                <td class="text-right">{{ num(row.current_quantity) }} <small class="text-muted">{{ day(row.current_date) }}</small></td>
+                <td class="text-right">
+                  {% if row.change >= 0 %}+{% endif %}{{ num(row.change) }}
+                  {% if row.change_pct is not none %}
+                    <small class="text-muted">({% if row.change_pct >= 0 %}+{% endif %}{{ pct(row.change_pct, 0) }})</small>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-muted">Needs at least two counts of the same item in this range.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Sales & customers ================= -->
+  {{ section('sales', 'bi-cash-coin', 'Sales & Customers',
+             'Revenue over time and customer concentration.') }}
+  <div class="row">
+    {{ tile('Total Revenue', money(sales_summary.revenue),
+            money(sales_summary.avg_daily_revenue) ~ ' per day average') }}
+    {{ tile('Total Quantity', num(sales_summary.quantity), 'units sold') }}
+    {{ tile('Avg Unit Price', money(sales_summary.avg_unit_price), 'revenue / units') }}
+    {{ tile('Days With Sales', sales_summary.days, 'data points') }}
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header bg-light"><h5 class="mb-0">Daily Revenue</h5></div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="thead-light">
+          <tr><th>Date</th><th class="text-right">Revenue</th><th class="text-right">Quantity</th></tr>
+        </thead>
+        <tbody>
+          {% for row in revenue_trend %}
+          <tr>
+            <td>{{ row.date.strftime('%Y-%m-%d (%a)') }}</td>
+            <td class="text-right">{{ money(row.revenue) }}</td>
+            <td class="text-right">{{ num(row.quantity) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="text-muted">No sales records in this range.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light"><h5 class="mb-0">Top Customers by Revenue</h5></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>#</th><th>Customer</th><th class="text-right">Revenue</th><th class="text-right">% of Total</th></tr>
+            </thead>
+            <tbody>
+              {% set total_customer_revenue = period_totals.revenue %}
+              {% for customer_id, name, revenue in top_customers %}
+              <tr>
+                <td><strong>{{ loop.index }}</strong></td>
+                <td>
+                  {% if customer_id %}
+                    <a href="{{ url_for('main.customer_detail', customer_id=customer_id) }}">{{ name }}</a>
+                  {% else %}{{ name }}{% endif %}
+                </td>
+                <td class="text-right">{{ money(revenue) }}</td>
+                <td class="text-right">{{ pct((revenue / total_customer_revenue * 100) if total_customer_revenue > 0 else 0) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-muted">No customer sales in this range.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Top Items by Sales Volume</h5>
+          <small class="text-muted">Empty until sales records store an item, rather than an item designation.</small>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>#</th><th>Item</th><th class="text-right">Quantity</th><th class="text-right">Revenue</th><th class="text-right">Avg Price</th></tr>
+            </thead>
+            <tbody>
+              {% for item_id, name, quantity, revenue in top_items %}
+              <tr>
+                <td><strong>{{ loop.index }}</strong></td>
+                <td>
+                  {% if item_id %}
+                    <a href="{{ url_for('main.view_item', item_id=item_id) }}">{{ name }}</a>
+                  {% else %}{{ name }}{% endif %}
+                </td>
+                <td class="text-right">{{ num(quantity) }}</td>
+                <td class="text-right">{{ money(revenue) }}</td>
+                <td class="text-right">{% if quantity > 0 %}{{ money(revenue / quantity) }}{% else %}—{% endif %}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-muted">No item-level sales data available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Data coverage ================= -->
+  <div class="card mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Data Coverage</h5>
+      <small class="text-muted">An area with no records is wired up but has nothing recorded yet — the usual reason a section above is empty.</small>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="thead-light">
+          <tr><th>Area</th><th>Covers</th><th class="text-right">Records</th><th>First</th><th>Latest</th></tr>
+        </thead>
+        <tbody>
+          {% for row in data_health %}
+          <tr>
+            <td><i class="bi {{ row.icon }}"></i> {{ row.label }}</td>
+            <td class="text-muted">{{ row.blurb }}</td>
+            <td class="text-right">{{ row.fact_count }}</td>
+            <td>{{ day(row.first_date) }}</td>
+            <td>{% if row.last_date %}{{ day(row.last_date) }}{% else %}<span class="text-muted">no data yet</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="btn-group" role="group">
+        <a href="{{ url_for('dashboard.analytics_dashboard') }}" class="btn btn-outline-primary">
+          <i class="bi bi-graph-up"></i> Dashboard
+        </a>
+        <a href="{{ url_for('insights.data_insights') }}" class="btn btn-outline-primary">
+          <i class="bi bi-exclamation-triangle"></i> Anomalies
+        </a>
       </div>
     </div>
   </div>

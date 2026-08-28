@@ -232,9 +232,10 @@ def test_detector_process_price_history_creates_notifications(app):
         db.session.add(ph)
         db.session.commit()
 
-        detector = AnomalyDetector(db, company_id=company.id)
-        detector.process_price_history()
-        db.session.commit()
+        # PriceHistoryDetector replaced the old process_price_history method.
+        from scripts.anomaly_detector import PriceHistoryDetector
+        AnomalyDetector(db, company_id=company.id,
+                        detectors=(PriceHistoryDetector,)).run()
 
         # Should have notification
         anomalies = Anomaly.query.filter_by(entity_id=1).all()

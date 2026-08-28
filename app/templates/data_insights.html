@@ -15,6 +15,23 @@
     </form>
   </div>
 
+  <!-- Area filter. Server-side (the query filters by domain), unlike the
+       status filter below which just shows/hides already-loaded cards. -->
+  <div class="mb-3">
+    <small class="text-muted d-block mb-1">Business area</small>
+    <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Filter by business area">
+      <a class="btn btn-outline-dark {% if not selected_domain %}active{% endif %}"
+         href="{{ url_for('insights.data_insights') }}">All areas</a>
+      {% for domain in domains %}
+        <a class="btn btn-outline-dark {% if selected_domain == domain.key %}active{% endif %}"
+           href="{{ url_for('insights.data_insights', domain=domain.key) }}">
+          <i class="bi {{ domain.icon }}"></i> {{ domain.label }}
+          <span class="badge badge-light">{{ domain_counts.get(domain.key, 0) }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
   <!-- Status Filter Buttons -->
   <div class="mb-3" id="status-filters">
     <button class="btn btn-outline-primary active" data-filter="all">
@@ -41,8 +58,10 @@
             <div class="d-flex align-items-center gap-2">
               <h5 class="card-title mb-0">
                 {% set meta = entity_map.get(a.entity_type, {}).get(a.entity_id) if entity_map else None %}
-                {% if meta %}
+                {% if meta and meta.url %}
                   <a href="{{ meta.url }}" class="text-decoration-none">{{ meta.label }}</a>
+                {% elif meta %}
+                  <span>{{ meta.label }}</span>
                 {% else %}
                   <span>{{ a.entity_type }} #{{ a.entity_id }}</span>
                 {% endif %}
@@ -65,6 +84,7 @@
               {% endif %}
             </div>
             <small class="text-muted d-block mt-1">
+              {% if a.domain %}<span class="badge badge-secondary">{{ domain_labels.get(a.domain, a.domain) }}</span> | {% endif %}
               {{ a.metric }} | Rule: {{ a.rule_triggered or 'statistical' }} |
               Impact: ${{ '%.2f'|format(a.dollar_impact or 0) }} |
               Detected: {{ a.detected_at.strftime('%Y-%m-%d %H:%M') }}

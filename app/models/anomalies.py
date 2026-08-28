@@ -63,6 +63,10 @@ class Anomaly(db.Model):
     """Detected anomaly record."""
     __tablename__ = 'anomaly'
     id = db.Column(db.Integer, primary_key=True)
+    # Which business area this anomaly belongs to; see services.analytics_domains.
+    # Nullable so rows detected before domains existed still load.
+    domain = db.Column(db.String(32), nullable=True, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True, index=True)
     entity_type = db.Column(db.String(100), nullable=False, index=True)
     entity_id = db.Column(db.Integer, nullable=False, index=True)
     metric = db.Column(db.String(100), nullable=False)

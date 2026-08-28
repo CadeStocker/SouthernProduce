@@ -17,7 +17,9 @@ def test_dashboard_loads_when_logged_in(client, logged_in_user, app):
         rv = client.get('/dashboard')
         assert rv.status_code == 200
         assert b'Analytics Dashboard' in rv.data
-        assert b'Today\'s Revenue' in rv.data or b"Today" in rv.data
+        # The dashboard covers every domain, not just sales.
+        for section in (b'Pricing', b'Efficiency', b'Receiving', b'Inventory', b'Sales'):
+            assert section in rv.data
 
 
 def test_dashboard_displays_kpi_cards(client, logged_in_user, app):

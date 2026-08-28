@@ -107,12 +107,19 @@ def record_inventory_snapshot(inventory_count):
 
 
 def record_labor_summary(daily_log):
+    """Fact for one day of labor.
+
+    ``quantity`` carries the case count for the day so efficiency ratios
+    (man-hours per case, payroll per case) can be computed from facts alone
+    without rejoining DailyLog.
+    """
     return _upsert_fact(
         fact_type='labor',
         company_id=daily_log.company_id,
         source_table='daily_log',
         source_id=daily_log.id,
         date=daily_log.date,
+        quantity=daily_log.items or 0,
         revenue=daily_log.sales,
         cost=daily_log.payroll_cost,
         labor_hours=daily_log.labor_hours,
